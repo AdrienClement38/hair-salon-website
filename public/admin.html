@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin - La Base Coiffure</title>
+    <link href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #D4AF37;
+            --dark: #1A1A1A;
+            --light: #f4f4f4;
+        }
+
+        body {
+            font-family: 'Lato', sans-serif;
+            margin: 0;
+            background: var(--light);
+            color: var(--dark);
+        }
+
+        .login-wrapper {
+            display: flex;
+            height: 100vh;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .login-box {
+            background: white;
+            padding: 2rem;
+            border-radius: 8px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+            width: 300px;
+        }
+
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 0.5rem;
+        }
+
+        input {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 10px;
+            background: var(--dark);
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .btn:hover {
+            background: #333;
+        }
+
+        /* Dashboard */
+        .dashboard {
+            display: none;
+            padding: 2rem;
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 2rem;
+            border-bottom: 1px solid #ccc;
+            padding-bottom: 0.5rem;
+        }
+
+        .tab-btn {
+            padding: 0.5rem 1rem;
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 1rem;
+            opacity: 0.6;
+        }
+
+        .tab-btn.active {
+            opacity: 1;
+            border-bottom: 2px solid var(--primary);
+            font-weight: bold;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        th,
+        td {
+            padding: 1rem;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+        }
+
+        th {
+            background: var(--dark);
+            color: white;
+        }
+
+        .btn-action {
+            padding: 6px 12px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            font-weight: bold;
+            margin-right: 5px;
+        }
+
+        .btn-delete {
+            background: #e74c3c;
+            color: white;
+        }
+
+        .btn-delete:hover {
+            background: #c0392b;
+        }
+
+        .btn-edit {
+            background: var(--primary);
+            color: white;
+        }
+
+        .btn-edit:hover {
+            opacity: 0.9;
+        }
+
+        .settings-form {
+            background: white;
+            padding: 2rem;
+            border-radius: 8px;
+        }
+
+        .checkbox-group {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+            margin-bottom: 1rem;
+        }
+
+        /* Grouping Headers */
+        .date-header {
+            background: #eee;
+            padding: 10px;
+            font-weight: bold;
+            margin-top: 20px;
+            border-radius: 4px;
+        }
+
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100vh;
+            background: rgba(0, 0, 0, 0.5);
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 2rem;
+            border-radius: 8px;
+            width: 300px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div id="login-view" class="login-wrapper">
+        <div class="login-box">
+            <h2 style="text-align: center;">Admin Panel</h2>
+            <form id="login-form">
+                <div class="form-group">
+                    <label>Utilisateur</label>
+                    <input type="text" id="username" required>
+                </div>
+                <div class="form-group">
+                    <label>Mot de passe</label>
+                    <input type="password" id="password" required>
+                </div>
+                <button type="submit" class="btn">Se connecter</button>
+                <p id="login-error" style="color: red; display: none;">Identifiants incorrects</p>
+            </form>
+        </div>
+    </div>
+
+    <div id="dashboard-view" class="dashboard">
+        <header>
+            <h1>Tableau de Bord</h1>
+            <button onclick="logout()" class="btn" style="width: auto;">Déconnexion</button>
+        </header>
+
+        <div class="tabs">
+            <button class="tab-btn active" onclick="switchTab('appointments')">Rendez-vous</button>
+            <button class="tab-btn" onclick="switchTab('settings')">Configuration</button>
+            <button class="tab-btn" onclick="switchTab('photos')">Photos</button>
+        </div>
+
+        <!-- Appointments Tab -->
+        <div id="tab-appointments" class="tab-content active">
+            <div id="appointments-container">
+                <!-- Dynamic grouped content will go here -->
+            </div>
+        </div>
+
+        <!-- Settings Tab -->
+        <div id="tab-settings" class="tab-content">
+            <div class="settings-form">
+                <h3>Horaires d'ouverture</h3>
+                <div class="form-group">
+                    <label>Heure d'ouverture</label>
+                    <input type="time" id="open-time">
+                </div>
+                <div class="form-group">
+                    <label>Heure de fermeture</label>
+                    <input type="time" id="close-time">
+                </div>
+                <div class="form-group">
+                    <label>Jours Fermés</label>
+                    <div class="checkbox-group">
+                        <label><input type="checkbox" name="closed" value="1"> Lun</label>
+                        <label><input type="checkbox" name="closed" value="2"> Mar</label>
+                        <label><input type="checkbox" name="closed" value="3"> Mer</label>
+                        <label><input type="checkbox" name="closed" value="4"> Jeu</label>
+                        <label><input type="checkbox" name="closed" value="5"> Ven</label>
+                        <label><input type="checkbox" name="closed" value="6"> Sam</label>
+                        <label><input type="checkbox" name="closed" value="0"> Dim</label>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Congés (Ex: 2025-12-25, séparés par virgule)</label>
+                    <input type="text" id="holidays" placeholder="YYYY-MM-DD, YYYY-MM-DD">
+                </div>
+                <button class="btn" onclick="saveSettings()">Enregistrer Configuration</button>
+            </div>
+        </div>
+
+        <!-- Photos Tab -->
+        <div id="tab-photos" class="tab-content">
+            <div class="settings-form">
+                <h3>Gestion des Images</h3>
+                <p>Remplacez les images existantes. Le nom doit correspondre.</p>
+
+                <div class="form-group">
+                    <label>Image d'Accueil (hero-bg.jpg)</label>
+                    <form id="upload-hero">
+                        <input type="file" name="hero-bg" accept="image/*" required>
+                        <button type="submit" class="btn" style="margin-top: 5px;">Mettre à jour</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Modal -->
+    <div id="edit-modal" class="modal">
+        <div class="modal-content">
+            <h3>Modifier l'heure</h3>
+            <p>Modification pour le RDV de <strong id="edit-client-name"></strong> le <span
+                    id="edit-date-display"></span>.</p>
+            <input type="hidden" id="edit-id">
+            <div class="form-group">
+                <label>Nouvelle Heure</label>
+                <input type="time" id="edit-time" step="3600"> <!-- Step 1 hour -->
+            </div>
+            <button class="btn" onclick="saveEdit()">Enregistrer</button>
+            <button class="btn" onclick="closeEdit()" style="background: #ccc; margin-top: 10px;">Annuler</button>
+        </div>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="admin.js"></script>
+</body>
+
+</html>

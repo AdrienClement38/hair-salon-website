@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>La Base Coiffure - Salon de Coiffure Premium</title>
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Lato:wght@300;400;700&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+    <!-- Header -->
+    <header class="header">
+        <div class="container">
+            <a href="#" class="logo">La Base Coiffure</a>
+            <nav class="nav">
+                <ul class="nav-list">
+                    <li><a href="#presentation">Le Salon</a></li>
+                    <li><a href="#services">Services</a></li>
+                    <li><a href="#booking" class="btn btn-primary">Prendre RDV</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="hero-content">
+            <h1>L'Art de la Coupe</h1>
+            <p>Une expérience unique pour une coiffure d'exception.</p>
+            <a href="#booking" class="btn btn-gold">Réserver maintenant</a>
+        </div>
+    </section>
+
+    <!-- Presentation Section -->
+    <section id="presentation" class="section">
+        <div class="container grid-2">
+            <div class="text-content">
+                <h2>Notre Philosophie</h2>
+                <p>Bienvenue à <strong>La Base Coiffure</strong>. Situé au cœur de la ville, notre salon est un
+                    sanctuaire dédié à la beauté et au bien-être.</p>
+                <p>Nos experts coiffeurs-visagistes vous accueillent dans un cadre chaleureux et luxueux pour sublimer
+                    votre style. Nous n'utilisons que des produits de la plus haute qualité.</p>
+            </div>
+            <div class="image-content">
+                <!-- Placeholder for Salon Interior -->
+                <div class="img-placeholder">Salon Interior</div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Services Section -->
+    <section id="services" class="section bg-dark">
+        <div class="container">
+            <h2 class="text-center text-gold">Nos Prestations</h2>
+            <div class="grid-3">
+                <div class="card">
+                    <div class="card-icon">✂️</div>
+                    <h3>Coupe & Styling</h3>
+                    <p>Pour homme et femme, une coupe adaptée à votre visage.</p>
+                </div>
+                <div class="card">
+                    <div class="card-icon">🎨</div>
+                    <h3>Coloration</h3>
+                    <p>Balayage, mèches, et couleurs vibrantes.</p>
+                </div>
+                <div class="card">
+                    <div class="card-icon">✨</div>
+                    <h3>Soins</h3>
+                    <p>Des soins profonds pour redonner vie à vos cheveux.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Booking Section -->
+    <section id="booking" class="section">
+        <div class="container">
+            <h2 class="text-center">Prendre Rendez-vous</h2>
+            <div class="booking-wrapper">
+                <form id="booking-form" class="booking-form">
+                    <div class="form-group">
+                        <label for="name">Votre Nom</label>
+                        <input type="text" id="name" required placeholder="Jean Dupont">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="phone">Téléphone</label>
+                        <input type="tel" id="phone" required placeholder="06 12 34 56 78">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="service">Service</label>
+                        <select id="service" required>
+                            <option value="coupe_homme">Coupe Homme - 25€</option>
+                            <option value="coupe_femme">Coupe Femme - 45€</option>
+                            <option value="coloration">Coloration - 60€</option>
+                            <option value="soin">Soin Complet - 30€</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="date">Date</label>
+                        <input type="date" id="date" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Créneaux Disponibles</label>
+                        <div id="slots-container" class="slots-grid">
+                            <p class="text-muted">Sélectionnez une date pour voir les créneaux.</p>
+                        </div>
+                        <input type="hidden" id="selected-time" required>
+                    </div>
+
+                    <button type="submit" class="btn btn-gold full-width">Confirmer le RDV</button>
+                    <p id="form-message" class="message"></p>
+                </form>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container text-center">
+            <p>&copy; 2025 La Base Coiffure. Tous droits réservés.</p>
+            <p>12 Rue de la Mode, 75001 Paris | 01 23 45 67 89</p>
+        </div>
+    </footer>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="script.js"></script>
+</body>
+
+</html>

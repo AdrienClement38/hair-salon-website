@@ -95,67 +95,231 @@ socket.on('settings_updated', () => {
 });
 
 // Data Loading
+// Data Loading
 async function loadDashboard() {
-    loadAppointments();
-    loadSettings();
+    await loadSettings(); // Need settings for closing time
+    await loadAppointments();
+    autoOpenDayDetails();
+}
+
+let currentCalendarDate = new Date();
+let appointmentsCache = [];
+let salonClosingTime = '19:00'; // Default
+
+function autoOpenDayDetails() {
+    const now = new Date();
+    // Get closing time from variable (populated by loadSettings)
+    const [closeHour, closeMinute] = salonClosingTime.split(':').map(Number);
+
+    const closingDate = new Date();
+    closingDate.setHours(closeHour, closeMinute, 0, 0);
+
+    let targetDate = new Date(); // Start with today
+
+    // If now is past closing time, switch to tomorrow
+    if (now > closingDate) {
+        targetDate.setDate(targetDate.getDate() + 1);
+    }
+
+    const dateStr = targetDate.toISOString().split('T')[0];
+    const dayAppts = appointmentsCache.filter(a => a.date === dateStr);
+
+    // Auto open
+    openDayDetails(dateStr, dayAppts);
 }
 
 async function loadAppointments() {
     const res = await fetch(`${API_URL}/appointments`, { headers: getHeaders() });
-    const data = await res.json();
+    appointmentsCache = await res.json();
+    renderCalendar();
 
-    // Group by Date
-    const grouped = {};
-    data.forEach(apt => {
-        if (!grouped[apt.date]) grouped[apt.date] = [];
-        grouped[apt.date].push(apt);
-    });
+    // If details section is open, refresh it with new data
+    if (currentDetailDate && dayDetailsSection.style.display === 'block') {
+        const freshDayAppts = appointmentsCache.filter(a => a.date === currentDetailDate);
+        openDayDetails(currentDetailDate, freshDayAppts);
+    }
+}
 
-    // Render
-    appointmentsContainer.innerHTML = '';
+// Initialize Year Select
+function initYearSelect() {
+    const yearSelect = document.getElementById('calendar-year-select');
+    if (!yearSelect) return;
+    const currentYear = new Date().getFullYear();
+    yearSelect.innerHTML = '';
+    for (let y = currentYear - 2; y <= currentYear + 5; y++) {
+        const opt = document.createElement('option');
+        opt.value = y;
+        opt.textContent = y;
+        if (y === currentYear) opt.selected = true;
+        yearSelect.appendChild(opt);
+    }
+}
+// Init once on load
+document.addEventListener('DOMContentLoaded', initYearSelect);
 
-    // Sort dates ascending
-    const dates = Object.keys(grouped).sort();
+function renderCalendar() {
+    const grid = document.getElementById('calendar-days');
+    if (!grid) return; // Guard for safety
+    grid.innerHTML = '';
 
-    dates.forEach(date => {
-        const groupDiv = document.createElement('div');
+    const year = currentCalendarDate.getFullYear();
+    const month = currentCalendarDate.getMonth();
 
-        // Header
-        const header = document.createElement('div');
-        header.className = 'date-header';
-        header.textContent = `📅 ${formatDateDisplay(date)}`;
-        groupDiv.appendChild(header);
+    // Sync Selects
+    const monthSelect = document.getElementById('calendar-month-select');
+    const yearSelect = document.getElementById('calendar-year-select');
+    if (monthSelect) monthSelect.value = month;
+    if (yearSelect) {
+        if (!yearSelect.querySelector(`option[value="${year}"]`)) {
+            // Add year if missing
+            const opt = document.createElement('option');
+            opt.value = year;
+            opt.textContent = year;
+            yearSelect.appendChild(opt);
+        }
+        yearSelect.value = year;
+    }
 
-        // Table
-        const table = document.createElement('table');
-        table.innerHTML = `
-            <thead>
-                <tr>
-                    <th>Heure</th>
-                    <th>Client</th>
-                    <th>Tél</th>
-                    <th>Service</th>
-                    <th>Action</th>
-                </tr>
-            </thead>
-            <tbody>
-                ${grouped[date].map(apt => `
+    // Update Label (Label is redundant now with selects, but keeping for reference or removal)
+    // document.getElementById('current-month-label').textContent = `${monthNames[month]} ${year}`; 
+    // Actually we removed the label in HTML, so this line is safe to remove or ignore.
+
+    // Calculate dimensions
+    const firstDay = new Date(year, month, 1);
+    const lastDay = new Date(year, month + 1, 0);
+    const daysInMonth = lastDay.getDate();
+
+    // Adjust for Monday start (default Date.getDay() 0=Sun, 1=Mon...)
+    // We want 0=Mon, 6=Sun
+    let startDayIndex = firstDay.getDay() - 1;
+    if (startDayIndex === -1) startDayIndex = 6;
+
+    // Previous Month Fillers
+    for (let i = 0; i < startDayIndex; i++) {
+        const cell = document.createElement('div');
+        cell.className = 'day-cell empty';
+        grid.appendChild(cell);
+    }
+
+    // Days
+    const todayStr = new Date().toISOString().split('T')[0];
+
+    for (let day = 1; day <= daysInMonth; day++) {
+        const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+
+        // Find appointments for this day
+        const dayAppts = appointmentsCache.filter(a => a.date === dateStr);
+
+        // Check if holiday
+        let isHoliday = false;
+        if (currentHolidayRanges) {
+            const d = new Date(dateStr);
+            for (const range of currentHolidayRanges) {
+                // Ensure dates are compared correctly by setting time to 00:00:00
+                const rangeStart = new Date(range.start);
+                rangeStart.setHours(0, 0, 0, 0);
+                const rangeEnd = new Date(range.end);
+                rangeEnd.setHours(23, 59, 59, 999); // End of the day
+
+                if (d >= rangeStart && d <= rangeEnd) {
+                    isHoliday = true;
+                    break;
+                }
+            }
+        }
+
+        const cell = document.createElement('div');
+        cell.className = 'day-cell';
+        if (dateStr === todayStr) cell.classList.add('today');
+        if (isHoliday) {
+            cell.style.background = '#ffebee';
+            cell.style.borderColor = '#ffcdd2';
+        }
+
+        cell.onclick = () => openDayDetails(dateStr, dayAppts);
+
+        // Content
+        let html = `<div class="day-number">${day}</div>`;
+
+        if (isHoliday) {
+            html += `<span class="appt-badge" style="background:#e57373; color:white">Fermé</span>`;
+        } else if (dayAppts.length > 0) {
+            html += `<span class="appt-badge has-appt">${dayAppts.length} RDV</span>`;
+        } else {
+            html += `<span class="appt-badge" style="background:#ddd; color:#666">0 RDV</span>`;
+        }
+
+        cell.innerHTML = html;
+        grid.appendChild(cell);
+    }
+}
+
+function changeMonth(delta) {
+    currentCalendarDate.setMonth(currentCalendarDate.getMonth() + delta);
+    renderCalendar();
+}
+
+function jumpToDate() {
+    const m = parseInt(document.getElementById('calendar-month-select').value);
+    const y = parseInt(document.getElementById('calendar-year-select').value);
+    currentCalendarDate.setFullYear(y);
+    currentCalendarDate.setMonth(m);
+    renderCalendar();
+}
+
+// Day Details Inline Logic
+const dayDetailsSection = document.getElementById('day-details-inline');
+let currentDetailDate = null;
+
+function openDayDetails(dateStr, appointments) {
+    currentDetailDate = dateStr;
+    document.getElementById('details-date-label').textContent = `Détails du ${formatDateDisplay(dateStr)}`;
+    const listContainer = document.getElementById('day-appointments-list');
+
+    if (!appointments || appointments.length === 0) {
+        listContainer.innerHTML = '<p>Aucun rendez-vous ce jour-là.</p>';
+    } else {
+        // Sort by time
+        appointments.sort((a, b) => a.time.localeCompare(b.time));
+
+        listContainer.innerHTML = `
+            <table>
+                <thead>
                     <tr>
-                        <td>${apt.time}</td>
-                        <td>${apt.name}</td>
-                        <td>${apt.phone || '-'}</td>
-                        <td>${apt.service}</td>
-                        <td>
-                            <button class="btn-action btn-edit" onclick="openEdit(${apt.id}, '${apt.name.replace("'", "\\'")}', '${apt.date}', '${apt.time}')">Modifier</button>
-                            <button class="btn-action btn-delete" onclick="deleteApt(${apt.id})">Suppr.</button>
-                        </td>
+                        <th>Heure</th>
+                        <th>Client</th>
+                        <th>Tél</th>
+                        <th>Service</th>
+                        <th>Action</th>
                     </tr>
-                `).join('')}
-            </tbody>
+                </thead>
+                <tbody>
+                    ${appointments.map(apt => `
+                        <tr>
+                            <td>${apt.time}</td>
+                            <td>${apt.name}</td>
+                            <td>${apt.phone || '-'}</td>
+                            <td>${apt.service}</td>
+                            <td>
+                                <button class="btn-action btn-edit" onclick="openEdit(${apt.id}, '${apt.name.replace("'", "\\'")}', '${apt.date}', '${apt.time}')">Edit</button>
+                                <button class="btn-action btn-delete" onclick="deleteApt(${apt.id})">Suppr</button>
+                            </td>
+                        </tr>
+                    `).join('')}
+                </tbody>
+            </table>
         `;
-        groupDiv.appendChild(table);
-        appointmentsContainer.appendChild(groupDiv);
-    });
+    }
+
+    dayDetailsSection.style.display = 'block';
+
+    // Smooth scroll to details
+    dayDetailsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function closeDayDetails() {
+    dayDetailsSection.style.display = 'none';
+    currentDetailDate = null;
 }
 
 // Actions
@@ -212,28 +376,101 @@ async function saveEdit() {
 
 
 // Settings
+// Settings
+let currentHolidayRanges = [];
+
 async function loadSettings() {
-    const res = await fetch(`${API_URL}/settings`, { headers: getHeaders() });
-    const { openingHours, holidays } = await res.json();
+    try {
+        const res = await fetch(`${API_URL}/settings`, { headers: getHeaders() });
+        const { openingHours, holidayRanges } = await res.json();
 
-    document.getElementById('open-time').value = openingHours.start;
-    document.getElementById('close-time').value = openingHours.end;
-    document.getElementById('holidays').value = holidays.join(', ');
+        salonClosingTime = openingHours.end || '19:00'; // Update Global
+        currentHolidayRanges = Array.isArray(holidayRanges) ? holidayRanges : []; // Robust check
 
-    document.querySelectorAll('input[name="closed"]').forEach(cb => {
-        cb.checked = openingHours.closedDays.includes(parseInt(cb.value));
+        document.getElementById('open-time').value = openingHours.start;
+        document.getElementById('close-time').value = openingHours.end;
+
+        renderHolidayList();
+
+        document.querySelectorAll('input[name="closed"]').forEach(cb => {
+            cb.checked = openingHours.closedDays.includes(parseInt(cb.value));
+        });
+
+        // Refresh calendar immediately
+        loadAppointments();
+    } catch (e) {
+        console.error('Error loading settings', e);
+    }
+}
+
+function renderHolidayList() {
+    const list = document.getElementById('holiday-list');
+    list.innerHTML = '';
+
+    if (currentHolidayRanges.length === 0) {
+        list.innerHTML = '<p style="color:#666; font-style:italic;">Aucune période configurée.</p>';
+        return;
+    }
+
+    currentHolidayRanges.forEach((range, index) => {
+        const item = document.createElement('div');
+        item.style.cssText = 'display:flex; justify-content:space-between; align-items:center; background:#f4f4f4; padding:10px; margin-bottom:5px; border-radius:4px;';
+
+        item.innerHTML = `
+            <span><strong>${formatDateDisplay(range.start)}</strong> au <strong>${formatDateDisplay(range.end)}</strong></span>
+            <button onclick="removeHolidayRange(${index})" style="background:none; border:none; color:red; cursor:pointer; font-weight:bold;">Supprimer</button>
+        `;
+        list.appendChild(item);
     });
+}
+
+function addHolidayRange() {
+    const start = document.getElementById('holiday-start').value;
+    const end = document.getElementById('holiday-end').value;
+
+    if (!start || !end) return alert('Dates incomplètes');
+    if (start > end) return alert('La date de début doit être avant la fin');
+
+    currentHolidayRanges.push({ start, end });
+    currentHolidayRanges.sort((a, b) => a.start.localeCompare(b.start));
+
+    // Clear inputs
+    document.getElementById('holiday-start').value = '';
+    document.getElementById('holiday-end').value = '';
+
+    renderHolidayList();
+}
+
+function removeHolidayRange(index) {
+    if (!confirm('Supprimer cette période ?')) return;
+    currentHolidayRanges.splice(index, 1);
+    renderHolidayList();
 }
 
 async function saveSettings() {
     const start = document.getElementById('open-time').value;
     const end = document.getElementById('close-time').value;
-    const holidays = document.getElementById('holidays').value.split(',').map(s => s.trim()).filter(s => s);
     const closedDays = Array.from(document.querySelectorAll('input[name="closed"]:checked')).map(cb => parseInt(cb.value));
+
+    // Flatten Ranges to individual dates
+    const holidays = [];
+    currentHolidayRanges.forEach(range => {
+        let curr = new Date(range.start);
+        const last = new Date(range.end);
+
+        while (curr <= last) {
+            holidays.push(curr.toISOString().split('T')[0]);
+            curr.setDate(curr.getDate() + 1);
+        }
+    });
+
+    // Ensure we send the array even if empty
+    const rangesToSend = Array.isArray(currentHolidayRanges) ? currentHolidayRanges : [];
 
     const settings = {
         openingHours: { start, end, closedDays },
-        holidays
+        holidays, // Saved for backend logic compatibility
+        holidayRanges: rangesToSend // Saved for UI
     };
 
     await fetch(`${API_URL}/settings`, {
@@ -243,6 +480,7 @@ async function saveSettings() {
     });
     // Socket will trigger reload/alert elsewhere, here we just confirm
     alert('Configuration enregistrée !');
+    loadAppointments(); // Reload calendar to show holidays immediately
 }
 
 // Photos

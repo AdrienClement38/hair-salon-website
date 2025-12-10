@@ -62,6 +62,12 @@ const broadcastUpdate = (type, data) => {
 
 // API Routes
 
+// Serve Admin Page
+app.get('/admin', (req, res) => {
+    // Explicitly set root for security and reliability
+    res.sendFile('admin.html', { root: path.join(__dirname, 'public') });
+});
+
 // --- Admin Routes ---
 
 app.get('/api/admin/appointments', basicAuth, (req, res) => {
@@ -107,10 +113,11 @@ app.put('/api/admin/appointments/:id', basicAuth, (req, res) => {
 });
 
 app.post('/api/admin/settings', basicAuth, (req, res) => {
-    const { openingHours, holidays } = req.body;
+    const { openingHours, holidays, holidayRanges } = req.body;
     try {
         if (openingHours) db.setSetting('openingHours', openingHours);
         if (holidays) db.setSetting('holidays', holidays);
+        if (holidayRanges) db.setSetting('holidayRanges', holidayRanges);
         broadcastUpdate('settings_updated');
         res.json({ success: true });
     } catch (err) {
@@ -122,7 +129,8 @@ app.get('/api/admin/settings', basicAuth, (req, res) => {
     try {
         const openingHours = db.getSetting('openingHours') || { start: '09:00', end: '18:00', closedDays: [] };
         const holidays = db.getSetting('holidays') || [];
-        res.json({ openingHours, holidays });
+        const holidayRanges = db.getSetting('holidayRanges') || [];
+        res.json({ openingHours, holidays, holidayRanges });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }

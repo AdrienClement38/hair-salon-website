@@ -23,6 +23,7 @@ socket.on('settings_updated', () => {
     if (dateInput.value) {
         loadSlots(dateInput.value);
     }
+    loadSettings();
 });
 
 socket.on('content_updated', () => {
@@ -41,7 +42,7 @@ dateInput.addEventListener('change', async (e) => {
 });
 
 async function loadSlots(date) {
-    slotsContainer.innerHTML = 'Chargement...';
+    slotsContainer.innerHTML = '<p class="text-muted">Chargement...</p>';
     selectedTimeInput.value = '';
 
     try {
@@ -58,7 +59,7 @@ function renderSlots(slots) {
     slotsContainer.innerHTML = '';
 
     if (slots.length === 0) {
-        slotsContainer.innerHTML = 'Aucun créneau disponible (Fermé ou Complet).';
+        slotsContainer.innerHTML = '<p class="text-muted">Aucun créneau disponible (Fermé ou Complet).</p>';
         return;
     }
 
@@ -119,6 +120,85 @@ bookingForm.addEventListener('submit', async (e) => {
         showMessage('Erreur réseau.', 'error');
     }
 });
+
+// Initial Load
+loadSettings();
+
+async function loadSettings() {
+    try {
+        const res = await fetch('/api/settings');
+        const data = await res.json();
+        renderOpeningHours(data.openingHours);
+    } catch (err) {
+        console.error('Failed to load settings', err);
+    }
+}
+
+function renderOpeningHours(openingHours) {
+    const container = document.getElementById('opening-hours-display');
+    if (!container) return;
+
+    if (!openingHours) {
+        container.innerHTML = '';
+        return;
+    }
+
+    // Normalize to array
+    let schedule = [];
+    if (Array.isArray(openingHours)) {
+        schedule = openingHours;
+    } else {
+        // Fallback for legacy object (shouldn't happen if server migrates, but for safety)
+        const start = openingHours.start || '09:00';
+        const end = openingHours.end || '18:00';
+        const closed = openingHours.closedDays || [];
+        for (let i = 0; i < 7; i++) {
+            schedule[i] = { open: start, close: end, isOpen: !closed.includes(i) };
+        }
+    }
+
+    const dayNames = ['Dim', 'Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam'];
+    const groups = [];
+
+    // Group contiguous days (1=Mon to 0=Sun logic for grouping display?)
+    // Let's iterate 1..6 then 0.
+    const uiOrder = [1, 2, 3, 4, 5, 6, 0];
+
+    let currentGroup = null;
+
+    uiOrder.forEach(dayIdx => {
+        const dayData = schedule[dayIdx] || { isOpen: false };
+        const dayLabel = dayNames[dayIdx];
+
+        let timeStr = dayData.isOpen ? `${dayData.open}-${dayData.close}` : 'Fermé';
+
+        if (currentGroup && currentGroup.time === timeStr) {
+            currentGroup.endDay = dayLabel;
+            currentGroup.count++;
+        } else {
+            if (currentGroup) groups.push(currentGroup);
+            currentGroup = { startDay: dayLabel, endDay: dayLabel, time: timeStr, count: 1 };
+        }
+    });
+    if (currentGroup) groups.push(currentGroup);
+
+    let html = '';
+    groups.forEach(g => {
+        let label = g.startDay;
+        if (g.count > 1) {
+            // If count is 2, say "Lun, Mar". If > 2, "Lun - Mer"? 
+            // Simple logic: if count > 2 imply range?
+            // "Lun - Ven" is classic.
+            if (g.count > 2) label += ` - ${g.endDay}`;
+            else if (g.count === 2) label += `, ${g.endDay}`; // Or just separate lines?
+            // Actually, if it's contiguous in uiOrder, range notation is fine.
+        }
+
+        html += `<div><strong>${label} :</strong> ${g.time}</div>`;
+    });
+
+    container.innerHTML = html;
+}
 
 function showMessage(msg, type) {
     messageBox.textContent = msg;

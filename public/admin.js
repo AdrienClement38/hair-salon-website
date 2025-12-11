@@ -384,23 +384,94 @@ async function loadSettings() {
         const res = await fetch(`${API_URL}/settings`, { headers: getHeaders() });
         const { openingHours, holidayRanges } = await res.json();
 
-        salonClosingTime = openingHours.end || '19:00'; // Update Global
-        currentHolidayRanges = Array.isArray(holidayRanges) ? holidayRanges : []; // Robust check
+        currentHolidayRanges = Array.isArray(holidayRanges) ? holidayRanges : [];
 
-        document.getElementById('open-time').value = openingHours.start;
-        document.getElementById('close-time').value = openingHours.end;
+        // Determine format: Array (New) or Object (Old)
+        let schedule = [];
+        if (Array.isArray(openingHours)) {
+            schedule = openingHours;
+        } else {
+            // Migration from Old
+            const start = openingHours?.start || '09:00';
+            const end = openingHours?.end || '18:00';
+            const closed = openingHours?.closedDays || [];
 
+            // Generate 7 days (0=Sun, 1=Mon...)
+            for (let i = 0; i < 7; i++) {
+                schedule[i] = {
+                    open: start,
+                    close: end,
+                    isOpen: !closed.includes(i)
+                };
+            }
+        }
+
+        // Update global closing time (take generic or max? let's take today's or default)
+        // For dashboard auto-close logic, maybe just use 19:00 or try to find today's close
+        const todayIdx = new Date().getDay();
+        salonClosingTime = schedule[todayIdx]?.close || '19:00';
+
+        renderScheduleTable(schedule);
         renderHolidayList();
 
-        document.querySelectorAll('input[name="closed"]').forEach(cb => {
-            cb.checked = openingHours.closedDays.includes(parseInt(cb.value));
-        });
-
-        // Refresh calendar immediately
+        // Refresh calendar
         loadAppointments();
     } catch (e) {
         console.error('Error loading settings', e);
     }
+}
+
+function renderScheduleTable(schedule) {
+    const tbody = document.getElementById('schedule-tbody');
+    tbody.innerHTML = '';
+
+    // Days names in order 0..6 (Sun..Sat) or 1..6,0 (Mon..Sun)?
+    // JS getDay() is 0=Sun. Let's list Mon(1) -> Sun(0) for UI friendliness
+    // But data is index-based 0-6.
+
+    // UI Order: Mon, Tue, Wed, Thu, Fri, Sat, Sun
+    const uiOrder = [1, 2, 3, 4, 5, 6, 0];
+    const dayNames = ['Dimanche', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi'];
+
+    uiOrder.forEach(dayIdx => {
+        const dayData = schedule[dayIdx] || { open: '09:00', close: '18:00', isOpen: true };
+        const tr = document.createElement('tr');
+        tr.dataset.day = dayIdx; // Store index
+
+        tr.innerHTML = `
+            <td><strong>${dayNames[dayIdx]}</strong></td>
+            <td><input type="checkbox" class="sched-open" ${dayData.isOpen ? 'checked' : ''} onchange="toggleRow(this)"></td>
+            <td><input type="time" class="sched-start" value="${dayData.open}" ${!dayData.isOpen ? 'disabled' : ''}></td>
+            <td><input type="time" class="sched-end" value="${dayData.close}" ${!dayData.isOpen ? 'disabled' : ''}></td>
+        `;
+        tbody.appendChild(tr);
+    });
+}
+
+function toggleRow(checkbox) {
+    const tr = checkbox.closest('tr');
+    const inputs = tr.querySelectorAll('input[type="time"]');
+    inputs.forEach(inp => inp.disabled = !checkbox.checked);
+}
+
+function copyMondayToAll() {
+    // Find Monday row (data-day="1")
+    const tbody = document.getElementById('schedule-tbody');
+    const monRow = tbody.querySelector('tr[data-day="1"]');
+    if (!monRow) return;
+
+    const isOpen = monRow.querySelector('.sched-open').checked;
+    const start = monRow.querySelector('.sched-start').value;
+    const end = monRow.querySelector('.sched-end').value;
+
+    const rows = tbody.querySelectorAll('tr');
+    rows.forEach(tr => {
+        if (tr === monRow) return;
+        tr.querySelector('.sched-open').checked = isOpen;
+        tr.querySelector('.sched-start').value = start;
+        tr.querySelector('.sched-end').value = end;
+        toggleRow(tr.querySelector('.sched-open')); // updates disabled state
+    });
 }
 
 function renderHolidayList() {
@@ -448,9 +519,21 @@ function removeHolidayRange(index) {
 }
 
 async function saveSettings() {
-    const start = document.getElementById('open-time').value;
-    const end = document.getElementById('close-time').value;
-    const closedDays = Array.from(document.querySelectorAll('input[name="closed"]:checked')).map(cb => parseInt(cb.value));
+    // Collect Schedule
+    const schedule = []; // Array(7)
+    const tbody = document.getElementById('schedule-tbody');
+    const rows = tbody.querySelectorAll('tr');
+
+    // We need to put them back in index 0-6 order
+    // Iterate rows and place in correct index
+    rows.forEach(tr => {
+        const idx = parseInt(tr.dataset.day);
+        const isOpen = tr.querySelector('.sched-open').checked;
+        const open = tr.querySelector('.sched-start').value;
+        const close = tr.querySelector('.sched-end').value;
+
+        schedule[idx] = { isOpen, open, close };
+    });
 
     // Flatten Ranges to individual dates
     const holidays = [];
@@ -464,13 +547,12 @@ async function saveSettings() {
         }
     });
 
-    // Ensure we send the array even if empty
     const rangesToSend = Array.isArray(currentHolidayRanges) ? currentHolidayRanges : [];
 
     const settings = {
-        openingHours: { start, end, closedDays },
-        holidays, // Saved for backend logic compatibility
-        holidayRanges: rangesToSend // Saved for UI
+        openingHours: schedule, // New Array Structure
+        holidays,
+        holidayRanges: rangesToSend
     };
 
     await fetch(`${API_URL}/settings`, {
@@ -478,9 +560,9 @@ async function saveSettings() {
         headers: getHeaders(),
         body: JSON.stringify(settings)
     });
-    // Socket will trigger reload/alert elsewhere, here we just confirm
+
     alert('Configuration enregistrée !');
-    loadAppointments(); // Reload calendar to show holidays immediately
+    loadAppointments();
 }
 
 // Photos

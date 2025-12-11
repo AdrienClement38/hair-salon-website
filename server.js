@@ -146,13 +146,26 @@ app.post('/api/admin/upload', basicAuth, upload.any(), (req, res) => {
 
 // --- Public Routes ---
 
+// Public Settings Endpoint
+app.get('/api/settings', (req, res) => {
+    try {
+        const openingHours = db.getSetting('openingHours') || { start: '09:00', end: '18:00', closedDays: [] };
+        const holidays = db.getSetting('holidays') || [];
+        // We might not want to expose holidayRanges publicly if not needed, but for now just hours
+        res.json({ openingHours, holidays });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Get available slots for a date (Respects Settings)
 // Get available slots for a date (Respects Settings)
 app.get('/api/slots', (req, res) => {
     const { date } = req.query;
     if (!date) return res.status(400).json({ error: 'Date required' });
 
     // 1. Check Settings
-    const openingHours = db.getSetting('openingHours') || { start: '09:00', end: '18:00', closedDays: [] }; // Default
+    let openingHours = db.getSetting('openingHours');
     const holidays = db.getSetting('holidays') || [];
 
     // Check if Holiday
@@ -160,16 +173,35 @@ app.get('/api/slots', (req, res) => {
         return res.json([]); // No slots
     }
 
-    // Check if Closed Day (0=Sun, 1=Mon, etc)
-    const dayOfWeek = new Date(date).getDay();
-    if (openingHours.closedDays && openingHours.closedDays.includes(dayOfWeek)) {
+    const dayOfWeek = new Date(date).getDay(); // 0 is Sunday
+
+    // Normalize openingHours to new Array format if it's old object
+    let daySettings = null;
+
+    if (Array.isArray(openingHours)) {
+        daySettings = openingHours[dayOfWeek];
+    } else {
+        // Fallback or Old Format
+        openingHours = openingHours || { start: '09:00', end: '18:00', closedDays: [] };
+        const isClosed = openingHours.closedDays && openingHours.closedDays.includes(dayOfWeek);
+        daySettings = {
+            isOpen: !isClosed,
+            open: openingHours.start,
+            close: openingHours.end
+        };
+    }
+
+    if (!daySettings || !daySettings.isOpen) {
         return res.json([]); // Closed today
     }
 
-    // 2. Generate Slots based on Start/End
+    // 2. Generate Slots based on Day's Start/End
     const timeSlots = [];
-    let current = parseInt(openingHours.start.split(':')[0]);
-    const end = parseInt(openingHours.end.split(':')[0]);
+    let current = parseInt(daySettings.open.split(':')[0]);
+    const end = parseInt(daySettings.close.split(':')[0]);
+
+    // Robust check for invalid times
+    if (isNaN(current) || isNaN(end)) return res.json([]);
 
     for (let h = current; h < end; h++) {
         timeSlots.push(`${h.toString().padStart(2, '0')}:00`);

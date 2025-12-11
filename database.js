@@ -1,71 +1,189 @@
-const Database = require('better-sqlite3');
 const path = require('path');
 
-const dbPath = path.resolve(__dirname, 'salon.db');
-const db = new Database(dbPath);
+let db;
+let type; // 'sqlite' or 'pg'
 
-// Initialize DB
-db.exec(`
-  CREATE TABLE IF NOT EXISTS appointments (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    name TEXT NOT NULL,
-    date TEXT NOT NULL,
-    time TEXT NOT NULL,
-    service TEXT NOT NULL,
-    phone TEXT, 
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    UNIQUE(date, time)
-  );
+if (process.env.DATABASE_URL) {
+  // --- PostgreSQL (Production / Vercel) ---
+  type = 'pg';
+  const { Pool } = require('pg');
+  db = new Pool({
+    connectionString: process.env.DATABASE_URL,
+    ssl: { rejectUnauthorized: false } // Required for most cloud DBs
+  });
+  console.log('Using PostgreSQL Database');
+} else {
+  // --- SQLite (Local Dev) ---
+  type = 'sqlite';
+  const Database = require('better-sqlite3');
+  const dbPath = path.resolve(__dirname, 'salon.db');
+  db = new Database(dbPath);
+  console.log('Using SQLite Database (Local)');
+}
 
-  CREATE TABLE IF NOT EXISTS settings (
-    key TEXT PRIMARY KEY,
-    value TEXT NOT NULL
-  );
-`);
-
-// Appointments
-const getBookingsForDate = (date) => {
-  const stmt = db.prepare('SELECT time FROM appointments WHERE date = ?');
-  return stmt.all(date);
+// Helper to run queries
+const query = async (sql, params = []) => {
+  if (type === 'sqlite') {
+    // SQLite uses ? for params. 
+    // If params are named or different, we must ensure they match better-sqlite3 expectations.
+    // Our existing code uses ? mostly.
+    const stmt = db.prepare(sql);
+    if (sql.trim().toUpperCase().startsWith('SELECT')) {
+      return stmt.all(...params);
+    } else {
+      return stmt.run(...params);
+    }
+  } else {
+    // Postgres uses $1, $2, etc.
+    // We need to convert ? to $1, $2...
+    let paramIndex = 1;
+    const pgSql = sql.replace(/\?/g, () => `$${paramIndex++}`);
+    const res = await db.query(pgSql, params);
+    if (sql.trim().toUpperCase().startsWith('SELECT')) {
+      return res.rows;
+    } else {
+      // Return roughly what better-sqlite3 returns for insert/update
+      return { lastInsertRowid: res.rows[0]?.id || 0, changes: res.rowCount };
+    }
+  }
 };
 
-const getAllAppointments = () => {
-  const stmt = db.prepare('SELECT * FROM appointments ORDER BY date DESC, time ASC');
-  return stmt.all();
+// Helper for single row fetch
+const getOne = async (sql, params = []) => {
+  if (type === 'sqlite') {
+    const stmt = db.prepare(sql);
+    return stmt.get(...params);
+  } else {
+    let paramIndex = 1;
+    const pgSql = sql.replace(/\?/g, () => `$${paramIndex++}`);
+    const res = await db.query(pgSql, params);
+    return res.rows[0];
+  }
 };
 
-const createBooking = (name, date, time, service, phone) => {
-  const stmt = db.prepare('INSERT INTO appointments (name, date, time, service, phone) VALUES (?, ?, ?, ?, ?)');
-  return stmt.run(name, date, time, service, phone);
+// Init DB
+const initDB = async () => {
+  // We use standard SQL compatible with both where possible
+
+  // Appointments
+  const createApps = `
+      CREATE TABLE IF NOT EXISTS appointments (
+        id ${type === 'pg' ? 'SERIAL' : 'INTEGER'} PRIMARY KEY,
+        name TEXT NOT NULL,
+        date TEXT NOT NULL,
+        time TEXT NOT NULL,
+        service TEXT NOT NULL,
+        phone TEXT, 
+        created_at ${type === 'pg' ? 'TIMESTAMP DEFAULT CURRENT_TIMESTAMP' : 'DATETIME DEFAULT CURRENT_TIMESTAMP'},
+        UNIQUE(date, time)
+      );
+    `;
+
+  // Settings
+  const createSettings = `
+      CREATE TABLE IF NOT EXISTS settings (
+        key TEXT PRIMARY KEY,
+        value TEXT NOT NULL
+      );
+    `;
+
+  // Images (Table for storing images in DB)
+  const createImages = `
+      CREATE TABLE IF NOT EXISTS images (
+        id ${type === 'pg' ? 'SERIAL' : 'INTEGER'} PRIMARY KEY,
+        filename TEXT UNIQUE NOT NULL,
+        data ${type === 'pg' ? 'BYTEA' : 'BLOB'} NOT NULL,
+        mimetype TEXT NOT NULL
+      );
+    `;
+
+  if (type === 'sqlite') {
+    db.exec(createApps);
+    db.exec(createSettings);
+    db.exec(createImages);
+  } else {
+    await db.query(createApps);
+    await db.query(createSettings);
+    await db.query(createImages);
+  }
 };
 
-const deleteAppointment = (id) => {
-  const stmt = db.prepare('DELETE FROM appointments WHERE id = ?');
-  return stmt.run(id);
+// Initialize immediately (async wrapper for PG)
+(async () => { await initDB(); })();
+
+// --- Appointments ---
+
+const getBookingsForDate = async (date) => {
+  return await query('SELECT time FROM appointments WHERE date = ?', [date]);
 };
 
-const updateAppointment = (id, time) => {
-  const stmt = db.prepare('UPDATE appointments SET time = ? WHERE id = ?');
-  return stmt.run(time, id);
+const getAllAppointments = async () => {
+  return await query('SELECT * FROM appointments ORDER BY date DESC, time ASC');
 };
 
-const anonymizePastAppointments = () => {
+const createBooking = async (name, date, time, service, phone) => {
+  if (type === 'pg') {
+    // Postgres needs RETURNING id to give us the ID back
+    let paramIndex = 1;
+    const sql = 'INSERT INTO appointments (name, date, time, service, phone) VALUES ($1, $2, $3, $4, $5) RETURNING id';
+    const res = await db.query(sql, [name, date, time, service, phone]);
+    return { lastInsertRowid: res.rows[0].id };
+  } else {
+    // SQLite
+    return await query('INSERT INTO appointments (name, date, time, service, phone) VALUES (?, ?, ?, ?, ?)', [name, date, time, service, phone]);
+  }
+};
+
+const deleteAppointment = async (id) => {
+  return await query('DELETE FROM appointments WHERE id = ?', [id]);
+};
+
+const updateAppointment = async (id, time) => {
+  return await query('UPDATE appointments SET time = ? WHERE id = ?', [time, id]);
+};
+
+const anonymizePastAppointments = async () => {
   const today = new Date().toISOString().split('T')[0];
-  const stmt = db.prepare("UPDATE appointments SET phone = NULL WHERE date < ? AND phone IS NOT NULL");
-  return stmt.run(today);
+  return await query("UPDATE appointments SET phone = NULL WHERE date < ? AND phone IS NOT NULL", [today]);
 };
 
-// Settings
-const getSetting = (key) => {
-  const stmt = db.prepare('SELECT value FROM settings WHERE key = ?');
-  const row = stmt.get(key);
+// --- Settings ---
+
+const getSetting = async (key) => {
+  const row = await getOne('SELECT value FROM settings WHERE key = ?', [key]);
   return row ? JSON.parse(row.value) : null;
 };
 
-const setSetting = (key, value) => {
-  const stmt = db.prepare('INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)');
-  return stmt.run(key, JSON.stringify(value));
+const setSetting = async (key, value) => {
+  const valStr = JSON.stringify(value);
+  if (type === 'pg') {
+    // Upsert syntax for Postgres
+    const sql = `
+            INSERT INTO settings (key, value) VALUES ($1, $2)
+            ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value
+         `;
+    return await db.query(sql, [key, valStr]);
+  } else {
+    // SQLite
+    return await query('INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)', [key, valStr]);
+  }
 };
+
+// --- Images ---
+
+const saveImage = async (filename, buffer, mimetype) => {
+  if (type === 'pg') {
+    const sql = 'INSERT INTO images (filename, data, mimetype) VALUES ($1, $2, $3) RETURNING id';
+    return await db.query(sql, [filename, buffer, mimetype]);
+  } else {
+    return await query('INSERT INTO images (filename, data, mimetype) VALUES (?, ?, ?)', [filename, buffer, mimetype]);
+  }
+};
+
+const getImage = async (filename) => {
+  return await getOne('SELECT data, mimetype FROM images WHERE filename = ?', [filename]);
+};
+
 
 module.exports = {
   getBookingsForDate,
@@ -75,5 +193,7 @@ module.exports = {
   updateAppointment,
   anonymizePastAppointments,
   getSetting,
-  setSetting
+  setSetting,
+  saveImage,
+  getImage
 };

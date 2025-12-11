@@ -1,5 +1,3 @@
-const socket = io(); // Connect to Socket
-
 const dateInput = document.getElementById('date');
 const slotsContainer = document.getElementById('slots-container');
 const selectedTimeInput = document.getElementById('selected-time');
@@ -10,29 +8,39 @@ const messageBox = document.getElementById('form-message');
 const today = new Date().toISOString().split('T')[0];
 dateInput.min = today;
 
-// Real-time Listeners
-socket.on('appointment_updated', () => {
-    // Refresh slots if a date is selected
-    if (dateInput.value) {
-        loadSlots(dateInput.value);
-    }
-});
+// Polling System
+let lastDataTimestamp = 0;
 
-socket.on('settings_updated', () => {
-    // Refresh slots to reflect new hours/holidays
-    if (dateInput.value) {
-        loadSlots(dateInput.value);
-    }
-    loadSettings();
-});
+async function pollUpdates() {
+    try {
+        const res = await fetch(`/api/updates?lastTimestamp=${lastDataTimestamp}`);
+        const data = await res.json();
 
-socket.on('content_updated', () => {
-    // Reload hero image
-    // In a real app we might update more gracefully, here we can just reload the bg or do nothing until refresh
-    // For hero-bg, let's try to update it
-    const hero = document.querySelector('.hero');
-    hero.style.backgroundImage = `linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.5)), url('hero-bg.jpg?t=${new Date().getTime()}')`;
-});
+        if (data.needsUpdate) {
+            lastDataTimestamp = data.currentTimestamp;
+            console.log('Update detected, refreshing data...');
+
+            // Refresh settings
+            loadSettings();
+
+            // Refresh slots if date selected
+            if (dateInput.value) {
+                loadSlots(dateInput.value);
+            }
+
+            // Refresh Hero (if we tracked content versioning, for now just simplistic reload if needed)
+            const hero = document.querySelector('.hero');
+            if (hero) {
+                hero.style.backgroundImage = `linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.5)), url('hero-bg.jpg?t=${lastDataTimestamp}')`;
+            }
+        }
+    } catch (err) {
+        console.warn('Polling error:', err);
+    }
+}
+
+// Start Polling (5s interval)
+setInterval(pollUpdates, 5000);
 
 
 dateInput.addEventListener('change', async (e) => {
@@ -108,7 +116,10 @@ bookingForm.addEventListener('submit', async (e) => {
         const result = await res.json();
 
         if (res.ok) {
-            // No need to manually refresh slots here, the socket event will handle it!
+            // Refresh slots immediately to show it's taken
+            if (dateInput.value) loadSlots(dateInput.value);
+            // Trigger poll update manually implies we might want to update timestamp locally too, but server handles it.
+            // The poll will eventually sync, but immediate feedback is better.
             showMessage(`Rendez-vous confirmé pour le ${formatDateDisplay(date)} à ${time} !`, 'success');
             bookingForm.reset();
             slotsContainer.innerHTML = '<p class="text-muted">Sélectionnez une date pour voir les créneaux.</p>';

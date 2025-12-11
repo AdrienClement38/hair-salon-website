@@ -1,5 +1,5 @@
 const API_URL = '/api/admin';
-const socket = io();
+// Socket removed. Using Polling.
 
 // LocalStorage Persistence
 let authCreds = JSON.parse(localStorage.getItem('salon_auth'));
@@ -8,6 +8,28 @@ const loginForm = document.getElementById('login-form');
 const loginView = document.getElementById('login-view');
 const dashboardView = document.getElementById('dashboard-view');
 const appointmentsContainer = document.getElementById('appointments-container');
+
+// Polling System
+let lastDataTimestamp = 0;
+
+async function pollUpdates() {
+    if (dashboardView.style.display !== 'block') return; // Don't poll if not logged in
+
+    try {
+        const res = await fetch(`/api/updates?lastTimestamp=${lastDataTimestamp}`);
+        const data = await res.json();
+
+        if (data.needsUpdate) {
+            lastDataTimestamp = data.currentTimestamp;
+            console.log('Update detected, refreshing dashboard...');
+            loadDashboard(); // Reloads settings and appointments
+        }
+    } catch (err) {
+        console.warn('Polling error:', err);
+    }
+}
+// Start Polling (5s interval)
+setInterval(pollUpdates, 5000);
 
 // Init
 if (authCreds) {
@@ -81,18 +103,7 @@ function switchTab(tab) {
     // In a real app we'd toggle the button active class too
 }
 
-// Real-time Listeners
-socket.on('appointment_updated', () => {
-    if (dashboardView.style.display === 'block') {
-        loadAppointments();
-    }
-});
-
-socket.on('settings_updated', () => {
-    if (dashboardView.style.display === 'block') {
-        loadSettings();
-    }
-});
+// Real-time Listeners (Replaced by Polling)
 
 // Data Loading
 // Data Loading
@@ -329,7 +340,8 @@ async function deleteApt(id) {
         method: 'DELETE',
         headers: getHeaders()
     });
-    // Socket will trigger reload
+    // Manual reload
+    loadAppointments();
 }
 
 // Edit Modal
@@ -364,7 +376,8 @@ async function saveEdit() {
 
         if (res.ok) {
             closeEdit();
-            // Socket will trigger reload
+            // Manual reload
+            loadAppointments();
         } else {
             const err = await res.json();
             alert('Erreur: ' + (err.error || 'Impossible de modifier'));

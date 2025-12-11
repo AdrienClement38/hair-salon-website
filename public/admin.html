@@ -321,6 +321,24 @@
 
 <body>
 
+    <div id="setup-view" class="login-wrapper" style="display: none;">
+        <div class="login-box">
+            <h2 style="text-align: center;">Configuration Admin</h2>
+            <p style="text-align: center; color: #666;">Créez votre compte administrateur</p>
+            <form id="setup-form">
+                <div class="form-group">
+                    <label>Nouvel Utilisateur</label>
+                    <input type="text" id="setup-username" required>
+                </div>
+                <div class="form-group">
+                    <label>Mot de passe</label>
+                    <input type="password" id="setup-password" required>
+                </div>
+                <button type="submit" class="btn">Créer le compte</button>
+            </form>
+        </div>
+    </div>
+
     <div id="login-view" class="login-wrapper">
         <div class="login-box">
             <h2 style="text-align: center;">Admin Panel</h2>

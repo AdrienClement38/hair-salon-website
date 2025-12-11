@@ -67,51 +67,86 @@ const getOne = async (sql, params = []) => {
 const initDB = async () => {
   // We use standard SQL compatible with both where possible
 
-  // Appointments
-  const createApps = `
+  if (type === 'sqlite') {
+    db.exec(`
       CREATE TABLE IF NOT EXISTS appointments (
-        id ${type === 'pg' ? 'SERIAL' : 'INTEGER'} PRIMARY KEY,
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        phone TEXT,
+        service TEXT NOT NULL,
+        date TEXT NOT NULL,
+        time TEXT NOT NULL,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+    db.exec(`
+      CREATE TABLE IF NOT EXISTS settings (
+        key TEXT PRIMARY KEY,
+        value TEXT NOT NULL
+      )
+    `);
+    db.exec(`
+      CREATE TABLE IF NOT EXISTS images (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          filename TEXT UNIQUE NOT NULL,
+          data BLOB NOT NULL,
+          mimetype TEXT NOT NULL
+      )
+    `);
+    db.exec(`
+      CREATE TABLE IF NOT EXISTS admins (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          username TEXT UNIQUE NOT NULL,
+          password_hash TEXT NOT NULL
+      )
+    `);
+  } else {
+    // Postgres schema init handled by tables creation if not exists
+    await db.query(`
+      CREATE TABLE IF NOT EXISTS appointments (
+        id SERIAL PRIMARY KEY,
         name TEXT NOT NULL,
         date TEXT NOT NULL,
         time TEXT NOT NULL,
         service TEXT NOT NULL,
-        phone TEXT, 
-        created_at ${type === 'pg' ? 'TIMESTAMP DEFAULT CURRENT_TIMESTAMP' : 'DATETIME DEFAULT CURRENT_TIMESTAMP'},
+        phone TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         UNIQUE(date, time)
       );
-    `;
-
-  // Settings
-  const createSettings = `
       CREATE TABLE IF NOT EXISTS settings (
         key TEXT PRIMARY KEY,
         value TEXT NOT NULL
       );
-    `;
-
-  // Images (Table for storing images in DB)
-  const createImages = `
       CREATE TABLE IF NOT EXISTS images (
-        id ${type === 'pg' ? 'SERIAL' : 'INTEGER'} PRIMARY KEY,
+        id SERIAL PRIMARY KEY,
         filename TEXT UNIQUE NOT NULL,
-        data ${type === 'pg' ? 'BYTEA' : 'BLOB'} NOT NULL,
+        data BYTEA NOT NULL,
         mimetype TEXT NOT NULL
       );
-    `;
+      CREATE TABLE IF NOT EXISTS admins (
+        id SERIAL PRIMARY KEY,
+        username TEXT UNIQUE NOT NULL,
+        password_hash TEXT NOT NULL
+      );
+    `);
+  }
 
-  if (type === 'sqlite') {
-    db.exec(createApps);
-    db.exec(createSettings);
-    db.exec(createImages);
-  } else {
-    await db.query(createApps);
-    await db.query(createSettings);
-    await db.query(createImages);
+  // Ensure settings exist (original logic for settings table was different, adapting to new schema)
+  // The original settings table used 'key' as PK, not 'id'.
+  // The provided snippet for settings init seems to assume an 'id' column.
+  // I will adapt it to the existing 'key' based schema.
+  const openingHoursSetting = await getSetting('opening_hours');
+  if (openingHoursSetting === null) {
+    await setSetting('opening_hours', {});
+  }
+  const holidayRangesSetting = await getSetting('holiday_ranges');
+  if (holidayRangesSetting === null) {
+    await setSetting('holiday_ranges', []);
   }
 };
 
 // Initialize immediately (async wrapper for PG)
-(async () => { await initDB(); })();
+// Initialize shifted to bottom
 
 // --- Appointments ---
 
@@ -186,6 +221,29 @@ const getImage = async (filename) => {
   return await getOne('SELECT data, mimetype FROM images WHERE filename = ?', [filename]);
 };
 
+// Initialize DB after all functions are defined
+(async () => { await initDB(); })();
+
+const checkAdminExists = async () => {
+  const result = await query('SELECT COUNT(*) as count FROM admins');
+  // SQLite returns {count: N}, PG returns {count: 'N'} (or sometimes lowercase/uppercase depending on driver version, safe to parse)
+  const count = result[0]?.count || result[0]?.COUNT || 0;
+  return parseInt(count) > 0;
+};
+
+const createAdmin = async (username, passwordHash) => {
+  if (type === 'pg') {
+    const sql = 'INSERT INTO admins (username, password_hash) VALUES ($1, $2) RETURNING id';
+    return await db.query(sql, [username, passwordHash]);
+  } else {
+    return await query('INSERT INTO admins (username, password_hash) VALUES (?, ?)', [username, passwordHash]);
+  }
+};
+
+const getAdmin = async (username) => {
+  return await getOne('SELECT * FROM admins WHERE username = ?', [username]);
+};
+
 
 module.exports = {
   getBookingsForDate,
@@ -197,5 +255,8 @@ module.exports = {
   getSetting,
   setSetting,
   saveImage,
-  getImage
+  getImage,
+  checkAdminExists,
+  createAdmin,
+  getAdmin
 };

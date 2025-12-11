@@ -5,6 +5,7 @@ const path = require('path');
 const multer = require('multer');
 const http = require('http');
 const db = require('./database');
+const bcrypt = require('bcryptjs');
 
 const app = express();
 const server = http.createServer(app);
@@ -19,9 +20,12 @@ app.use(express.static(path.join(__dirname, 'public')));
 const storage = multer.memoryStorage();
 const upload = multer({ storage: storage });
 
-// Basic Auth Middleware
-const basicAuth = (req, res, next) => {
+// --- Auth Middleware ---
+// We keep the Basic Auth header pattern for simplicity in client adaptation,
+// but we validate against DB.
+const checkAuth = async (req, res, next) => {
     const authHeader = req.headers.authorization;
+
     if (!authHeader) {
         res.setHeader('WWW-Authenticate', 'Basic');
         return res.status(401).send('Authentication required');
@@ -31,13 +35,64 @@ const basicAuth = (req, res, next) => {
     const user = auth[0];
     const pass = auth[1];
 
-    if (user === 'admin' && pass === 'password123') { // Hardcoded for demo
-        next();
-    } else {
-        res.setHeader('WWW-Authenticate', 'Basic');
-        return res.status(401).send('Access denied');
+    try {
+        const admin = await db.getAdmin(user);
+        if (admin && await bcrypt.compare(pass, admin.password_hash)) {
+            next();
+        } else {
+            // Fake delay to prevent timing attacks equivalent
+            await new Promise(resolve => setTimeout(resolve, 100));
+            res.setHeader('WWW-Authenticate', 'Basic');
+            return res.status(401).send('Access denied');
+        }
+    } catch (e) {
+        console.error('Auth error:', e);
+        res.status(500).send('Internal Server Error');
     }
 };
+
+// --- Auth Routes ---
+
+// Check if setup is needed
+app.get('/api/auth/status', async (req, res) => {
+    try {
+        const exists = await db.checkAdminExists();
+        res.json({ setupRequired: !exists });
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
+// Setup Initial Admin
+app.post('/api/auth/setup', async (req, res) => {
+    try {
+        const exists = await db.checkAdminExists();
+        if (exists) {
+            return res.status(403).json({ error: 'Admin already exists' });
+        }
+
+        const { username, password } = req.body;
+        if (!username || !password) return res.status(400).json({ error: 'Missing fields' });
+
+        const hash = await bcrypt.hash(password, 10);
+        await db.createAdmin(username, hash);
+
+        res.json({ success: true });
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
+// Explicit Login (Optional check)
+app.post('/api/auth/login', async (req, res) => {
+    const { username, password } = req.body;
+    const admin = await db.getAdmin(username);
+    if (admin && await bcrypt.compare(password, admin.password_hash)) {
+        res.json({ success: true });
+    } else {
+        res.status(401).json({ error: 'Invalid credentials' });
+    }
+});
 
 // --- Polling System ---
 let lastUpdate = Date.now();
@@ -84,7 +139,7 @@ app.get('/images/:filename', async (req, res) => {
 
 // --- Admin Routes ---
 
-app.get('/api/admin/appointments', basicAuth, async (req, res) => {
+app.get('/api/admin/appointments', checkAuth, async (req, res) => {
     try {
         await db.anonymizePastAppointments();
         const appointments = await db.getAllAppointments();
@@ -94,7 +149,7 @@ app.get('/api/admin/appointments', basicAuth, async (req, res) => {
     }
 });
 
-app.delete('/api/admin/appointments/:id', basicAuth, async (req, res) => {
+app.delete('/api/admin/appointments/:id', checkAuth, async (req, res) => {
     try {
         await db.deleteAppointment(req.params.id);
         triggerUpdate();
@@ -104,7 +159,7 @@ app.delete('/api/admin/appointments/:id', basicAuth, async (req, res) => {
     }
 });
 
-app.put('/api/admin/appointments/:id', basicAuth, async (req, res) => {
+app.put('/api/admin/appointments/:id', checkAuth, async (req, res) => {
     const { time } = req.body;
     try {
         await db.updateAppointment(req.params.id, time);
@@ -119,7 +174,7 @@ app.put('/api/admin/appointments/:id', basicAuth, async (req, res) => {
     }
 });
 
-app.post('/api/admin/settings', basicAuth, async (req, res) => {
+app.post('/api/admin/settings', checkAuth, async (req, res) => {
     const { openingHours, holidays, holidayRanges } = req.body;
     try {
         if (openingHours) await db.setSetting('openingHours', openingHours);
@@ -132,7 +187,7 @@ app.post('/api/admin/settings', basicAuth, async (req, res) => {
     }
 });
 
-app.get('/api/admin/settings', basicAuth, async (req, res) => {
+app.get('/api/admin/settings', checkAuth, async (req, res) => {
     try {
         const openingHours = (await db.getSetting('openingHours')) || { start: '09:00', end: '18:00', closedDays: [] };
         const holidays = (await db.getSetting('holidays')) || [];
@@ -143,7 +198,7 @@ app.get('/api/admin/settings', basicAuth, async (req, res) => {
     }
 });
 
-app.post('/api/admin/upload', basicAuth, upload.any(), async (req, res) => {
+app.post('/api/admin/upload', checkAuth, upload.any(), async (req, res) => {
     try {
         const promises = req.files.map(file => {
             // Force filename based on fieldname

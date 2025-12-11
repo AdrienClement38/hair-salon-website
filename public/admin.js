@@ -2,12 +2,18 @@ const API_URL = '/api/admin';
 // Socket removed. Using Polling.
 
 // LocalStorage Persistence
-let authCreds = JSON.parse(localStorage.getItem('salon_auth'));
+// let authCreds = JSON.parse(localStorage.getItem('salon_auth')); // This line is removed as per the new auth system
 
 const loginForm = document.getElementById('login-form');
+const setupView = document.getElementById('setup-view');
 const loginView = document.getElementById('login-view');
 const dashboardView = document.getElementById('dashboard-view');
 const appointmentsContainer = document.getElementById('appointments-container');
+
+const setupForm = document.getElementById('setup-form');
+
+// --- Auth state ---
+let currentUser = null;
 
 // Polling System
 let lastDataTimestamp = 0;
@@ -31,17 +37,32 @@ async function pollUpdates() {
 // Start Polling (5s interval)
 setInterval(pollUpdates, 5000);
 
-// Init
-if (authCreds) {
-    verifyAuth();
-} else {
-    loginView.style.display = 'flex';
-}
+// Initial Check
+(async () => {
+    try {
+        const res = await fetch('/api/auth/status');
+        const data = await res.json();
+
+        if (data.setupRequired) {
+            setupView.style.display = 'flex';
+            loginView.style.display = 'none';
+            dashboardView.style.display = 'none';
+        } else {
+            verifyAuth();
+        }
+    } catch (e) {
+        console.error("Auth status check failed", e);
+        // Fallback to login view
+        verifyAuth();
+    }
+})();
 
 // Helpers
 function getHeaders() {
+    const auth = localStorage.getItem('auth');
+    if (!auth) return {};
     return {
-        'Authorization': 'Basic ' + btoa(authCreds.user + ':' + authCreds.pass),
+        'Authorization': 'Basic ' + auth,
         'Content-Type': 'application/json'
     };
 }
@@ -53,46 +74,93 @@ function formatDateDisplay(dateStr) {
 }
 
 async function verifyAuth() {
+    const auth = localStorage.getItem('auth');
+    if (!auth) {
+        loginView.style.display = 'flex';
+        dashboardView.style.display = 'none';
+        setupView.style.display = 'none';
+        return;
+    }
+
     try {
         const res = await fetch(`${API_URL}/appointments`, { headers: getHeaders() });
         if (res.ok) {
             loginView.style.display = 'none';
             dashboardView.style.display = 'block';
+            setupView.style.display = 'none';
             loadDashboard();
         } else {
             console.warn('Auth failed or expired');
-            localStorage.removeItem('salon_auth');
+            localStorage.removeItem('auth');
             loginView.style.display = 'flex';
+            dashboardView.style.display = 'none';
+            setupView.style.display = 'none';
         }
     } catch (err) {
         console.error(err);
+        localStorage.removeItem('auth');
+        loginView.style.display = 'flex';
+        dashboardView.style.display = 'none';
+        setupView.style.display = 'none';
     }
 }
 
 // Login
-loginForm.addEventListener('submit', async (e) => {
+// Setup Handler
+setupForm.addEventListener('submit', async (e) => {
     e.preventDefault();
-    const user = document.getElementById('username').value;
-    const pass = document.getElementById('password').value;
-    authCreds = { user, pass };
+    const username = document.getElementById('setup-username').value;
+    const password = document.getElementById('setup-password').value;
 
     try {
-        const res = await fetch(`${API_URL}/appointments`, { headers: getHeaders() });
+        const res = await fetch('/api/auth/setup', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username, password })
+        });
+
         if (res.ok) {
-            localStorage.setItem('salon_auth', JSON.stringify(authCreds));
-            loginView.style.display = 'none';
-            dashboardView.style.display = 'block';
-            loadDashboard();
+            // Auto login
+            const authString = btoa(`${username}:${password}`);
+            localStorage.setItem('auth', authString);
+            window.location.reload();
+        } else {
+            alert('Erreur lors de la création du compte');
+        }
+    } catch (e) {
+        alert('Erreur réseau');
+    }
+});
+
+// Login Handler
+// Login Handler
+loginForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const username = document.getElementById('username').value;
+    const password = document.getElementById('password').value;
+
+    try {
+        const res = await fetch('/api/auth/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username, password })
+        });
+
+        if (res.ok) {
+            const authString = btoa(`${username}:${password}`);
+            localStorage.setItem('auth', authString);
+            verifyAuth();
         } else {
             document.getElementById('login-error').style.display = 'block';
         }
-    } catch (err) {
-        console.error(err);
+    } catch (e) {
+        console.error(e);
+        document.getElementById('login-error').style.display = 'block';
     }
 });
 
 function logout() {
-    localStorage.removeItem('salon_auth');
+    localStorage.removeItem('auth');
     location.reload();
 }
 

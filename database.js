@@ -3,12 +3,14 @@ const path = require('path');
 let db;
 let type; // 'sqlite' or 'pg'
 
-if (process.env.DATABASE_URL) {
+const connectionString = process.env.DATABASE_URL || process.env.POSTGRES_URL;
+
+if (connectionString) {
   // --- PostgreSQL (Production / Vercel) ---
   type = 'pg';
   const { Pool } = require('pg');
   db = new Pool({
-    connectionString: process.env.DATABASE_URL,
+    connectionString: connectionString,
     ssl: { rejectUnauthorized: false } // Required for most cloud DBs
   });
   console.log('Using PostgreSQL Database');

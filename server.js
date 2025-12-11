@@ -262,6 +262,12 @@ app.post('/api/book', async (req, res) => {
     }
 });
 
-server.listen(port, () => {
-    console.log(`Server running at http://localhost:${port}`);
-});
+// Only start server if run directly (Local)
+if (require.main === module) {
+    server.listen(port, () => {
+        console.log(`Server running at http://localhost:${port}`);
+    });
+}
+
+// Export for Vercel
+module.exports = app;

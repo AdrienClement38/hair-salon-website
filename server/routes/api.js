@@ -8,6 +8,8 @@ const appointmentsController = require('../controllers/appointments');
 const settingsController = require('../controllers/settings');
 const updatesController = require('../controllers/updates');
 const checkAuth = require('../middleware/auth');
+const validate = require('../middleware/validate');
+const { createBookingSchema, updateBookingSchema } = require('../schemas/appointment');
 
 // Multer config
 const storage = multer.memoryStorage();
@@ -29,7 +31,7 @@ router.post('/admin/workers', checkAuth, adminsController.createWorker);
 // --- Appointments (Admin) ---
 router.get('/admin/appointments', checkAuth, appointmentsController.list);
 router.delete('/admin/appointments/:id', checkAuth, appointmentsController.delete);
-router.put('/admin/appointments/:id', checkAuth, appointmentsController.update);
+router.put('/admin/appointments/:id', checkAuth, validate(updateBookingSchema), appointmentsController.update);
 
 // --- Settings (Admin) ---
 router.post('/admin/settings', checkAuth, settingsController.update);
@@ -40,7 +42,7 @@ router.post('/admin/upload', checkAuth, upload.any(), settingsController.uploadI
 router.get('/workers', adminsController.listPublicWorkers);
 router.get('/settings', settingsController.get);
 router.get('/slots', appointmentsController.getSlots);
-router.post('/book', appointmentsController.createBooking);
+router.post('/book', validate(createBookingSchema), appointmentsController.createBooking);
 
 // --- Updates (Polling) ---
 router.get('/updates', updatesController.checkUpdates);

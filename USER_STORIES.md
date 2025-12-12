@@ -41,3 +41,5 @@ Ce document liste toutes les fonctionnalités actuellement implémentées sur le
 - **US-2.14** : En tant qu'administrateur, je veux ajouter de nouveaux membres d'équipe (autres admins/coiffeurs) pour qu'ils puissent aussi gérer le salon.
 - **US-2.15** : En tant qu'administrateur, je veux vérifier que je ne peux pas créer un utilisateur en double avec un identifiant existant.
 - **US-2.16** : En tant qu'administrateur, je veux mettre à jour mon propre profil (Nom d'affichage, Mot de passe).
+- **US-2.17** : En tant qu'administrateur, je veux définir des congés pour un coiffeur spécifique, rendant ce dernier indisponible pour les réservations sans fermer le salon.
+- **US-2.18** : En tant qu'administrateur, je veux définir des congés pour "Tous les RDV" (Fermeture globale), ce qui ferme le salon et affiche l'information sur la page d'accueil.

@@ -1,5 +1,5 @@
 import { API_URL, getHeaders, formatDateDisplay } from './config.js';
-import { currentSchedule, currentHolidayRanges, salonClosingTime } from './state.js';
+import { currentSchedule, currentLeaves, salonClosingTime } from './state.js';
 
 let appointmentsCache = [];
 let currentCalendarDate = new Date();
@@ -142,16 +142,34 @@ function renderCalendar() {
         const dayAppts = appointmentsCache.filter(a => a.date === dateStr);
 
         // Check Holidays
-        let isHoliday = false;
-        if (currentHolidayRanges) {
-            for (const range of currentHolidayRanges) {
-                const rangeStart = new Date(range.start);
-                rangeStart.setHours(0, 0, 0, 0);
-                const rangeEnd = new Date(range.end);
-                rangeEnd.setHours(23, 59, 59, 999);
-                if (dayDate >= rangeStart && dayDate <= rangeEnd) {
-                    isHoliday = true;
+        let holidayType = null; // 'global' or 'personal'
+
+        if (currentLeaves && currentLeaves.length > 0) {
+            // Prioritize Global to block everything
+            const globalLeaves = currentLeaves.filter(l => l.admin_id === null);
+            for (const leave of globalLeaves) {
+                const start = new Date(leave.start_date);
+                start.setHours(0, 0, 0, 0);
+                const end = new Date(leave.end_date);
+                end.setHours(23, 59, 59, 999);
+                if (dayDate >= start && dayDate <= end) {
+                    holidayType = 'global';
                     break;
+                }
+            }
+
+            // If not global, check personal matches (if filter is active)
+            if (!holidayType && activeFilter) {
+                const personalLeaves = currentLeaves.filter(l => l.admin_id == activeFilter);
+                for (const leave of personalLeaves) {
+                    const start = new Date(leave.start_date);
+                    start.setHours(0, 0, 0, 0);
+                    const end = new Date(leave.end_date);
+                    end.setHours(23, 59, 59, 999);
+                    if (dayDate >= start && dayDate <= end) {
+                        holidayType = 'personal';
+                        break;
+                    }
                 }
             }
         }
@@ -163,9 +181,12 @@ function renderCalendar() {
         cell.className = 'day-cell';
         if (dateStr === todayStr) cell.classList.add('today');
 
-        if (isHoliday) {
+        if (holidayType === 'global') {
             cell.style.background = '#ffebee';
             cell.style.borderColor = '#ef9a9a';
+        } else if (holidayType === 'personal') {
+            cell.style.background = '#fff3e0'; // Orange light
+            cell.style.borderColor = '#ffcc80';
         } else if (isClosedDay) {
             cell.style.background = '#f5f5f5';
         }
@@ -174,8 +195,10 @@ function renderCalendar() {
 
         let html = `<div class="day-number">${day}</div>`;
 
-        if (isHoliday) {
-            html += `<span class="appt-badge" style="background:#e57373; color:white">Congés</span>`;
+        if (holidayType === 'global') {
+            html += `<span class="appt-badge" style="background:#e57373; color:white">Fermeture</span>`;
+        } else if (holidayType === 'personal') {
+            html += `<span class="appt-badge" style="background:#ffa726; color:white">Congés</span>`;
         } else if (isClosedDay) {
             html += `<span class="appt-badge" style="background:#bdbdbd; color:white">Fermé</span>`;
         } else {

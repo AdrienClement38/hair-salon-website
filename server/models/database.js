@@ -111,56 +111,60 @@ const initDB = async () => {
       )
     `);
 
-    // Migration for SQLite: Add columns if they don't exist
-    try {
-      db.exec("ALTER TABLE appointments ADD COLUMN admin_id INTEGER");
-    } catch (e) { /* Ignore if exists */ }
-    try {
-      db.exec("ALTER TABLE admins ADD COLUMN display_name TEXT");
-    } catch (e) { /* Ignore if exists */ }
-
-  } else {
-    // Postgres schema init handled by tables creation if not exists
-    await db.query(`
-      CREATE TABLE IF NOT EXISTS appointments (
-        id SERIAL PRIMARY KEY,
-        name TEXT NOT NULL,
-        date TEXT NOT NULL,
-        time TEXT NOT NULL,
-        service TEXT NOT NULL,
-        phone TEXT,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        admin_id INTEGER,
-        UNIQUE(date, time, admin_id)
-      );
-      CREATE TABLE IF NOT EXISTS settings (
-        key TEXT PRIMARY KEY,
-        value TEXT NOT NULL
-      );
-      CREATE TABLE IF NOT EXISTS images (
-        id SERIAL PRIMARY KEY,
-        filename TEXT UNIQUE NOT NULL,
-        data BYTEA NOT NULL,
-        mimetype TEXT NOT NULL
-      );
-      CREATE TABLE IF NOT EXISTS admins (
-        id SERIAL PRIMARY KEY,
-        username TEXT UNIQUE NOT NULL,
-        password_hash TEXT NOT NULL,
-        display_name TEXT
-      );
+    db.exec(`
+      CREATE TABLE IF NOT EXISTS leaves (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          start_date TEXT NOT NULL,
+          end_date TEXT NOT NULL,
+          admin_id INTEGER,
+          note TEXT,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      )
     `);
 
-    // Migration for Postgres
+    // ... (rest of table creations)
+
+    // Migration: Move holidayRanges setting to leaves table if exists and table is empty
     try {
-      await db.query("ALTER TABLE appointments ADD COLUMN IF NOT EXISTS admin_id INTEGER");
-      // Update unique constraint? Complex in PG without dropping. 
-      // For simplicity, we assume we don't need strict DB-level unique constraint on (date, time) anymore
-      // OR we need to drop the old unique constraint and add new one.
-      // Let's rely on application logic for slot checking to avoid complex migration logic here.
-      await db.query("ALTER TABLE admins ADD COLUMN IF NOT EXISTS display_name TEXT");
-    } catch (e) { console.warn("PG Migration:", e.message); }
+      const ranges = await getSetting('holidayRanges');
+      const countRes = await query('SELECT COUNT(*) as c FROM leaves');
+      const count = countRes[0]?.c || countRes[0]?.count || 0;
+
+      if (ranges && Array.isArray(ranges) && ranges.length > 0 && count === 0) {
+        console.log('Migrating legacy holidayRanges to leaves table...');
+        for (const r of ranges) {
+          // Legacy ranges were global, so admin_id is NULL
+          if (type === 'pg') {
+            await db.query('INSERT INTO leaves (start_date, end_date, note) VALUES ($1, $2, $3)', [r.start, r.end, 'Legacy Migration']);
+          } else {
+            await query('INSERT INTO leaves (start_date, end_date, note) VALUES (?, ?, ?)', [r.start, r.end, 'Legacy Migration']);
+          }
+        }
+        // Optional: Clear legacy setting to avoid confusion, or keep as backup?
+        // Let's keep it for safety for now, or just ignore it in new logic.
+      }
+    } catch (e) {
+      console.warn("Migration error:", e);
+    }
+
+  } else {
+    // Postgres schema init
+    await db.query(`
+      CREATE TABLE IF NOT EXISTS leaves (
+        id SERIAL PRIMARY KEY,
+        start_date TEXT NOT NULL,
+        end_date TEXT NOT NULL,
+        admin_id INTEGER,
+        note TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+      // ... existing tables
+    `);
+
+    // ...
   }
+
+  // ... (rest of initDB)
 
   // Ensure settings exist (original logic for settings table was different, adapting to new schema)
   // The original settings table used 'key' as PK, not 'id'.
@@ -324,6 +328,35 @@ const updateAdminProfile = async (id, displayName) => {
 };
 
 
+// --- Leaves ---
+
+const createLeave = async (start, end, adminId = null, note = '') => {
+  if (type === 'pg') {
+    const sql = 'INSERT INTO leaves (start_date, end_date, admin_id, note) VALUES ($1, $2, $3, $4) RETURNING id';
+    const res = await db.query(sql, [start, end, adminId, note]);
+    return { lastInsertRowid: res.rows[0].id };
+  } else {
+    return await query('INSERT INTO leaves (start_date, end_date, admin_id, note) VALUES (?, ?, ?, ?)', [start, end, adminId, note]);
+  }
+};
+
+const getLeaves = async (adminId = null) => {
+  if (adminId) {
+    if (type === 'pg') return await query('SELECT * FROM leaves WHERE admin_id = $1 OR admin_id IS NULL ORDER BY start_date', [adminId]);
+    return await query('SELECT * FROM leaves WHERE admin_id = ? OR admin_id IS NULL ORDER BY start_date', [adminId]);
+  }
+  return await query('SELECT * FROM leaves WHERE admin_id IS NULL ORDER BY start_date');
+};
+
+const getAllLeaves = async () => {
+  return await query('SELECT l.*, a.username, a.display_name FROM leaves l LEFT JOIN admins a ON l.admin_id = a.id ORDER BY start_date');
+}
+
+const deleteLeave = async (id) => {
+  if (type === 'pg') return await query('DELETE FROM leaves WHERE id = $1', [id]);
+  return await query('DELETE FROM leaves WHERE id = ?', [id]);
+};
+
 module.exports = {
   getBookingsForDate,
   getAllAppointments,
@@ -342,6 +375,10 @@ module.exports = {
   getAllAdmins,
   updateAdminPassword,
   updateAdminProfile,
+  createLeave,
+  getLeaves,
+  getAllLeaves,
+  deleteLeave,
   type,
   initPromise
 };

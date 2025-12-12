@@ -22,7 +22,8 @@ exports.get = async (req, res) => {
     try {
         const openingHours = (await db.getSetting('openingHours')) || { start: '09:00', end: '18:00', closedDays: [] };
         const holidays = (await db.getSetting('holidays')) || [];
-        const holidayRanges = (await db.getSetting('holidayRanges')) || [];
+        const globalLeaves = await db.getLeaves(null);
+        const holidayRanges = globalLeaves.map(l => ({ start: l.start_date, end: l.end_date }));
         const home_content = (await db.getSetting('home_content')) || {};
         const services = (await db.getSetting('services')) || [];
         res.json({ openingHours, holidays, holidayRanges, home_content, services });

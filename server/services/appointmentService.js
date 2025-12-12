@@ -14,19 +14,18 @@ class AppointmentService {
             return [];
         }
 
-        // 2. Check Holiday Ranges
-        const holidayRanges = (await db.getSetting('holidayRanges')) || [];
-        const checkDate = new Date(date);
-        for (const range of holidayRanges) {
-            const start = new Date(range.start);
-            const end = new Date(range.end);
-            // Fix timezone issue by comparing date strings or ensuring noon? 
-            // Current login in controller was rough: checkDate >= start && checkDate <= end
-            // Ideally we should compare ISO strings yyyy-mm-dd to avoid time issues, 
-            // but relying on existing logic for now to ensure stability.
-            if (checkDate >= start && checkDate <= end) {
-                return [];
-            }
+        // 2. Check Leaves (Global + Admin Specific)
+        // If adminId is provided, we check if THAT admin is on leave.
+        // If adminId is NOT provided (e.g. general check), we only check Global leaves.
+        const leaves = await db.getLeaves(adminId);
+
+        // Simple string comparison for ISO dates (YYYY-MM-DD)
+        const isLeave = leaves.some(leave => {
+            return date >= leave.start_date && date <= leave.end_date;
+        });
+
+        if (isLeave) {
+            return [];
         }
 
         // 3. Get Opening Hours

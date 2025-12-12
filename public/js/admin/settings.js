@@ -5,14 +5,15 @@ import { loadAppointments } from './calendar.js';
 import { setSchedule, setHolidayRanges, setHomeContent, setSalonClosingTime, currentHolidayRanges, currentHomeContent } from './state.js';
 
 let currentHolidays = [];
+// Cache for leaves
+let allLeaves = [];
 
 export async function loadSettings() {
     try {
         const res = await fetch(`${API_URL}/settings`, { headers: getHeaders() });
-        const { openingHours, holidays, holidayRanges, home_content, services } = await res.json();
+        const { openingHours, holidays, home_content, services } = await res.json();
 
-        // Update State
-        setHolidayRanges(Array.isArray(holidayRanges) ? holidayRanges : []);
+        // Update State (holidayRanges is legacy, we load leaves separately)
         setHomeContent(home_content || {});
 
         let schedule = [];
@@ -24,7 +25,6 @@ export async function loadSettings() {
             const end = openingHours?.end || '18:00';
             const closed = openingHours?.closedDays || [];
 
-            // Generate 7 days (0=Sun, 1=Mon...)
             for (let i = 0; i < 7; i++) {
                 schedule[i] = {
                     open: start,
@@ -34,31 +34,153 @@ export async function loadSettings() {
             }
         }
 
-        // Update global closing time
         const todayIdx = new Date().getDay();
         setSalonClosingTime(schedule[todayIdx]?.close || '19:00');
 
         setSchedule(schedule);
 
         renderScheduleTable(schedule);
-        renderHolidayList();
+
+        // Load Leaves separate from settings now
+        await loadLeaves();
 
         // Populate Content Tab
-        // Pass services to service module
         setServicesData(services || []);
         renderServicesList();
 
-        // Populate Texts
         if (document.getElementById('content-title')) document.getElementById('content-title').value = currentHomeContent.title || '';
         if (document.getElementById('content-subtitle')) document.getElementById('content-subtitle').value = currentHomeContent.subtitle || '';
         if (document.getElementById('content-philosophy')) document.getElementById('content-philosophy').value = currentHomeContent.philosophy || '';
 
-        // Refresh calendar (it might need the updated schedule)
-        // loadAppointments is imported from calendar.js
         loadAppointments();
 
     } catch (e) {
         console.error('Error loading settings', e);
+    }
+}
+
+// --- Leaves Management ---
+
+export async function loadLeaves() {
+    try {
+        const res = await fetch(`${API_URL}/leaves`, { headers: getHeaders() });
+        allLeaves = await res.json();
+
+        // Dynamic import to avoid cycles or ensure loading
+        const State = await import('./state.js');
+        State.setLeaves(allLeaves);
+
+        renderHolidayList();
+    } catch (e) {
+        console.error("Failed to load leaves", e);
+    }
+}
+
+function renderHolidayList() {
+    const list = document.getElementById('holiday-list');
+    const filterEl = document.getElementById('admin-filter');
+    const selectedAdminId = filterEl ? filterEl.value : "";
+    const selectedAdminName = filterEl && filterEl.options[filterEl.selectedIndex] ? filterEl.options[filterEl.selectedIndex].text : "Tous les RDV";
+
+    // Update Section Title
+    const sectionTitle = document.querySelector('#leaves-section-title');
+    if (sectionTitle) {
+        if (selectedAdminId === "") {
+            sectionTitle.textContent = "Période de fermeture du salon (Global)";
+        } else {
+            sectionTitle.textContent = `Période de congés de ${selectedAdminName}`;
+        }
+    }
+
+    list.innerHTML = '';
+
+    // Filter leaves based on context
+    // If Global selected (""), show Global leaves (admin_id is null)
+    // If User selected, show User leaves (admin_id = selected)
+    const filteredLeaves = allLeaves.filter(l => {
+        if (selectedAdminId === "") return l.admin_id === null;
+        return l.admin_id == selectedAdminId;
+    });
+
+    if (filteredLeaves.length === 0) {
+        list.innerHTML = '<p style="color:#666; font-style:italic;">Aucune période configurée pour cette sélection.</p>';
+        return;
+    }
+
+    filteredLeaves.forEach((leave) => {
+        const item = document.createElement('div');
+        item.style.cssText = 'display:flex; justify-content:space-between; align-items:center; background:#f4f4f4; padding:10px; margin-bottom:5px; border-radius:4px;';
+
+        const noteDisplay = (leave.note && leave.note !== 'Legacy Migration') ? ` <small>(${leave.note})</small>` : '';
+
+        item.innerHTML = `
+            <span><strong>${formatDateDisplay(leave.start_date)}</strong> au <strong>${formatDateDisplay(leave.end_date)}</strong>${noteDisplay}</span>
+            <button onclick="removeHolidayRange(${leave.id})" style="background:none; border:none; color:red; cursor:pointer; font-weight:bold;">Supprimer</button>
+        `;
+        list.appendChild(item);
+    });
+}
+
+// Listen to filter change
+const filterEl = document.getElementById('admin-filter');
+if (filterEl) {
+    filterEl.addEventListener('change', () => {
+        renderHolidayList(); // Re-render with new filter (data is already loaded or we should reload?)
+        // Better to reload to be sure we have latest if polling updates? 
+        // Polling updates settings, which calls loadSettings -> loadLeaves. 
+        // But manual change should just filter existing or reload?
+        // Let's just render.
+    });
+}
+
+
+export async function addHolidayRange() {
+    const start = document.getElementById('holiday-start').value;
+    const end = document.getElementById('holiday-end').value;
+    const filterEl = document.getElementById('admin-filter');
+    const adminId = filterEl ? filterEl.value : ""; // "" or ID
+
+    if (!start || !end) return alert('Dates incomplètes');
+    if (start > end) return alert('La date de début doit être avant la fin');
+
+    try {
+        await fetch(`${API_URL}/leaves`, {
+            method: 'POST',
+            headers: getHeaders(),
+            body: JSON.stringify({
+                start,
+                end,
+                adminId: adminId, // Controller handles "" as null
+                note: adminId ? 'Congés Coiffeur' : 'Fermeture'
+            })
+        });
+
+        // Reload
+        await loadLeaves();
+        // Clear inputs
+        document.getElementById('holiday-start').value = '';
+        document.getElementById('holiday-end').value = '';
+
+        // Also reload calendar/appts as availability changed
+        loadAppointments();
+
+    } catch (e) {
+        alert('Erreur lors de l\'ajout');
+        console.error(e);
+    }
+}
+
+export async function removeHolidayRange(id) {
+    if (!confirm('Supprimer cette période ?')) return;
+    try {
+        await fetch(`${API_URL}/leaves/${id}`, {
+            method: 'DELETE',
+            headers: getHeaders()
+        });
+        await loadLeaves();
+        loadAppointments();
+    } catch (e) {
+        alert('Erreur lors de la suppression');
     }
 }
 
@@ -110,49 +232,6 @@ export function copyMondayToAll() {
     });
 }
 
-function renderHolidayList() {
-    const list = document.getElementById('holiday-list');
-    list.innerHTML = '';
-
-    if (currentHolidayRanges.length === 0) {
-        list.innerHTML = '<p style="color:#666; font-style:italic;">Aucune période configurée.</p>';
-        return;
-    }
-
-    currentHolidayRanges.forEach((range, index) => {
-        const item = document.createElement('div');
-        item.style.cssText = 'display:flex; justify-content:space-between; align-items:center; background:#f4f4f4; padding:10px; margin-bottom:5px; border-radius:4px;';
-
-        item.innerHTML = `
-            <span><strong>${formatDateDisplay(range.start)}</strong> au <strong>${formatDateDisplay(range.end)}</strong></span>
-            <button onclick="removeHolidayRange(${index})" style="background:none; border:none; color:red; cursor:pointer; font-weight:bold;">Supprimer</button>
-        `;
-        list.appendChild(item);
-    });
-}
-
-export function addHolidayRange() {
-    const start = document.getElementById('holiday-start').value;
-    const end = document.getElementById('holiday-end').value;
-
-    if (!start || !end) return alert('Dates incomplètes');
-    if (start > end) return alert('La date de début doit être avant la fin');
-
-    currentHolidayRanges.push({ start, end });
-    currentHolidayRanges.sort((a, b) => a.start.localeCompare(b.start));
-
-    document.getElementById('holiday-start').value = '';
-    document.getElementById('holiday-end').value = '';
-
-    renderHolidayList();
-}
-
-export function removeHolidayRange(index) {
-    if (!confirm('Supprimer cette période ?')) return;
-    currentHolidayRanges.splice(index, 1);
-    renderHolidayList();
-}
-
 export async function saveSchedule() {
     const schedule = [];
     const tbody = document.getElementById('schedule-tbody');
@@ -181,27 +260,10 @@ export async function saveSchedule() {
     }
 }
 
-export async function saveHolidays() {
-    const settings = { holidayRanges: currentHolidayRanges };
-    try {
-        await fetch(`${API_URL}/settings`, {
-            method: 'POST',
-            headers: getHeaders(),
-            body: JSON.stringify(settings)
-        });
-        alert('Congés enregistrés !');
-        loadAppointments();
-    } catch (e) {
-        alert('Erreur lors de la sauvegarde');
-    }
-}
-
 // Global exposure
 window.toggleRow = toggleRow;
 window.copyMondayToAll = copyMondayToAll;
 window.addHolidayRange = addHolidayRange;
 window.removeHolidayRange = removeHolidayRange;
 window.saveSchedule = saveSchedule;
-window.saveHolidays = saveHolidays;
 
-export { currentHolidayRanges }; // If needed by calendar

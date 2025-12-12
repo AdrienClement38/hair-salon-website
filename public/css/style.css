@@ -90,6 +90,8 @@ ul {
 
 .section {
     padding: 4rem 0;
+    scroll-margin-top: 80px;
+    /* Offset for fixed header */
 }
 
 .bg-dark {
@@ -132,7 +134,7 @@ ul {
 /* Hero */
 .hero {
     height: 80vh;
-    background: linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.5)), url('hero-bg.jpg');
+    background: linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.5)), url('/images/hero-bg');
     /* Will add file later or use color fallback */
     background-color: #333;
     background-size: cover;
@@ -188,6 +190,10 @@ ul {
     text-align: center;
     border: 1px solid rgba(212, 175, 55, 0.2);
     border-radius: 8px;
+    overflow-wrap: break-word;
+    /* Wrap long words found in user input */
+    word-break: break-word;
+    /* Ensure compatibility */
 }
 
 .card-icon {
@@ -316,4 +322,11 @@ ul {
     }
 
     /* Need JS to toggle or simplify for MVP */
+}
+
+.holiday-alert {
+    text-align: center;
+    margin: 0 auto 1.5rem auto;
+    font-weight: bold;
+    color: #ffeb3b;
 }

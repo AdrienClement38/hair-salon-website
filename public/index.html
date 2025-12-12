@@ -11,7 +11,7 @@
     <link
         href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Lato:wght@300;400;700&display=swap"
         rel="stylesheet">
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="css/style.css">
 </head>
 
 <body>
@@ -33,10 +33,13 @@
     <!-- Hero Section -->
     <section class="hero">
         <div class="hero-content">
-            <h1>L'Art de la Coupe</h1>
-            <p>Une expérience unique pour une coiffure d'exception.</p>
+            <h1 id="hero-title">L'Art de la Coupe</h1>
+            <p id="hero-subtitle">Une expérience unique pour une coiffure d'exception.</p>
             <div id="opening-hours-display" class="hero-hours">
                 <!-- Hours will be loaded here -->
+            </div>
+            <div id="holiday-display" class="holiday-alert">
+                <!-- Holiday messages loaded here -->
             </div>
             <a href="#booking" class="btn btn-gold">Réserver maintenant</a>
         </div>
@@ -47,10 +50,13 @@
         <div class="container grid-2">
             <div class="text-content">
                 <h2>Notre Philosophie</h2>
-                <p>Bienvenue à <strong>La Base Coiffure</strong>. Situé au cœur de la ville, notre salon est un
-                    sanctuaire dédié à la beauté et au bien-être.</p>
-                <p>Nos experts coiffeurs-visagistes vous accueillent dans un cadre chaleureux et luxueux pour sublimer
-                    votre style. Nous n'utilisons que des produits de la plus haute qualité.</p>
+                <div id="philosophy-text">
+                    <p>Bienvenue à <strong>La Base Coiffure</strong>. Situé au cœur de la ville, notre salon est un
+                        sanctuaire dédié à la beauté et au bien-être.</p>
+                    <p>Nos experts coiffeurs-visagistes vous accueillent dans un cadre chaleureux et luxueux pour
+                        sublimer
+                        votre style. Nous n'utilisons que des produits de la plus haute qualité.</p>
+                </div>
             </div>
             <div class="image-content">
                 <!-- Placeholder for Salon Interior -->
@@ -63,21 +69,12 @@
     <section id="services" class="section bg-dark">
         <div class="container">
             <h2 class="text-center text-gold">Nos Prestations</h2>
-            <div class="grid-3">
+            <div class="grid-3" id="services-grid">
+                <!-- Dynamic Services loaded via JS -->
                 <div class="card">
                     <div class="card-icon">✂️</div>
                     <h3>Coupe & Styling</h3>
-                    <p>Pour homme et femme, une coupe adaptée à votre visage.</p>
-                </div>
-                <div class="card">
-                    <div class="card-icon">🎨</div>
-                    <h3>Coloration</h3>
-                    <p>Balayage, mèches, et couleurs vibrantes.</p>
-                </div>
-                <div class="card">
-                    <div class="card-icon">✨</div>
-                    <h3>Soins</h3>
-                    <p>Des soins profonds pour redonner vie à vos cheveux.</p>
+                    <p>Chargement des services...</p>
                 </div>
             </div>
         </div>
@@ -110,6 +107,13 @@
                     </div>
 
                     <div class="form-group">
+                        <label for="worker">Coiffeur</label>
+                        <select id="worker" required>
+                            <option value="">Chargement...</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
                         <label for="date">Date</label>
                         <input type="date" id="date" required>
                     </div>
@@ -138,7 +142,7 @@
     </footer>
 
     <!-- Socket.io removed -->
-    <script src="script.js"></script>
+    <script type="module" src="js/public/main.js"></script>
 </body>
 
 </html>

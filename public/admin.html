@@ -170,6 +170,8 @@
                         Horaires</button>
                 </div>
 
+
+
                 <div class="settings-section">
                     <h3>Congés Exceptionnels</h3>
                     <div class="form-group">
@@ -309,6 +311,8 @@
                             <button type="submit" class="btn" style="width:auto; font-size:0.8rem;">Mettre à
                                 jour</button>
                         </form>
+                        <button class="btn" onclick="openPositioning('hero-bg')"
+                            style="width:auto; font-size:0.8rem; background-color: var(--secondary);">Positionner</button>
                     </div>
                     <hr style="border:0; border-top:1px solid #eee; margin:15px 0;">
                     <div class="form-group">
@@ -318,54 +322,54 @@
                             <button type="submit" class="btn" style="width:auto; font-size:0.8rem;">Mettre à
                                 jour</button>
                         </form>
+                        <button class="btn" onclick="openPositioning('philosophy-bg')"
+                            style="width:auto; font-size:0.8rem; background-color: var(--secondary);">Positionner</button>
                     </div>
                 </div>
 
-                <!-- Services -->
+                <!-- ... existing code ... -->
+                <!-- Prestations (Moved from Configuration) -->
                 <div class="settings-section">
-                    <h4>Prestations</h4>
-                    <p style="font-size:0.9rem; color:#666; margin-bottom:15px;">Gérez la liste des services affichés.
-                    </p>
+                    <h3>Prestations</h3>
+                    <div id="services-list"></div>
 
-                    <div id="services-list" style="margin-bottom: 20px;">
-                        <!-- Services injected via JS -->
-                    </div>
-
-                    <div style="background:#f9f9f9; padding:15px; border:1px solid #ddd; border-radius:4px;">
+                    <div style="margin-top: 20px; background: #fafafa; padding: 15px; border-radius: 4px;">
                         <h5>Ajouter une prestation</h5>
-                        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
-                            <div class="form-group">
-                                <label>Nom</label>
-                                <input type="text" id="new-service-name" placeholder="Ex: Coupe Homme">
-                            </div>
-                            <div class="form-group">
+                        <div class="form-group">
+                            <label>Nom</label>
+                            <input type="text" id="new-service-name">
+                        </div>
+                        <div style="display:flex; gap:10px;">
+                            <div class="form-group" style="flex:1">
                                 <label>Prix</label>
-                                <input type="text" id="new-service-price" placeholder="Ex: 25">
+                                <input type="text" id="new-service-price">
+                            </div>
+                            <div class="form-group" style="flex:1">
+                                <label>Icône</label>
+                                <select id="new-service-icon" style="width:100%; padding:8px;">
+                                    <option value="cut">Ciseaux</option>
+                                    <option value="razor">Rasoir</option>
+                                    <option value="barber">Barber Pole</option>
+                                </select>
                             </div>
                         </div>
                         <div class="form-group">
-                            <label>Description (optionnel)</label>
-                            <input type="text" id="new-service-desc" placeholder="Ex: Shampoing + Coupe + Coiffage">
+                            <label>Description (Info-bulle)</label>
+                            <input type="text" id="new-service-desc">
                         </div>
-                        <div class="form-group">
-                            <label>Icône</label>
-                            <select id="new-service-icon" style="width:100%; padding:8px;">
-                                <option value="cut">Ciseaux (Coupe)</option>
-                                <option value="razor">Rasoir (Barbe)</option>
-                                <option value="child">Enfant</option>
-                                <option value="barber">Barber (Autre)</option>
-                            </select>
+                        <div style="display:flex; gap: 10px; margin-top: 15px;">
+                            <button class="btn" id="btn-add-service" onclick="addService()" style="width:auto">Ajouter à
+                                la liste</button>
+                            <button class="btn btn-outline" id="btn-cancel-service" onclick="cancelEditService()"
+                                style="width:auto; display: none;">Annuler</button>
                         </div>
-                        <button class="btn" onclick="addService()" style="width:auto;">Ajouter à la liste</button>
                     </div>
                     <button class="btn" onclick="saveServicesSettings()"
-                        style="width:auto; margin-top:20px;">Enregistrer les
-                        Prestations</button>
+                        style="margin-top: 15px; width: auto;">Enregistrer les Prestations</button>
                 </div>
             </div>
         </div>
     </div>
-
 
     <!-- Edit Modal -->
     <div id="edit-modal" class="modal">
@@ -380,6 +384,26 @@
             </div>
             <button class="btn" onclick="saveEdit()">Enregistrer</button>
             <button class="btn" onclick="closeEdit()" style="background: #ccc; margin-top: 10px;">Annuler</button>
+        </div>
+    </div>
+
+    <!-- Positioning Modal -->
+    <div id="position-modal" class="modal" style="display:none;">
+        <div class="modal-content" style="max-width: 90vw; width: auto;">
+            <h3>Positionner l'image</h3>
+            <p>Cliquez sur le point central de l'image (visage ou élément important).</p>
+            <div id="position-container"
+                style="position: relative; display: inline-block; overflow: hidden; max-height: 70vh;">
+                <img id="position-image" src="" style="max-width: 100%; display: block; cursor: crosshair;">
+                <div id="position-marker"
+                    style="position: absolute; width: 20px; height: 20px; background: rgba(255, 0, 0, 0.7); border: 2px solid white; border-radius: 50%; transform: translate(-50%, -50%); pointer-events: none; display: none;">
+                </div>
+            </div>
+            <div style="margin-top: 15px;">
+                <button class="btn" onclick="savePosition()">Valider la position</button>
+                <button class="btn" onclick="closePositionModal()"
+                    style="background: #ccc; width:auto;">Annuler</button>
+            </div>
         </div>
     </div>
 

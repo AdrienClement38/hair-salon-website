@@ -1,6 +1,5 @@
-// public/js/admin/calendar.js
 import { API_URL, getHeaders, formatDateDisplay } from './config.js';
-import { currentSchedule, currentHolidayRanges, salonClosingTime } from './settings.js';
+import { currentSchedule, currentHolidayRanges, salonClosingTime } from './state.js';
 
 let appointmentsCache = [];
 let currentCalendarDate = new Date();

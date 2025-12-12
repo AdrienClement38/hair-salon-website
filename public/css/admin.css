@@ -1,5 +1,6 @@
 :root {
     --primary: #D4AF37;
+    --secondary: #5a5a5a;
     --dark: #1A1A1A;
     --light: #f4f4f4;
 }
@@ -55,6 +56,18 @@ input {
 
 .btn:hover {
     background: #333;
+}
+
+.btn-outline {
+    background: transparent;
+    color: var(--dark);
+    border: 1px solid var(--dark);
+    transition: all 0.3s ease;
+}
+
+.btn-outline:hover {
+    background: var(--dark);
+    color: white;
 }
 
 /* Dashboard */
@@ -197,6 +210,13 @@ th {
 .checkbox-group input[type="checkbox"] {
     width: auto;
     margin: 0;
+}
+
+/* Editing Mode Highlight */
+.editing-mode {
+    background-color: rgba(212, 175, 55, 0.15) !important;
+    border: 2px solid var(--primary) !important;
+    transition: all 0.3s ease;
 }
 
 /* Calendar Styles */

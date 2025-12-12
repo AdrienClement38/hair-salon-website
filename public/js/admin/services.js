@@ -119,19 +119,31 @@ export function addService() {
 
     if (editingServiceIndex >= 0) {
         currentServices[editingServiceIndex] = { name, price, icon, description };
-        editingServiceIndex = -1;
-        document.querySelector('#services-list + div h5').textContent = 'Ajouter une prestation';
-        document.querySelector('#services-list + div button').textContent = 'Ajouter à la liste';
+        resetServiceForm();
     } else {
         currentServices.push({ name, price, icon, description });
+        resetServiceForm();
     }
 
-    nameInput.value = '';
-    priceInput.value = '';
-    descInput.value = '';
-    iconInput.value = 'cut';
-
     renderServicesList();
+}
+
+function resetServiceForm() {
+    editingServiceIndex = -1;
+    document.getElementById('new-service-name').value = '';
+    document.getElementById('new-service-price').value = '';
+    document.getElementById('new-service-desc').value = '';
+    document.getElementById('new-service-icon').value = 'cut';
+
+    const formContainer = document.querySelector('#services-list + div');
+    formContainer.querySelector('h5').textContent = 'Ajouter une prestation';
+    document.getElementById('btn-add-service').textContent = 'Ajouter à la liste';
+    document.getElementById('btn-cancel-service').style.display = 'none';
+    formContainer.classList.remove('editing-mode');
+}
+
+export function cancelEditService() {
+    resetServiceForm();
 }
 
 export function editService(index) {
@@ -144,8 +156,14 @@ export function editService(index) {
     document.getElementById('new-service-icon').value = iconVal;
 
     editingServiceIndex = index;
-    document.querySelector('#services-list + div h5').textContent = 'Modifier la prestation';
-    document.querySelector('#services-list + div button').textContent = 'Mettre à jour';
+    const formContainer = document.querySelector('#services-list + div');
+    const formHeader = formContainer.querySelector('h5');
+    formHeader.textContent = 'Modifier la prestation';
+    formContainer.classList.add('editing-mode');
+    formContainer.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+    document.getElementById('btn-add-service').textContent = 'Mettre à jour';
+    document.getElementById('btn-cancel-service').style.display = 'block';
 }
 
 export function removeService(index) {
@@ -154,12 +172,7 @@ export function removeService(index) {
 
     // If editing this one, cancel edit
     if (editingServiceIndex === index) {
-        editingServiceIndex = -1;
-        document.getElementById('new-service-name').value = '';
-        document.getElementById('new-service-price').value = '';
-        document.getElementById('new-service-desc').value = '';
-        document.querySelector('#services-list + div h5').textContent = 'Ajouter une prestation';
-        document.querySelector('#services-list + div button').textContent = 'Ajouter à la liste';
+        resetServiceForm();
     }
 
     renderServicesList();
@@ -186,4 +199,5 @@ export async function saveServicesSettings() {
 window.addService = addService;
 window.editService = editService;
 window.removeService = removeService;
+window.cancelEditService = cancelEditService;
 window.saveServicesSettings = saveServicesSettings;

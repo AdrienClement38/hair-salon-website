@@ -1,13 +1,24 @@
 // public/js/admin/content.js
 import { API_URL, getHeaders } from './config.js';
+import { currentHomeContent } from './state.js'; // Import current content
+
+let currentPositioningImage = null; // 'hero' or 'philosophy'
+let currentX = 50;
+let currentY = 50;
 
 export async function saveTextSettings() {
     const title = document.getElementById('content-title').value;
     const subtitle = document.getElementById('content-subtitle').value;
     const philosophy = document.getElementById('content-philosophy').value;
 
+    // MERGE with existing content to preserve image positions
     const settings = {
-        home_content: { title, subtitle, philosophy }
+        home_content: {
+            ...currentHomeContent,
+            title,
+            subtitle,
+            philosophy
+        }
     };
 
     try {
@@ -26,6 +37,9 @@ export function initContentForms() {
     // Images
     handleImageUpload('upload-hero', 'hero-bg');
     handleImageUpload('upload-philosophy', 'philosophy-bg');
+
+    // Init positioning functionality
+    initPositioning();
 
     // Profile
     document.getElementById('profile-form').addEventListener('submit', async (e) => {
@@ -87,30 +101,18 @@ function handleImageUpload(formId, fileName) {
     form.addEventListener('submit', async (e) => {
         e.preventDefault();
         const formData = new FormData(form);
-        // We need to tell server which file it is, but usually multer uses field name
-        // Our server likely handles 'image' field or specific fields
-        // Let's assume server endpoint handles these specifically or we assume logic.
-        // Actually server.js has /api/upload-image taking 'image' field and 'type' body
-
-        // Wait, checking server.js would be good but let's assume standard FormData
-        // Actually, previous analysis showed generic upload? Let's check logic if we can or just use standard approach.
-        // The original code didn't have image upload logic implemented in the snippets seen? 
-        // Wait, `admin.js` I read didn't have image upload logic shown in the truncated view?
-        // Let's assume we implement it now or check how it was.
-        // Actually, looking at `admin.js` outline, I missed image upload logic.
-        // I will implement a standard upload to `/api/admin/upload`.
-
-        // Append type
         formData.append('type', fileName === 'hero-bg' ? 'hero' : 'philosophy');
 
         try {
             const res = await fetch(`${API_URL}/upload`, {
                 method: 'POST',
-                headers: { 'Authorization': 'Basic ' + localStorage.getItem('auth') }, // No Content-Type for FormData
+                headers: { 'Authorization': 'Basic ' + localStorage.getItem('auth') },
                 body: formData
             });
-            if (res.ok) alert('Image mise à jour !');
-            else alert('Erreur upload');
+            if (res.ok) {
+                alert('Image mise à jour !');
+                // Refresh image in positioning modal if open (not likely) or just general knowledge
+            } else alert('Erreur upload');
         } catch (e) {
             console.error(e);
             alert('Erreur réseau');
@@ -118,5 +120,91 @@ function handleImageUpload(formId, fileName) {
     });
 }
 
+// Positioning Logic
+function initPositioning() {
+    const img = document.getElementById('position-image');
+
+    img.addEventListener('click', (e) => {
+        const rect = img.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+
+        currentX = Math.round((x / rect.width) * 100);
+        currentY = Math.round((y / rect.height) * 100);
+
+        updateMarker();
+    });
+}
+
+export function openPositioning(type) {
+    currentPositioningImage = type === 'hero-bg' ? 'hero' : 'philosophy';
+
+    // Load existing position if any
+    const existing = currentPositioningImage === 'hero'
+        ? currentHomeContent.heroPosition
+        : currentHomeContent.philosophyPosition;
+
+    if (existing) {
+        currentX = existing.x;
+        currentY = existing.y;
+    } else {
+        currentX = 50;
+        currentY = 50;
+    }
+
+    const modal = document.getElementById('position-modal');
+    const img = document.getElementById('position-image');
+
+    // Use timestamp to break cache
+    img.src = `/images/${type === 'hero-bg' ? 'hero-bg' : 'philosophy-bg'}?t=${Date.now()}`;
+
+    updateMarker();
+    modal.style.display = 'block';
+}
+
+function updateMarker() {
+    const marker = document.getElementById('position-marker');
+    marker.style.left = `${currentX}%`;
+    marker.style.top = `${currentY}%`;
+    marker.style.display = 'block';
+}
+
+export function closePositionModal() {
+    document.getElementById('position-modal').style.display = 'none';
+}
+
+export async function savePosition() {
+    const key = currentPositioningImage === 'hero' ? 'heroPosition' : 'philosophyPosition';
+
+    const settings = {
+        home_content: {
+            ...currentHomeContent,
+            [key]: { x: currentX, y: currentY }
+        }
+    };
+
+    try {
+        await fetch(`${API_URL}/settings`, {
+            method: 'POST',
+            headers: getHeaders(),
+            body: JSON.stringify(settings)
+        });
+        alert('Position enregistrée !');
+        closePositionModal();
+        // Update local state by reloading settings (could be cleaner but this works safely)
+        // Since content.js doesn't import loadSettings easily without circular dep, we can just update local obj
+        // But better to rely on dashboard refresh or simple reload if critical.
+        // For now, updating currentHomeContent locally is enough for immediate saving consistency
+        currentHomeContent[key] = { x: currentX, y: currentY };
+
+    } catch (e) {
+        alert('Erreur lors de la sauvegarde');
+    }
+}
+
+
 // Global
 window.saveTextSettings = saveTextSettings;
+window.openPositioning = openPositioning;
+window.closePositionModal = closePositionModal;
+window.savePosition = savePosition;

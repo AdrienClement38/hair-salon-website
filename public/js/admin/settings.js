@@ -2,21 +2,19 @@
 import { API_URL, getHeaders, formatDateDisplay } from './config.js';
 import { renderServicesList, setServicesData } from './services.js';
 import { loadAppointments } from './calendar.js';
+import { setSchedule, setHolidayRanges, setHomeContent, setSalonClosingTime, currentHolidayRanges, currentHomeContent } from './state.js';
 
-let currentHolidayRanges = [];
-let currentServices = [];
-let currentHomeContent = {};
-export let salonClosingTime = '19:00'; // Default
-export let currentSchedule = []; // Store schedule for closed days check
+let currentHolidays = [];
 
 export async function loadSettings() {
     try {
         const res = await fetch(`${API_URL}/settings`, { headers: getHeaders() });
         const { openingHours, holidays, holidayRanges, home_content, services } = await res.json();
 
-        currentHolidayRanges = Array.isArray(holidayRanges) ? holidayRanges : [];
+        // Update State
+        setHolidayRanges(Array.isArray(holidayRanges) ? holidayRanges : []);
+        setHomeContent(home_content || {});
 
-        // Determine format: Array (New) or Object (Old)
         let schedule = [];
         if (Array.isArray(openingHours)) {
             schedule = openingHours;
@@ -38,9 +36,9 @@ export async function loadSettings() {
 
         // Update global closing time
         const todayIdx = new Date().getDay();
-        salonClosingTime = schedule[todayIdx]?.close || '19:00';
+        setSalonClosingTime(schedule[todayIdx]?.close || '19:00');
 
-        currentSchedule = schedule;
+        setSchedule(schedule);
 
         renderScheduleTable(schedule);
         renderHolidayList();
@@ -48,7 +46,6 @@ export async function loadSettings() {
         // Populate Content Tab
         // Pass services to service module
         setServicesData(services || []);
-        currentHomeContent = home_content || {};
         renderServicesList();
 
         // Populate Texts

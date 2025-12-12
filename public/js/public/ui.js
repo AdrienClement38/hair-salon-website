@@ -114,16 +114,32 @@ export function renderHomeContent(content) {
         const pTags = content.philosophy.split('\n').filter(line => line.trim() !== '').map(line => `<p>${line}</p>`).join('');
         document.getElementById('philosophy-text').innerHTML = pTags;
     }
+
+    // Apply positions
+    if (content.heroPosition) {
+        const hero = document.querySelector('.hero');
+        if (hero) hero.style.backgroundPosition = `${content.heroPosition.x}% ${content.heroPosition.y}%`;
+    }
+
+    if (content.philosophyPosition) {
+        const philBg = document.getElementById('philosophy-bg');
+        if (philBg) {
+            philBg.style.backgroundPosition = `${content.philosophyPosition.x}% ${content.philosophyPosition.y}%`;
+        }
+    }
 }
 
 export function showMessage(msg, type) {
     messageBox.style.color = type === 'success' ? 'green' : 'red';
 }
 
-export function refreshHeroBG() {
+export function refreshImages() {
     const hero = document.querySelector('.hero');
     if (hero) {
-        // Linear gradient must be preserved as it was in CSS
         hero.style.backgroundImage = `linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.5)), url('/images/hero-bg?t=${Date.now()}')`;
+    }
+    const phil = document.getElementById('philosophy-bg');
+    if (phil) {
+        phil.style.backgroundImage = `url('/images/philosophy-bg?t=${Date.now()}')`;
     }
 }

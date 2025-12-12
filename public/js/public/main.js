@@ -1,5 +1,5 @@
 import { initBooking, refreshSlots } from './booking.js';
-import { renderOpeningHours, renderHolidays, renderHomeContent, renderServices, refreshHeroBG } from './ui.js';
+import { renderOpeningHours, renderHolidays, renderHomeContent, renderServices, refreshImages } from './ui.js';
 
 let lastSettingsTS = Date.now();
 let lastApptTS = Date.now();
@@ -15,8 +15,8 @@ async function pollUpdates() {
             lastSettingsTS = data.settingsTimestamp;
             loadSettings();
 
-            // Refresh Hero BG
-            refreshHeroBG();
+            // Refresh Images
+            refreshImages();
         }
 
         if (data.needsApptUpdate) {

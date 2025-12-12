@@ -127,6 +127,7 @@ export function addService() {
     }
 
     renderServicesList();
+    saveServicesSettings(true);
 }
 
 function resetServiceForm() {
@@ -138,7 +139,7 @@ function resetServiceForm() {
 
     const formContainer = document.querySelector('#services-list + div');
     formContainer.querySelector('h5').textContent = 'Ajouter une prestation';
-    document.getElementById('btn-add-service').textContent = 'Ajouter à la liste';
+    document.getElementById('btn-add-service').textContent = 'Ajouter';
     document.getElementById('btn-cancel-service').style.display = 'none';
     formContainer.classList.remove('editing-mode');
 }
@@ -177,22 +178,26 @@ export function removeService(index) {
     }
 
     renderServicesList();
+    saveServicesSettings(true);
 }
 
-export async function saveServicesSettings() {
+export async function saveServicesSettings(silent = false) {
     const settings = {
         services: currentServices
     };
 
     try {
-        await fetch(`${API_URL}/settings`, {
+        const res = await fetch(`${API_URL}/settings`, {
             method: 'POST',
             headers: getHeaders(),
             body: JSON.stringify(settings)
         });
-        alert('Prestations enregistrées !');
+        if (!res.ok) throw new Error('Network response was not ok');
+
+        if (!silent) alert('Prestations enregistrées !');
     } catch (e) {
-        alert('Erreur lors de la sauvegarde');
+        console.error(e);
+        alert('Erreur lors de la sauvegarde automatique. Vérifiez votre connexion.');
     }
 }
 

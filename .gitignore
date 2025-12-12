@@ -1,0 +1,6 @@
+node_modules/
+.env
+salon.db
+test_output*.txt
+test_image.txt
+.DS_Store

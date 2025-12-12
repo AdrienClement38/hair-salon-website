@@ -5,11 +5,14 @@ exports.status = async (req, res) => {
     res.set('Cache-Control', 'no-store');
     try {
         const exists = await db.checkAdminExists();
+        // list env keys relevant to DB to check presence
+        const envKeys = Object.keys(process.env).filter(k => k.includes('URL') || k.includes('POSTGRES') || k.includes('DATABASE') || k === 'VERCEL');
+
         res.json({
             setupRequired: !exists,
             debug: {
-                type: db.type, // We need to expose this from db model if not already
-                hasEnv: !!process.env.DATABASE_URL
+                type: db.type,
+                envVarsFound: envKeys
             }
         });
     } catch (e) {

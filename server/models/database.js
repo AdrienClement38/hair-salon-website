@@ -321,5 +321,6 @@ module.exports = {
   getAdminById,
   getAllAdmins,
   updateAdminPassword,
-  updateAdminProfile
+  updateAdminProfile,
+  type
 };

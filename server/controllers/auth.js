@@ -2,9 +2,16 @@ const db = require('../models/database');
 const bcrypt = require('bcryptjs');
 
 exports.status = async (req, res) => {
+    res.set('Cache-Control', 'no-store');
     try {
         const exists = await db.checkAdminExists();
-        res.json({ setupRequired: !exists });
+        res.json({
+            setupRequired: !exists,
+            debug: {
+                type: db.type, // We need to expose this from db model if not already
+                hasEnv: !!process.env.DATABASE_URL
+            }
+        });
     } catch (e) {
         res.status(500).json({ error: e.message });
     }

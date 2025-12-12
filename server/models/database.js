@@ -242,10 +242,14 @@ const setSetting = async (key, value) => {
 
 const saveImage = async (filename, buffer, mimetype) => {
   if (type === 'pg') {
-    const sql = 'INSERT INTO images (filename, data, mimetype) VALUES ($1, $2, $3) RETURNING id';
+    const sql = `
+      INSERT INTO images (filename, data, mimetype) VALUES ($1, $2, $3)
+      ON CONFLICT (filename) DO UPDATE SET data = EXCLUDED.data, mimetype = EXCLUDED.mimetype
+      RETURNING id
+    `;
     return await db.query(sql, [filename, buffer, mimetype]);
   } else {
-    return await query('INSERT INTO images (filename, data, mimetype) VALUES (?, ?, ?)', [filename, buffer, mimetype]);
+    return await query('INSERT OR REPLACE INTO images (filename, data, mimetype) VALUES (?, ?, ?)', [filename, buffer, mimetype]);
   }
 };
 

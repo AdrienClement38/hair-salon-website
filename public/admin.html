@@ -306,24 +306,33 @@
                     <h4>Images</h4>
                     <div class="form-group">
                         <label>Image d'Accueil</label>
-                        <form id="upload-hero" style="display:flex; align-items:center; gap:10px;">
+                        <div class="admin-thumb-container">
+                            <img id="thumb-hero" class="admin-thumb" src="" alt="Aperçu Hero">
+                            <button class="btn" onclick="openPositioning('hero-bg')"
+                                style="width:auto; font-size:0.8rem; background-color: var(--primary); color:black;">Positionner
+                                l'image</button>
+                        </div>
+                        <form id="upload-hero" style="display:flex; align-items:center; gap:10px; margin-top:5px;">
                             <input type="file" name="hero-bg" accept="image/*" required>
-                            <button type="submit" class="btn" style="width:auto; font-size:0.8rem;">Mettre à
-                                jour</button>
+                            <button type="submit" class="btn btn-outline" style="width:auto; font-size:0.8rem;">Mettre à
+                                jour le fichier</button>
                         </form>
-                        <button class="btn" onclick="openPositioning('hero-bg')"
-                            style="width:auto; font-size:0.8rem; background-color: var(--secondary);">Positionner</button>
                     </div>
                     <hr style="border:0; border-top:1px solid #eee; margin:15px 0;">
                     <div class="form-group">
                         <label>Image "Notre Philosophie"</label>
-                        <form id="upload-philosophy" style="display:flex; align-items:center; gap:10px;">
+                        <div class="admin-thumb-container">
+                            <img id="thumb-philosophy" class="admin-thumb" src="" alt="Aperçu Philo">
+                            <button class="btn" onclick="openPositioning('philosophy-bg')"
+                                style="width:auto; font-size:0.8rem; background-color: var(--primary); color:black;">Positionner
+                                l'image</button>
+                        </div>
+                        <form id="upload-philosophy"
+                            style="display:flex; align-items:center; gap:10px; margin-top:5px;">
                             <input type="file" name="philosophy-bg" accept="image/*" required>
-                            <button type="submit" class="btn" style="width:auto; font-size:0.8rem;">Mettre à
-                                jour</button>
+                            <button type="submit" class="btn btn-outline" style="width:auto; font-size:0.8rem;">Mettre à
+                                jour le fichier</button>
                         </form>
-                        <button class="btn" onclick="openPositioning('philosophy-bg')"
-                            style="width:auto; font-size:0.8rem; background-color: var(--secondary);">Positionner</button>
                     </div>
                 </div>
 

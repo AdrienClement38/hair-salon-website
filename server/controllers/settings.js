@@ -46,7 +46,7 @@ exports.uploadImages = async (req, res) => {
         res.json({ success: true, files: req.files.map(f => f.fieldname) });
     } catch (err) {
         console.error("Upload error:", err);
-        res.status(500).json({ error: 'Upload failed' });
+        res.status(500).json({ error: 'Upload failed: ' + err.message });
     }
 };
 

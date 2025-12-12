@@ -92,6 +92,18 @@ export function initContentForms() {
             alert('Erreur réseau');
         }
     });
+
+    // Initial Thumb Load
+    updateThumbnails();
+}
+
+function updateThumbnails() {
+    const ts = Date.now();
+    const heroThumb = document.getElementById('thumb-hero');
+    const philoThumb = document.getElementById('thumb-philosophy');
+
+    if (heroThumb) heroThumb.src = `/images/hero-bg?t=${ts}`;
+    if (philoThumb) philoThumb.src = `/images/philosophy-bg?t=${ts}`;
 }
 
 function handleImageUpload(formId, fileName) {
@@ -111,8 +123,11 @@ function handleImageUpload(formId, fileName) {
             });
             if (res.ok) {
                 alert('Image mise à jour !');
-                // Refresh image in positioning modal if open (not likely) or just general knowledge
-            } else alert('Erreur upload');
+                updateThumbnails(); // Refresh thumbnails
+            } else {
+                const err = await res.json();
+                alert('Erreur upload: ' + (err.error || 'Erreur inconnue'));
+            }
         } catch (e) {
             console.error(e);
             alert('Erreur réseau');

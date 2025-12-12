@@ -46,7 +46,11 @@ export function initBooking() {
 
             if (res.ok) {
                 if (dateInput.value) updateSlots();
-                showMessage(`Rendez-vous confirmé pour le ${formatDateDisplay(date)} à ${time} !`, 'success');
+
+                const serviceName = document.getElementById('service').options[document.getElementById('service').selectedIndex].text;
+                const workerName = workerInput.options[workerInput.selectedIndex].text;
+
+                showMessage(`Rendez-vous confirmé pour <strong>${serviceName}</strong> avec <strong>${workerName}</strong><br>Le ${formatDateDisplay(date)} à ${time}`, 'success');
                 bookingForm.reset();
                 slotsContainer.innerHTML = '<p class="text-muted">Sélectionnez une date pour voir les créneaux.</p>';
                 selectedTimeInput.value = '';

@@ -19,6 +19,109 @@ body {
     align-items: center;
 }
 
+/* Modal Styles */
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 2000;
+    /* Restore high z-index */
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    /* layout prevents body scroll */
+    background-color: rgba(0, 0, 0, 0.85);
+    /* Dark */
+    justify-content: center;
+    align-items: center;
+    backdrop-filter: blur(2px);
+}
+
+/* active class not used by JS logic, rely on style.display */
+
+.modal-content {
+    background: white;
+    padding: 2rem;
+    border-radius: 8px;
+    width: 100%;
+    max-width: 600px;
+    max-height: 90vh;
+    /* Restore previous max-height */
+    overflow-y: auto;
+    /* Scroll the whole content including footer if needed */
+    position: relative;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+    display: flex;
+    flex-direction: column;
+}
+
+.modal-header,
+.modal-footer {
+    padding: 1rem 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid #eee;
+}
+
+.modal-footer {
+    border-top: 1px solid #eee;
+    border-bottom: none;
+    justify-content: flex-end;
+    gap: 10px;
+}
+
+.modal-header h2 {
+    margin: 0;
+}
+
+.close-button {
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    cursor: pointer;
+    color: #aaa;
+}
+
+.close-button:hover {
+    color: #333;
+}
+
+#edit-modal .modal-content {
+    width: 300px;
+}
+
+/* Positioning Modal Specifics */
+#position-modal .modal-content {
+    max-width: 900px;
+    width: 90vw;
+    padding: 1.5rem;
+    background: #222;
+    color: #fff;
+    border: 1px solid #444;
+}
+
+#position-container {
+    position: relative;
+    display: inline-block;
+    overflow: hidden;
+    margin: 20px auto;
+    border: 2px solid #555;
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+    cursor: crosshair;
+    max-height: 70vh;
+    /* Keep the constraint */
+}
+
+#position-image {
+    display: block;
+    max-width: 100%;
+    max-height: 70vh;
+    object-fit: contain;
+    user-select: none;
+}
+
 .login-box {
     background: white;
     padding: 2rem;
@@ -300,17 +403,53 @@ th {
     left: 0;
     width: 100%;
     height: 100vh;
-    background: rgba(0, 0, 0, 0.5);
+    background: rgba(0, 0, 0, 0.85);
+    /* Darker backdrop */
     justify-content: center;
     align-items: center;
     z-index: 2000;
+    backdrop-filter: blur(2px);
 }
 
-.modal-content {
-    background: white;
-    padding: 2rem;
-    border-radius: 8px;
-    width: 300px;
+#position-marker {
+    position: absolute;
+    width: 24px;
+    height: 24px;
+    background: rgba(212, 175, 55, 0.4);
+    /* Gold transparent */
+    border: 2px solid #fff;
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+    box-shadow: 0 0 4px rgba(0, 0, 0, 0.8);
+    display: none;
+}
+
+#position-marker::after {
+    content: '+';
+    color: white;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 14px;
+    font-weight: bold;
+}
+
+.position-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 15px;
+    padding-top: 15px;
+    border-top: 1px solid #444;
+}
+
+
+#position-coords {
+    font-family: monospace;
+    color: #aaa;
+    font-size: 0.9rem;
 }
 
 #edit-modal {

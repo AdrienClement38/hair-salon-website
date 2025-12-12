@@ -126,11 +126,21 @@ function initPositioning() {
 
     img.addEventListener('click', (e) => {
         const rect = img.getBoundingClientRect();
+        // Calculate position relative to the image content, not the container borders if any
+        // Since img object-fit is contain, we rely on click on img itself.
+
         const x = e.clientX - rect.left;
         const y = e.clientY - rect.top;
 
-        currentX = Math.round((x / rect.width) * 100);
-        currentY = Math.round((y / rect.height) * 100);
+        // Constraint within 0-100 to avoid edge cases
+        let px = (x / rect.width) * 100;
+        let py = (y / rect.height) * 100;
+
+        px = Math.max(0, Math.min(100, px));
+        py = Math.max(0, Math.min(100, py));
+
+        currentX = Math.round(px * 10) / 10; // 1 decimal
+        currentY = Math.round(py * 10) / 10;
 
         updateMarker();
     });
@@ -159,14 +169,18 @@ export function openPositioning(type) {
     img.src = `/images/${type === 'hero-bg' ? 'hero-bg' : 'philosophy-bg'}?t=${Date.now()}`;
 
     updateMarker();
-    modal.style.display = 'block';
+    modal.style.display = 'flex'; // Use flex to center with new CSS
 }
 
 function updateMarker() {
     const marker = document.getElementById('position-marker');
+    const coords = document.getElementById('position-coords');
+
     marker.style.left = `${currentX}%`;
     marker.style.top = `${currentY}%`;
     marker.style.display = 'block';
+
+    if (coords) coords.textContent = `X: ${currentX}%  Y: ${currentY}%`;
 }
 
 export function closePositionModal() {

@@ -131,6 +131,7 @@ export function renderHomeContent(content) {
 
 export function showMessage(msg, type) {
     messageBox.style.color = type === 'success' ? 'green' : 'red';
+    messageBox.innerHTML = msg;
 }
 
 export function refreshImages() {

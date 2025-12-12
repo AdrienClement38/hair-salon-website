@@ -44,6 +44,18 @@ exports.createBooking = async (req, res) => {
         return res.status(400).json({ error: 'Missing fields' });
     }
 
+    // Manual check to prevent duplicates (handles SQLite NULL behavior)
+    try {
+        const booked = await db.getBookingsForDate(date, adminId);
+        if (booked.some(b => b.time === time)) {
+            return res.status(409).json({ error: 'Slot already booked' });
+        }
+    } catch (e) {
+        console.error("Check slot error", e);
+        // Continue to try insert if check fails? Or fail? Safe to fail.
+        return res.status(500).json({ error: 'Error checking availability' });
+    }
+
     try {
         const result = await db.createBooking(name, date, time, service, phone, adminId);
         triggerUpdate();

@@ -76,7 +76,7 @@ export function initContentForms() {
         const password = document.getElementById('team-password').value;
 
         try {
-            const res = await fetch(`${API_URL}/team`, {
+            const res = await fetch(`${API_URL}/workers`, {
                 method: 'POST',
                 headers: getHeaders(),
                 body: JSON.stringify({ username, displayname, password })
@@ -86,7 +86,8 @@ export function initContentForms() {
                 alert('Membre ajouté !');
                 e.target.reset();
             } else {
-                alert('Erreur lors de l\'ajout');
+                const errData = await res.json();
+                alert('Erreur: ' + (errData.error || "Erreur lors de l'ajout"));
             }
         } catch (e) {
             alert('Erreur réseau');

@@ -5,7 +5,13 @@ let type; // 'sqlite' or 'pg'
 
 const connectionString = process.env.DATABASE_URL || process.env.POSTGRES_URL;
 
-if (connectionString) {
+if (process.env.NODE_ENV === 'test') {
+  // --- Test Environment (In-Memory) ---
+  type = 'sqlite';
+  const Database = require('better-sqlite3');
+  db = new Database(':memory:');
+  console.log('Using In-Memory SQLite Database (Test)');
+} else if (connectionString) {
   // --- PostgreSQL (Production / Vercel) ---
   type = 'pg';
   const { Pool } = require('pg');
@@ -78,7 +84,8 @@ const initDB = async () => {
         date TEXT NOT NULL,
         time TEXT NOT NULL,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        admin_id INTEGER
+        admin_id INTEGER,
+        UNIQUE(date, time, admin_id)
       )
     `);
     db.exec(`
@@ -159,13 +166,23 @@ const initDB = async () => {
   // The original settings table used 'key' as PK, not 'id'.
   // The provided snippet for settings init seems to assume an 'id' column.
   // I will adapt it to the existing 'key' based schema.
-  const openingHoursSetting = await getSetting('opening_hours');
+  const openingHoursSetting = await getSetting('openingHours');
   if (openingHoursSetting === null) {
-    await setSetting('opening_hours', {});
+    const defaultHours = [];
+    for (let i = 0; i < 7; i++) defaultHours.push({ isOpen: true, open: '09:00', close: '18:00' });
+    await setSetting('openingHours', defaultHours);
   }
   const holidayRangesSetting = await getSetting('holiday_ranges');
   if (holidayRangesSetting === null) {
     await setSetting('holiday_ranges', []);
+  }
+  const homeContentSetting = await getSetting('home_content');
+  if (homeContentSetting === null) {
+    await setSetting('home_content', { title: 'Salon Test', subtitle: 'Test Mode', philosophy: 'Testing' });
+  }
+  const servicesSetting = await getSetting('services');
+  if (servicesSetting === null) {
+    await setSetting('services', []);
   }
 };
 
@@ -258,7 +275,9 @@ const getImage = async (filename) => {
 };
 
 // Initialize DB after all functions are defined
-(async () => { await initDB(); })();
+// Initialize DB
+let initPromise = initDB();
+(async () => { try { await initPromise; } catch (e) { console.error(e); } })();
 
 // --- Admins ---
 
@@ -274,7 +293,8 @@ const createAdmin = async (username, passwordHash, displayName) => {
   const dName = displayName || username;
   if (type === 'pg') {
     const sql = 'INSERT INTO admins (username, password_hash, display_name) VALUES ($1, $2, $3) RETURNING id';
-    return await db.query(sql, [username, passwordHash, dName]);
+    const res = await db.query(sql, [username, passwordHash, dName]);
+    return { lastInsertRowid: res.rows[0].id };
   } else {
     return await query('INSERT INTO admins (username, password_hash, display_name) VALUES (?, ?, ?)', [username, passwordHash, dName]);
   }
@@ -322,5 +342,6 @@ module.exports = {
   getAllAdmins,
   updateAdminPassword,
   updateAdminProfile,
-  type
+  type,
+  initPromise
 };

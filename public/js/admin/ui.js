@@ -20,6 +20,10 @@ export function initUI() {
             }
         });
     }
+
+    // Restore active tab
+    const savedTab = localStorage.getItem('adminActiveTab') || 'appointments';
+    switchTab(savedTab);
 }
 
 export function switchTab(tab) {
@@ -34,6 +38,9 @@ export function switchTab(tab) {
 
     if (tabContent) tabContent.classList.add('active');
     if (tabBtn) tabBtn.classList.add('active');
+
+    // Save state
+    localStorage.setItem('adminActiveTab', tab);
 }
 
 export function togglePassword(btn) {

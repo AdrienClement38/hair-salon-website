@@ -87,7 +87,11 @@ export function autoOpenDayDetails() {
         targetDate.setDate(targetDate.getDate() + 1);
     }
 
-    const dateStr = targetDate.toISOString().split('T')[0];
+    const year = targetDate.getFullYear();
+    const month = String(targetDate.getMonth() + 1).padStart(2, '0');
+    const day = String(targetDate.getDate()).padStart(2, '0');
+    const dateStr = `${year}-${month}-${day}`;
+    // const dateStr = targetDate.toISOString().split('T')[0];
     const dayAppts = appointmentsCache.filter(a => a.date === dateStr);
 
     // Auto open
@@ -131,7 +135,13 @@ function renderCalendar() {
         grid.appendChild(cell);
     }
 
-    const todayStr = new Date().toISOString().split('T')[0];
+    // Use Local Date for "today" check
+    const now = new Date();
+    const todayYear = now.getFullYear();
+    const todayMonth = String(now.getMonth() + 1).padStart(2, '0');
+    const todayDay = String(now.getDate()).padStart(2, '0');
+    const todayStr = `${todayYear}-${todayMonth}-${todayDay}`;
+    // const todayStr = new Date().toISOString().split('T')[0];
     const activeFilter = document.getElementById('admin-filter') ? document.getElementById('admin-filter').value : '';
 
     for (let day = 1; day <= daysInMonth; day++) {
@@ -196,7 +206,7 @@ function renderCalendar() {
         let html = `<div class="day-number">${day}</div>`;
 
         if (holidayType === 'global') {
-            html += `<span class="appt-badge" style="background:#e57373; color:white">Fermeture</span>`;
+            html += `<span class="appt-badge" style="background:#e57373; color:white">Fermeture Salon</span>`;
         } else if (holidayType === 'personal') {
             html += `<span class="appt-badge" style="background:#ffa726; color:white">Congés</span>`;
         } else if (isClosedDay) {

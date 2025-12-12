@@ -7,6 +7,7 @@ const slotsContainer = document.getElementById('slots-container');
 const selectedTimeInput = document.getElementById('selected-time');
 const bookingForm = document.getElementById('booking-form');
 const workerInput = document.getElementById('worker');
+const serviceInput = document.getElementById('service');
 
 export function initBooking() {
     // Set min date
@@ -23,7 +24,7 @@ export function initBooking() {
 
         const name = document.getElementById('name').value;
         const phone = document.getElementById('phone').value;
-        const service = document.getElementById('service').value;
+        const service = serviceInput.value;
         const adminId = workerInput.value;
         const date = dateInput.value;
         const time = selectedTimeInput.value;
@@ -47,7 +48,7 @@ export function initBooking() {
             if (res.ok) {
                 if (dateInput.value) updateSlots();
 
-                const serviceName = document.getElementById('service').options[document.getElementById('service').selectedIndex].text;
+                const serviceName = serviceInput.options[serviceInput.selectedIndex].text;
                 const workerName = workerInput.options[workerInput.selectedIndex].text;
 
                 showMessage(`Rendez-vous confirmé pour <strong>${serviceName}</strong> avec <strong>${workerName}</strong><br>Le ${formatDateDisplay(date)} à ${time}`, 'success');
@@ -63,6 +64,7 @@ export function initBooking() {
     });
 
     loadWorkers();
+    loadServices();
 }
 
 function updateSlots() {
@@ -131,6 +133,33 @@ async function loadWorkers() {
 
     } catch (e) {
         workerInput.innerHTML = '<option value="">Erreur chargement</option>';
+    }
+}
+
+async function loadServices() {
+    serviceInput.innerHTML = '<option value="">Chargement...</option>';
+    try {
+        const res = await fetch('/api/settings');
+        const settings = await res.json();
+        const services = settings.services || [];
+
+        if (services.length === 0) {
+            serviceInput.innerHTML = '<option value="">Aucun service disponible</option>';
+            return;
+        }
+
+        serviceInput.innerHTML = '<option value="">-- Choisir une prestation --</option>';
+        services.forEach(s => {
+            const opt = document.createElement('option');
+            // Use service name as value for now (or ID if we add IDs to services later)
+            // Storing name as value is simple for now.
+            opt.value = s.name;
+            opt.textContent = `${s.name} - ${s.price}€`;
+            serviceInput.appendChild(opt);
+        });
+    } catch (e) {
+        console.error("Error loading services", e);
+        serviceInput.innerHTML = '<option value="">Erreur de chargement</option>';
     }
 }
 

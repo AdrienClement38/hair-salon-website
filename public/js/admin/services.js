@@ -115,7 +115,8 @@ export function addService() {
     const icon = iconInput.value;
     const description = descInput.value;
 
-    if (!name || !price) return alert('Nom et Prix requis');
+    if (!name) return alert('Le nom de la prestation est requis');
+    if (!price) return alert('Le prix est invalide (chiffres uniquement)');
 
     if (editingServiceIndex >= 0) {
         currentServices[editingServiceIndex] = { name, price, icon, description };

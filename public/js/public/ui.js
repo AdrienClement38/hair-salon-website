@@ -15,9 +15,9 @@ export function renderServices(services) {
     container.innerHTML = services.map(svc => `
         <div class="card">
             <div class="card-icon" style="color:var(--gold); display:flex; justify-content:center; align-items:center; height:50px;">${svgs[svc.icon] || svgs.star}</div>
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
-                 <h3 style="margin:0;">${svc.name}</h3>
-                 <span style="font-weight:bold; color:var(--gold);">${svc.price}€</span>
+            <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:10px; gap:15px;">
+                 <h3 style="margin:0; text-align:left; line-height:1.2;">${svc.name}</h3>
+                 <span style="font-weight:bold; color:var(--gold); flex-shrink:0; white-space:nowrap;">${svc.price}€</span>
             </div>
             ${svc.description ? `<p style="font-size:0.9em; color:#ddd; margin-top:5px;">${svc.description}</p>` : ''}
         </div>

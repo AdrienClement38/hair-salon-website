@@ -36,6 +36,8 @@ Ce document liste toutes les fonctionnalités actuellement implémentées sur le
 - **US-2.11** : En tant qu'administrateur, je veux mettre à jour les textes de l'Accueil (Titre, Sous-titre, Philosophie).
 - **US-2.12** : En tant qu'administrateur, je veux télécharger et mettre à jour les images principales (Hero, Philosophie).
 - **US-2.13** : En tant qu'administrateur, je veux ajuster le point focal (positionnement) des images pour qu'elles s'affichent correctement sur tous les écrans.
+- **US-2.19** : En tant qu'administrateur, je veux modifier les informations d'un produit (Nom, Prix, Description) pour mettre à jour le catalogue.
+- **US-2.20** : En tant qu'administrateur, je veux ajuster le positionnement de la photo d'un produit pour qu'elle soit bien cadrée.
 
 ### Épopée : Gestion de l'Équipe
 - **US-2.14** : En tant qu'administrateur, je veux ajouter de nouveaux membres d'équipe (autres admins/coiffeurs) pour qu'ils puissent aussi gérer le salon.

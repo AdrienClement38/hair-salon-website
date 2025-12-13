@@ -92,7 +92,7 @@ export function renderServicesList() {
              <td style="font-size:0.9em; color:#666;">${service.description || ''}</td>
             <td>
                 <button class="btn-action btn-edit" onclick="editService(${index})">Modifier</button>
-                <button class="btn-action btn-delete" onclick="removeService(${index})">Suppr</button>
+                <button onclick="removeService(${index})" style="background:none; border:none; color:red; cursor:pointer; font-size: 24px; padding: 0 10px;" title="Supprimer">&times;</button>
             </td>
         `;
         tbody.appendChild(tr);

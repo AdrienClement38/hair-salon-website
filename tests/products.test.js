@@ -45,4 +45,25 @@ describe('Products Management', () => {
         expect(getRes.body.products[0].name).toBe('Shampoo');
     });
 
+    test('US-2.20: Should update product specific image position', async () => {
+        const productWithPos = [
+            {
+                name: 'Styled Product',
+                price: 50,
+                description: 'With Position',
+                image: 'style.jpg',
+                imagePosition: { x: 25.5, y: 75.0 }
+            }
+        ];
+
+        const res = await request(app)
+            .post('/api/admin/settings')
+            .set('Authorization', authHeader)
+            .send({ products: productWithPos })
+            .expect(200);
+
+        const getRes = await request(app).get('/api/settings');
+        expect(getRes.body.products[0].imagePosition).toEqual({ x: 25.5, y: 75.0 });
+    });
+
 });

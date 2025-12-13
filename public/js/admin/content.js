@@ -118,25 +118,44 @@ function handleImageUpload(formId, fileName) {
 }
 
 // Positioning Logic
+// Positioning Logic
+let onSaveCallback = null;
+
+export function openGenericPositioning(imgUrl, initialX, initialY, onSave) {
+    currentX = initialX || 50;
+    currentY = initialY || 50;
+    onSaveCallback = onSave;
+
+    const modal = document.getElementById('position-modal');
+    const img = document.getElementById('position-image');
+
+    // Use timestamp to break cache
+    img.src = `${imgUrl}?t=${Date.now()}`;
+
+    if (initPositioning.initialized !== true) {
+        initPositioning();
+        initPositioning.initialized = true;
+    }
+
+    updateMarker();
+    modal.style.display = 'flex';
+}
+
 function initPositioning() {
     const img = document.getElementById('position-image');
 
     img.addEventListener('click', (e) => {
         const rect = img.getBoundingClientRect();
-        // Calculate position relative to the image content, not the container borders if any
-        // Since img object-fit is contain, we rely on click on img itself.
-
         const x = e.clientX - rect.left;
         const y = e.clientY - rect.top;
 
-        // Constraint within 0-100 to avoid edge cases
         let px = (x / rect.width) * 100;
         let py = (y / rect.height) * 100;
 
         px = Math.max(0, Math.min(100, px));
         py = Math.max(0, Math.min(100, py));
 
-        currentX = Math.round(px * 10) / 10; // 1 decimal
+        currentX = Math.round(px * 10) / 10;
         currentY = Math.round(py * 10) / 10;
 
         updateMarker();
@@ -146,27 +165,36 @@ function initPositioning() {
 export function openPositioning(type) {
     currentPositioningImage = type === 'hero-bg' ? 'hero' : 'philosophy';
 
-    // Load existing position if any
     const existing = currentPositioningImage === 'hero'
         ? currentHomeContent.heroPosition
         : currentHomeContent.philosophyPosition;
 
-    if (existing) {
-        currentX = existing.x;
-        currentY = existing.y;
-    } else {
-        currentX = 50;
-        currentY = 50;
-    }
+    const imgUrl = `/images/${type === 'hero-bg' ? 'hero-bg' : 'philosophy-bg'}`;
+    const x = existing ? existing.x : 50;
+    const y = existing ? existing.y : 50;
 
-    const modal = document.getElementById('position-modal');
-    const img = document.getElementById('position-image');
+    openGenericPositioning(imgUrl, x, y, async (newX, newY) => {
+        const key = currentPositioningImage === 'hero' ? 'heroPosition' : 'philosophyPosition';
+        const settings = {
+            home_content: {
+                ...currentHomeContent,
+                [key]: { x: newX, y: newY }
+            }
+        };
 
-    // Use timestamp to break cache
-    img.src = `/images/${type === 'hero-bg' ? 'hero-bg' : 'philosophy-bg'}?t=${Date.now()}`;
-
-    updateMarker();
-    modal.style.display = 'flex'; // Use flex to center with new CSS
+        try {
+            await fetch(`${API_URL}/settings`, {
+                method: 'POST',
+                headers: getHeaders(),
+                body: JSON.stringify(settings)
+            });
+            alert('Position enregistrée !');
+            currentHomeContent[key] = { x: newX, y: newY };
+            closePositionModal();
+        } catch (e) {
+            alert('Erreur lors de la sauvegarde');
+        }
+    });
 }
 
 function updateMarker() {
@@ -182,34 +210,12 @@ function updateMarker() {
 
 export function closePositionModal() {
     document.getElementById('position-modal').style.display = 'none';
+    onSaveCallback = null;
 }
 
 export async function savePosition() {
-    const key = currentPositioningImage === 'hero' ? 'heroPosition' : 'philosophyPosition';
-
-    const settings = {
-        home_content: {
-            ...currentHomeContent,
-            [key]: { x: currentX, y: currentY }
-        }
-    };
-
-    try {
-        await fetch(`${API_URL}/settings`, {
-            method: 'POST',
-            headers: getHeaders(),
-            body: JSON.stringify(settings)
-        });
-        alert('Position enregistrée !');
-        closePositionModal();
-        // Update local state by reloading settings (could be cleaner but this works safely)
-        // Since content.js doesn't import loadSettings easily without circular dep, we can just update local obj
-        // But better to rely on dashboard refresh or simple reload if critical.
-        // For now, updating currentHomeContent locally is enough for immediate saving consistency
-        currentHomeContent[key] = { x: currentX, y: currentY };
-
-    } catch (e) {
-        alert('Erreur lors de la sauvegarde');
+    if (onSaveCallback) {
+        onSaveCallback(currentX, currentY);
     }
 }
 
@@ -219,3 +225,5 @@ window.saveTextSettings = saveTextSettings;
 window.openPositioning = openPositioning;
 window.closePositionModal = closePositionModal;
 window.savePosition = savePosition;
+// Export for reuse
+window.openGenericPositioning = openGenericPositioning;

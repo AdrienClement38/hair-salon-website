@@ -14,7 +14,7 @@ export function renderProductsList() {
 
     currentProducts.forEach((prod, index) => {
         const item = document.createElement('div');
-        item.className = 'service-item'; // Reuse service-item styling if possible or generic
+        item.className = 'service-item';
         item.style.cssText = 'display:flex; justify-content:space-between; align-items:center; background:#eee; padding:10px; margin-bottom:5px; border-radius:4px;';
 
         const imgDisplay = prod.image ? `<img src="/images/${prod.image}" style="width:40px; height:40px; object-fit:cover; border-radius:4px; margin-right:10px;">` : '';
@@ -27,10 +27,109 @@ export function renderProductsList() {
                     <br><small style="color:#666;">${prod.description || ''}</small>
                 </div>
             </div>
-            <button onclick="removeProduct(${index})" style="background:none; border:none; color:red; cursor:pointer;" title="Supprimer">&times;</button>
+            <div style="display:flex; gap:10px;">
+                ${prod.image ? `<button onclick="openProductPositioning(${index})" class="btn-action" style="background:#f0ad4e;" title="Positionner la photo">Positionner</button>` : ''}
+                <button onclick="editProduct(${index})" class="btn-action btn-edit" title="Modifier">Modifier</button>
+                <button onclick="removeProduct(${index})" style="background:none; border:none; color:red; cursor:pointer; font-size: 24px; padding: 0 10px;" title="Supprimer">&times;</button>
+            </div>
         `;
         list.appendChild(item);
     });
+}
+
+export function openProductPositioning(index) {
+    const product = currentProducts[index];
+    if (!product || !product.image) return alert('Produit ou image manquant');
+
+    const imageUrl = `/images/${product.image}`;
+    const initialX = product.imagePosition ? product.imagePosition.x : 50;
+    const initialY = product.imagePosition ? product.imagePosition.y : 50;
+
+    openGenericPositioning(imageUrl, initialX, initialY, async (x, y) => {
+        const newProducts = [...currentProducts];
+        newProducts[index] = { ...newProducts[index], imagePosition: { x, y } };
+
+        try {
+            await saveProducts(newProducts);
+            alert('Position sauvegardée');
+            closePositionModal();
+        } catch (e) {
+            alert('Erreur sauvegarde');
+        }
+    });
+}
+
+// EDITING VARIABLES
+let editingIndex = -1;
+
+function getFormContainer() {
+    // Robustly find the container: it's the sibling after the list
+    return document.getElementById('products-list').nextElementSibling;
+}
+
+export function editProduct(index) {
+    const product = currentProducts[index];
+    if (!product) return;
+
+    editingIndex = index;
+
+    document.getElementById('new-product-name').value = product.name;
+    document.getElementById('new-product-price').value = product.price;
+    document.getElementById('new-product-desc').value = product.description || '';
+
+    const container = getFormContainer();
+    if (container) {
+        // Update Header
+        const header = container.querySelector('h5');
+        if (header) header.textContent = 'Modifier le produit';
+
+        // Add Highlight
+        container.classList.add('editing-mode');
+        container.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+        // Update Button
+        // Find the first button, which is "Ajouter le produit"
+        const btn = container.querySelector('button');
+        if (btn) btn.textContent = 'Mettre à jour';
+
+        // Add Cancel Button
+        let cancelBtn = document.getElementById('cancel-edit-product');
+        if (!cancelBtn) {
+            cancelBtn = document.createElement('button');
+            cancelBtn.id = 'cancel-edit-product';
+            cancelBtn.textContent = 'Annuler';
+            cancelBtn.className = 'btn btn-outline';
+            cancelBtn.style.width = 'auto';
+            cancelBtn.onclick = cancelEdit;
+
+            // Append next to the main button
+            if (btn && btn.parentNode) {
+                btn.parentNode.appendChild(cancelBtn);
+            }
+        }
+    }
+}
+
+export function cancelEdit() {
+    editingIndex = -1;
+    document.getElementById('new-product-name').value = '';
+    document.getElementById('new-product-price').value = '';
+    document.getElementById('new-product-desc').value = '';
+    document.getElementById('new-product-file').value = '';
+
+    const container = getFormContainer();
+    if (container) {
+        const header = container.querySelector('h5');
+        if (header) header.textContent = 'Ajouter un produit';
+
+        container.classList.remove('editing-mode');
+
+        const btn = container.querySelector('button');
+        if (btn) btn.textContent = 'Ajouter le produit';
+    }
+
+    const cancelBtn = document.getElementById('cancel-edit-product');
+    if (cancelBtn) cancelBtn.remove();
 }
 
 export async function addProduct() {
@@ -44,52 +143,52 @@ export async function addProduct() {
     let imageName = null;
 
     if (fileInput.files.length > 0) {
-        // Upload Image
         const formData = new FormData();
-        // Use timestamp to ensure unique filename if user re-uploads same name? 
-        // Or just let server handle it? Server uses fieldname as filename in current logic?
-        // Wait, `settings.js` `uploadImages` uses fieldname.
-        // I should probably change the server logic to allow dynamic filenames or use a specific format.
-        // Current server logic: `filename = file.fieldname`. This is limiting for arrays of products.
-        // Ideally I want to upload with a constructed filename like `product-${Date.now()}`.
-        // But `uploadImages` controller takes fieldnames.
-        // Workaround: I append the file with a specific unique fieldname.
-
         const uniqueId = `prod_${Date.now()}`;
         formData.append(uniqueId, fileInput.files[0]);
 
         try {
             const res = await fetch(`${API_URL}/upload`, {
                 method: 'POST',
-                headers: { 'Authorization': 'Basic ' + localStorage.getItem('auth') }, // Manual auth header for multipart
+                headers: { 'Authorization': 'Basic ' + localStorage.getItem('auth') },
                 body: formData
             });
 
             if (!res.ok) throw new Error('Erreur upload');
-            imageName = uniqueId; // The server saves it as the fieldname
+            imageName = uniqueId;
         } catch (e) {
             console.error(e);
             return alert("Erreur lors de l'upload de l'image");
         }
     }
 
-    const newProd = {
-        id: Date.now(),
-        name,
-        price,
-        description: desc,
-        image: imageName
-    };
+    const newProducts = [...currentProducts];
 
-    const newProducts = [...currentProducts, newProd];
+    if (editingIndex >= 0) {
+        // UPDATE
+        const existing = newProducts[editingIndex];
+        newProducts[editingIndex] = {
+            ...existing,
+            name,
+            price,
+            description: desc,
+            image: imageName || existing.image
+        };
+    } else {
+        // CREATE
+        const newProd = {
+            id: Date.now(),
+            name,
+            price,
+            description: desc,
+            image: imageName
+        };
+        newProducts.push(newProd);
+    }
 
     try {
         await saveProducts(newProducts);
-        // Clear inputs
-        document.getElementById('new-product-name').value = '';
-        document.getElementById('new-product-price').value = '';
-        document.getElementById('new-product-desc').value = '';
-        document.getElementById('new-product-file').value = '';
+        cancelEdit(); // Reset form
     } catch (e) {
         alert('Erreur lors de la sauvegarde du produit');
     }
@@ -103,18 +202,17 @@ export async function removeProduct(index) {
 }
 
 async function saveProducts(products) {
-    // We send only products array update
     await fetch(`${API_URL}/settings`, {
         method: 'POST',
         headers: getHeaders(),
         body: JSON.stringify({ products })
     });
 
-    // Update local state (polling will confirm later but good for UI responsiveness)
     setProducts(products);
     renderProductsList();
 }
 
-// Global exposure
 window.addProduct = addProduct;
 window.removeProduct = removeProduct;
+window.editProduct = editProduct;
+window.openProductPositioning = openProductPositioning;

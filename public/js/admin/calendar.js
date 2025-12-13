@@ -58,6 +58,14 @@ export async function loadAppointments() {
     const url = filter ? `${API_URL}/appointments?adminId=${filter}` : `${API_URL}/appointments`;
 
     try {
+        // Update Title dynamically
+        const headerTitle = document.querySelector('header h1');
+        if (headerTitle) {
+            const filterEl = document.getElementById('admin-filter');
+            const selectedText = filterEl.options[filterEl.selectedIndex]?.text || 'Salon';
+            headerTitle.textContent = `Tableau de Bord - ${selectedText}`;
+        }
+
         const res = await fetch(url, { headers: getHeaders() });
         appointmentsCache = await res.json();
         renderCalendar();

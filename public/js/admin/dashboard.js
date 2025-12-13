@@ -28,7 +28,7 @@ async function loadCurrentUser() {
         // Maybe show name in header
         const headerTitle = document.querySelector('#dashboard-view header h1');
         if (headerTitle) {
-            headerTitle.textContent = `Tableau de Bord - ${user.displayName}`;
+            // headerTitle.textContent = `Tableau de Bord - ${user.displayName}`;
         }
 
     } catch (e) {

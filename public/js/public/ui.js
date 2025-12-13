@@ -154,3 +154,30 @@ export function renderContactInfo(info) {
         footerEl.textContent = `${info.address || ''} | ${info.phone || ''}`;
     }
 }
+
+export function renderProducts(products) {
+    const container = document.getElementById('products-grid');
+    if (!container) return;
+
+    if (!products || products.length === 0) {
+        container.innerHTML = '<p style="grid-column: 1/-1; text-align:center;">Aucun produit disponible pour le moment.</p>';
+        return;
+    }
+
+    container.innerHTML = products.map(prod => `
+        <div class="card product-card" style="max-width: 300px; margin: 0 auto; background: var(--dark); border: 1px solid var(--primary); box-shadow: none;">
+            ${prod.image ?
+            `<div style="width: 200px; height: 200px; margin: 0 auto 15px auto; border-radius: 8px; overflow: hidden; background:#f0f0f0;">
+                    <img src="/images/${prod.image}" alt="${prod.name}" style="width:100%; height:100%; object-fit:cover;">
+                 </div>`
+            : `<div style="width: 200px; height: 200px; margin: 0 auto 15px auto; border-radius: 8px; background:#333; display:flex; align-items:center; justify-content:center;"><span style="color:#666;">Pas d'image</span></div>`}
+            
+            <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:10px; gap:15px;">
+                 <h3 style="margin:0; text-align:left; line-height:1.2; color: var(--primary);">${prod.name}</h3>
+                 <span style="font-weight:bold; color:var(--primary); flex-shrink:0; white-space:nowrap;">${prod.price}€</span>
+            </div>
+            
+            <p style="font-size:0.9em; color:#ddd; margin-top:5px;">${prod.description || ''}</p>
+        </div>
+    `).join('');
+}

@@ -369,6 +369,38 @@
                     </div>
 
                 </div>
+                <!-- Products -->
+                <div class="settings-section">
+                    <h3>Nos Produits</h3>
+                    <div id="products-list"></div>
+
+                    <div style="margin-top: 20px; background: #fafafa; padding: 15px; border-radius: 4px;">
+                        <h5>Ajouter un produit</h5>
+                        <div class="form-group">
+                            <label>Nom</label>
+                            <input type="text" id="new-product-name">
+                        </div>
+                        <div style="display:flex; gap:10px;">
+                            <div class="form-group" style="flex:1">
+                                <label>Prix (€)</label>
+                                <input type="number" id="new-product-price" step="0.5" min="0">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>Description</label>
+                            <input type="text" id="new-product-desc">
+                        </div>
+                        <div class="form-group">
+                            <label>Photo</label>
+                            <form id="upload-new-product" style="display:flex; align-items:center; gap:10px;">
+                                <input type="file" name="product-image" accept="image/*" required id="new-product-file">
+                            </form>
+                        </div>
+                        <div style="display:flex; gap: 10px; margin-top: 15px;">
+                            <button class="btn" onclick="addProduct()" style="width:auto">Ajouter le produit</button>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>

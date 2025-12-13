@@ -3,7 +3,8 @@ const { triggerUpdate } = require('../config/polling');
 const path = require('path');
 
 exports.update = async (req, res) => {
-    const { openingHours, holidays, holidayRanges, home_content, services, contact_info } = req.body;
+    const { openingHours, holidays, holidayRanges, home_content, services, contact_info, products } = req.body;
+
     try {
         if (openingHours) await db.setSetting('openingHours', openingHours);
         if (holidays) await db.setSetting('holidays', holidays);
@@ -11,10 +12,12 @@ exports.update = async (req, res) => {
         if (home_content) await db.setSetting('home_content', home_content);
         if (services) await db.setSetting('services', services);
         if (contact_info) await db.setSetting('contact_info', contact_info);
+        if (products) await db.setSetting('products', products);
 
         triggerUpdate('settings');
         res.json({ success: true });
     } catch (err) {
+        console.error('Settings Update Error:', err);
         res.status(500).json({ error: err.message });
     }
 };
@@ -28,8 +31,11 @@ exports.get = async (req, res) => {
         const home_content = (await db.getSetting('home_content')) || {};
         const services = (await db.getSetting('services')) || [];
         const contact_info = (await db.getSetting('contact_info')) || { address: '', phone: '' };
+        const products = (await db.getSetting('products')) || [];
 
-        res.json({ openingHours, holidays, holidayRanges, home_content, services, contact_info });
+        // console.log('Serving settings. Products count:', products.length);
+
+        res.json({ openingHours, holidays, holidayRanges, home_content, services, contact_info, products });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }

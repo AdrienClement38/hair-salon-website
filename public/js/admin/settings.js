@@ -1,8 +1,9 @@
 // public/js/admin/settings.js
 import { API_URL, getHeaders, formatDateDisplay } from './config.js';
 import { renderServicesList, setServicesData } from './services.js';
+import { renderProductsList } from './products.js';
 import { loadAppointments } from './calendar.js';
-import { setSchedule, setHolidayRanges, setHomeContent, setSalonClosingTime, currentHolidayRanges, currentHomeContent } from './state.js';
+import { setSchedule, setHolidayRanges, setHomeContent, setSalonClosingTime, currentHolidayRanges, currentHomeContent, setProducts } from './state.js';
 
 let currentHolidays = [];
 // Cache for leaves
@@ -11,7 +12,7 @@ let allLeaves = [];
 export async function loadSettings() {
     try {
         const res = await fetch(`${API_URL}/settings`, { headers: getHeaders() });
-        const { openingHours, holidays, home_content, services, contact_info } = await res.json();
+        const { openingHours, holidays, home_content, services, contact_info, products } = await res.json();
 
         // Update State (holidayRanges is legacy, we load leaves separately)
         setHomeContent(home_content || {});
@@ -47,6 +48,9 @@ export async function loadSettings() {
         // Populate Content Tab
         setServicesData(services || []);
         renderServicesList();
+
+        setProducts(products || []);
+        renderProductsList();
 
         if (document.getElementById('content-title')) document.getElementById('content-title').value = currentHomeContent.title || '';
         if (document.getElementById('content-subtitle')) document.getElementById('content-subtitle').value = currentHomeContent.subtitle || '';

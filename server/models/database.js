@@ -192,6 +192,10 @@ const initDB = async () => {
   if (contactInfoSetting === null) {
     await setSetting('contact_info', { address: '12 Rue de la Mode, 75001 Paris', phone: '01 23 45 67 89' });
   }
+  const productsSetting = await getSetting('products');
+  if (productsSetting === null) {
+    await setSetting('products', []);
+  }
 };
 
 // Initialize immediately (async wrapper for PG)

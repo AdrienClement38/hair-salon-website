@@ -1,0 +1,6 @@
+[2025-12-13T21:34:15.545Z] Update received. Keys: products
+[2025-12-13T21:34:15.546Z] Products payload size: 1 items.
+[2025-12-13T21:34:15.554Z] Products saved to DB successfully.
+[2025-12-13T21:56:16.196Z] Update received. Keys: products
+[2025-12-13T21:56:16.197Z] Products payload size: 2 items.
+[2025-12-13T21:56:16.201Z] Products saved to DB successfully.

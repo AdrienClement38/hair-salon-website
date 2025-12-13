@@ -40,7 +40,7 @@ async function loadWorkersForFilter() {
         const select = document.getElementById('admin-filter');
 
         // Keep first option (All)
-        select.innerHTML = '<option value="">Tous les RDV</option>';
+        select.innerHTML = '<option value="">Salon</option>';
 
         workers.forEach(w => {
             const opt = document.createElement('option');

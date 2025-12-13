@@ -80,7 +80,7 @@ function renderHolidayList() {
     const list = document.getElementById('holiday-list');
     const filterEl = document.getElementById('admin-filter');
     const selectedAdminId = filterEl ? filterEl.value : "";
-    const selectedAdminName = filterEl && filterEl.options[filterEl.selectedIndex] ? filterEl.options[filterEl.selectedIndex].text : "Tous les RDV";
+    const selectedAdminName = filterEl && filterEl.options[filterEl.selectedIndex] ? filterEl.options[filterEl.selectedIndex].text : "Salon";
 
     // Update Section Title
     const sectionTitle = document.querySelector('#leaves-section-title');

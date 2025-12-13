@@ -4,7 +4,8 @@ const db = require('../server/models/database');
 const bcrypt = require('bcryptjs');
 
 const BASE_URL = 'http://localhost:3000';
-const TEST_USER = { username: 'test_runner', password: 'password123', displayName: 'Test Runner' };
+// Use existing Manager for robust auth
+const MANAGER = { username: 'manager', password: 'password123' };
 const WORKER = { username: 'ui_test_worker', password: 'password123', displayName: 'Automated Worker' };
 
 // Native fetch Node 18+
@@ -20,20 +21,19 @@ describe('Admin UI & Profile Switching', () => {
     beforeAll(async () => {
         // --- DB SETUP ---
         await db.initPromise;
-        const hash = await bcrypt.hash(TEST_USER.password, 10);
 
-        try {
-            await db.createAdmin(TEST_USER.username, hash, TEST_USER.displayName);
-        } catch (e) {
-            // Ignore constraint violation (user exists)
-        }
+        // Setup Worker using Manager Auth from API
+        // We assume 'manager' exists. If not, this test will fail on Auth, but manager should exist.
 
-        // --- WORKER SETUP ---
-        const auth = Buffer.from(`${TEST_USER.username}:${TEST_USER.password}`).toString('base64');
+        const auth = Buffer.from(`${MANAGER.username}:${MANAGER.password}`).toString('base64');
         const headers = { 'Authorization': `Basic ${auth}`, 'Content-Type': 'application/json' };
 
+        // Verify Manager Auth works
         const listRes = await fetch(`${BASE_URL}/api/admin/workers`, { headers });
-        if (!listRes.ok) throw new Error("API Auth with injected user failed");
+        if (!listRes.ok) {
+            const txt = await listRes.text();
+            throw new Error(`API Auth with MANAGER failed: ${listRes.status} ${txt}`);
+        }
 
         const workers = await listRes.json();
         const existing = workers.find(w => w.username === WORKER.username);
@@ -46,10 +46,12 @@ describe('Admin UI & Profile Switching', () => {
                 body: JSON.stringify(WORKER)
             });
             if (createRes.ok) {
+                // Fetch again to get ID
                 const newWorkers = await (await fetch(`${BASE_URL}/api/admin/workers`, { headers })).json();
                 workerId = newWorkers.find(w => w.username === WORKER.username).id;
             } else {
-                throw new Error("Failed to create worker");
+                const txt = await createRes.text();
+                throw new Error(`Failed to create worker: ${txt}`);
             }
         }
     });
@@ -61,22 +63,35 @@ describe('Admin UI & Profile Switching', () => {
     });
 
     afterEach(async () => {
-        await browser.close();
+        if (browser) await browser.close();
+    });
+
+    afterAll(async () => {
+        // Cleanup Test Users
+        try {
+            if (db.deleteAdmin) {
+                await db.deleteAdmin(WORKER.username); // Only delete the temporary worker
+                console.log("Cleanup: Deleted test worker");
+            } else {
+                console.warn("Cleanup: deleteAdmin not available in db model");
+            }
+        } catch (e) {
+            console.error("Cleanup failed", e);
+        }
     });
 
     test('Should update dashboard title and settings headers when switching profiles', async () => {
         await page.goto(`${BASE_URL}/admin.html`);
 
-        // Login
-        await page.type('#username', TEST_USER.username);
-        await page.type('#password', TEST_USER.password);
+        // Login as Manager
+        await page.type('#username', MANAGER.username);
+        await page.type('#password', MANAGER.password);
         await page.click('#login-form button[type="submit"]');
 
         // Wait for dashboard
         await page.waitForSelector('#dashboard-view', { visible: true });
 
         // Wait for Loading to Complete (Title Update)
-        // Title should eventually contain "Salon" (default filter)
         await page.waitForFunction(() => {
             const h1 = document.querySelector('header h1');
             return h1 && h1.textContent.includes('Tableau de Bord - Salon');
@@ -95,6 +110,21 @@ describe('Admin UI & Profile Switching', () => {
 
         // 2. Switch to Worker
         if (!workerId) throw new Error("Worker ID missing");
+
+        // --- Add Personal Leave for Today (Authenticated as Manager) ---
+        const today = new Date().toISOString().split('T')[0];
+        try {
+            await fetch(`${BASE_URL}/api/admin/leaves`, {
+                method: 'POST',
+                headers: { 'Authorization': `Basic ${Buffer.from(`${MANAGER.username}:${MANAGER.password}`).toString('base64')}`, 'Content-Type': 'application/json' },
+                body: JSON.stringify({ start: today, end: today, adminId: workerId, note: 'Test Leave' })
+            });
+        } catch (e) { console.log("Leave creation error:", e); }
+
+        await page.reload();
+        await page.waitForSelector('#dashboard-view', { visible: true });
+
+        // Select Worker
         await page.select('#admin-filter', String(workerId));
 
         // Wait for Title Update

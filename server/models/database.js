@@ -327,6 +327,11 @@ const updateAdminProfile = async (id, displayName) => {
   return await query('UPDATE admins SET display_name = ? WHERE id = ?', [displayName, id]);
 };
 
+const deleteAdmin = async (username) => {
+  if (type === 'pg') return await query('DELETE FROM admins WHERE username = $1', [username]);
+  return await query('DELETE FROM admins WHERE username = ?', [username]);
+};
+
 
 // --- Leaves ---
 
@@ -379,6 +384,7 @@ module.exports = {
   getLeaves,
   getAllLeaves,
   deleteLeave,
+  deleteAdmin,
   type,
   initPromise
 };

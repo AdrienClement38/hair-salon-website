@@ -16,6 +16,14 @@ export function initCalendar() {
     initYearSelect();
     loadWorkersForFilter();
     // Start polling or load initial
+
+    // Listen to filter change
+    const filterEl = document.getElementById('admin-filter');
+    if (filterEl) {
+        filterEl.addEventListener('change', () => {
+            loadAppointments();
+        });
+    }
 }
 
 function initYearSelect() {
@@ -221,12 +229,32 @@ function renderCalendar() {
             html += `<span class="appt-badge" style="background:#bdbdbd; color:white">Fermé</span>`;
         } else {
             if (activeFilter) {
+                // ... (Existing Active Filter Logic) ...
                 if (dayAppts.length > 0) {
                     html += `<span class="appt-badge has-appt" style="display:block; margin-top:2px;">${dayAppts.length} RDV</span>`;
                 } else {
                     html += `<span class="appt-badge" style="background:#eee; color:#999; display:block; margin-top:2px;">0 RDV</span>`;
                 }
             } else {
+                // Salon View (No Filter)
+
+                // 1. Show Personal Leaves as Badges
+                if (currentLeaves && currentLeaves.length > 0) {
+                    const personalLeaves = currentLeaves.filter(l => l.admin_id !== null);
+                    const leavesToday = personalLeaves.filter(l => {
+                        const start = new Date(l.start_date); start.setHours(0, 0, 0, 0);
+                        const end = new Date(l.end_date); end.setHours(23, 59, 59, 999);
+                        return dayDate >= start && dayDate <= end;
+                    });
+
+                    leavesToday.forEach(l => {
+                        const worker = currentWorkers.find(w => w.id == l.admin_id);
+                        const name = worker ? worker.name : 'Inconnu';
+                        html += `<span class="appt-badge" style="background:#fff3e0; color:#e65100; border:1px solid #ffcc80; display:block; margin-top:2px; font-size:0.75rem;">Congés: ${name}</span>`;
+                    });
+                }
+
+                // 2. Show Appointments
                 if (dayAppts.length === 0) {
                     html += `<span class="appt-badge" style="background:#eee; color:#999; display:block; margin-top:2px;">0 RDV</span>`;
                 } else {
@@ -248,6 +276,7 @@ function renderCalendar() {
                 }
             }
         }
+
 
         cell.innerHTML = html;
         grid.appendChild(cell);

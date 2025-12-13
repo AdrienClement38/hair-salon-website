@@ -32,3 +32,26 @@ exports.listPublicWorkers = async (req, res) => {
         res.status(500).json({ error: e.message });
     }
 };
+
+exports.updateWorker = async (req, res) => {
+    const { id } = req.params;
+    const { password, displayName } = req.body;
+
+    try {
+        const admin = await db.getAdminById(id);
+        if (!admin) return res.status(404).json({ error: 'Worker not found' });
+
+        if (password) {
+            const hash = await bcrypt.hash(password, 10);
+            await db.updateAdminPassword(id, hash);
+        }
+
+        if (displayName) {
+            await db.updateAdminProfile(id, displayName);
+        }
+
+        res.json({ success: true });
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+};

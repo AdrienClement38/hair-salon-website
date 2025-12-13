@@ -33,6 +33,7 @@ router.put('/admin/profile', checkAuth, authController.updateProfile);
 // --- Workers Management (Admin) ---
 router.get('/admin/workers', checkAuth, adminsController.listWorkers);
 router.post('/admin/workers', checkAuth, adminsController.createWorker);
+router.put('/admin/workers/:id', checkAuth, adminsController.updateWorker);
 
 // --- Appointments (Admin) ---
 router.get('/admin/appointments', checkAuth, appointmentsController.list);

@@ -41,32 +41,7 @@ export function initContentForms() {
     // Init positioning functionality
     initPositioning();
 
-    // Profile
-    document.getElementById('profile-form').addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const displayname = document.getElementById('profile-displayname').value;
-        const newpass = document.getElementById('profile-new-pass').value;
-        const oldpass = document.getElementById('profile-old-pass').value;
-
-        try {
-            const res = await fetch(`${API_URL}/me`, {
-                method: 'PUT',
-                headers: getHeaders(),
-                body: JSON.stringify({ displayname, newpass, oldpass })
-            });
-
-            if (res.ok) {
-                alert('Profil mis à jour');
-                document.getElementById('profile-new-pass').value = '';
-                document.getElementById('profile-old-pass').value = '';
-            } else {
-                const err = await res.json();
-                alert('Erreur: ' + err.error);
-            }
-        } catch (e) {
-            alert('Erreur réseau');
-        }
-    });
+    // Profile listener moved to settings.js for dynamic handling
 
     // Team
     document.getElementById('team-form').addEventListener('submit', async (e) => {

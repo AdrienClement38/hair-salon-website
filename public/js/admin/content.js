@@ -10,6 +10,8 @@ export async function saveTextSettings() {
     const title = document.getElementById('content-title').value;
     const subtitle = document.getElementById('content-subtitle').value;
     const philosophy = document.getElementById('content-philosophy').value;
+    const address = document.getElementById('content-address').value;
+    const phone = document.getElementById('content-phone').value;
 
     // MERGE with existing content to preserve image positions
     const settings = {
@@ -18,6 +20,10 @@ export async function saveTextSettings() {
             title,
             subtitle,
             philosophy
+        },
+        contact_info: {
+            address,
+            phone
         }
     };
 

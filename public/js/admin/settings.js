@@ -11,7 +11,7 @@ let allLeaves = [];
 export async function loadSettings() {
     try {
         const res = await fetch(`${API_URL}/settings`, { headers: getHeaders() });
-        const { openingHours, holidays, home_content, services } = await res.json();
+        const { openingHours, holidays, home_content, services, contact_info } = await res.json();
 
         // Update State (holidayRanges is legacy, we load leaves separately)
         setHomeContent(home_content || {});
@@ -51,6 +51,8 @@ export async function loadSettings() {
         if (document.getElementById('content-title')) document.getElementById('content-title').value = currentHomeContent.title || '';
         if (document.getElementById('content-subtitle')) document.getElementById('content-subtitle').value = currentHomeContent.subtitle || '';
         if (document.getElementById('content-philosophy')) document.getElementById('content-philosophy').value = currentHomeContent.philosophy || '';
+        if (document.getElementById('content-address')) document.getElementById('content-address').value = contact_info?.address || '';
+        if (document.getElementById('content-phone')) document.getElementById('content-phone').value = contact_info?.phone || '';
 
         loadAppointments();
         initProfileForm(); // Initialize profile dynamic logic

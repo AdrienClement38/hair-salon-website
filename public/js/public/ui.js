@@ -144,3 +144,13 @@ export function refreshImages() {
         phil.style.backgroundImage = `url('/images/philosophy-bg?t=${Date.now()}')`;
     }
 }
+
+export function renderContactInfo(info) {
+    const footerEl = document.getElementById('contact-footer');
+    if (!footerEl) return;
+
+    // Default valid info object check
+    if (info && (info.address || info.phone)) {
+        footerEl.textContent = `${info.address || ''} | ${info.phone || ''}`;
+    }
+}

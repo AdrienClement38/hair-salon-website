@@ -188,6 +188,10 @@ const initDB = async () => {
   if (servicesSetting === null) {
     await setSetting('services', []);
   }
+  const contactInfoSetting = await getSetting('contact_info');
+  if (contactInfoSetting === null) {
+    await setSetting('contact_info', { address: '12 Rue de la Mode, 75001 Paris', phone: '01 23 45 67 89' });
+  }
 };
 
 // Initialize immediately (async wrapper for PG)

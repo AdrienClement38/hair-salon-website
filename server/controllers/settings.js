@@ -3,13 +3,14 @@ const { triggerUpdate } = require('../config/polling');
 const path = require('path');
 
 exports.update = async (req, res) => {
-    const { openingHours, holidays, holidayRanges, home_content, services } = req.body;
+    const { openingHours, holidays, holidayRanges, home_content, services, contact_info } = req.body;
     try {
         if (openingHours) await db.setSetting('openingHours', openingHours);
         if (holidays) await db.setSetting('holidays', holidays);
         if (holidayRanges) await db.setSetting('holidayRanges', holidayRanges);
         if (home_content) await db.setSetting('home_content', home_content);
         if (services) await db.setSetting('services', services);
+        if (contact_info) await db.setSetting('contact_info', contact_info);
 
         triggerUpdate('settings');
         res.json({ success: true });
@@ -26,7 +27,9 @@ exports.get = async (req, res) => {
         const holidayRanges = globalLeaves.map(l => ({ start: l.start_date, end: l.end_date }));
         const home_content = (await db.getSetting('home_content')) || {};
         const services = (await db.getSetting('services')) || [];
-        res.json({ openingHours, holidays, holidayRanges, home_content, services });
+        const contact_info = (await db.getSetting('contact_info')) || { address: '', phone: '' };
+
+        res.json({ openingHours, holidays, holidayRanges, home_content, services, contact_info });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }

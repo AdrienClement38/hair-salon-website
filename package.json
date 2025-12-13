@@ -5,8 +5,7 @@
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
-    "test": "jest",
-    "prepare": "husky"
+    "test": "jest"
   },
   "keywords": [],
   "author": "",

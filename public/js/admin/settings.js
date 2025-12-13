@@ -68,7 +68,6 @@ function initProfileForm() {
     const filterEl = document.getElementById('admin-filter');
     const profileForm = document.getElementById('profile-form');
     const displayInput = document.getElementById('profile-displayname');
-    const oldPassInput = document.getElementById('profile-old-pass');
     const sectionTitle = document.querySelector('#profile-form').closest('.settings-section').querySelector('h3');
 
     // Update Profile View on Filter Change
@@ -78,7 +77,6 @@ function initProfileForm() {
 
         // Clear sensitive fields
         document.getElementById('profile-new-pass').value = '';
-        oldPassInput.value = '';
 
         // Pre-fill with known name from dropdown (better UX than loading)
         displayInput.value = adminName;
@@ -86,12 +84,10 @@ function initProfileForm() {
         if (adminId) {
             // Editing specific worker
             sectionTitle.textContent = `Profil de ${adminName}`;
-            oldPassInput.closest('.form-group').style.display = 'none'; // Admin override doesn't need old pass
-            oldPassInput.removeAttribute('required'); // Remove required attribute
 
             // Fetch worker details to ensure we have the latest display name
             try {
-                const res = await fetch(`${API_URL}/admin/workers`, { headers: getHeaders() });
+                const res = await fetch(`${API_URL}/workers`, { headers: getHeaders() });
                 const workers = await res.json();
                 const worker = workers.find(w => w.id == adminId);
                 if (worker) {
@@ -104,8 +100,6 @@ function initProfileForm() {
         } else {
             // Editing Self (Salon/Logged-in User)
             sectionTitle.textContent = 'Mon Profil';
-            oldPassInput.closest('.form-group').style.display = 'block';
-            oldPassInput.setAttribute('required', 'true'); // Restore required
 
             // Fetch own details
             try {
@@ -132,15 +126,12 @@ function initProfileForm() {
         const adminId = filterEl.value;
         const displayname = displayInput.value;
         const newpass = document.getElementById('profile-new-pass').value;
-        const oldpass = oldPassInput.value;
-
-        // alert(`Debug: Submitting. ID: "${adminId}", Name: "${displayname}", Pass len: ${newpass.length}`);
 
         try {
             let res;
             if (adminId) {
                 // Update Worker
-                res = await fetch(`${API_URL}/admin/workers/${adminId}`, {
+                res = await fetch(`${API_URL}/workers/${adminId}`, {
                     method: 'PUT',
                     headers: getHeaders(),
                     body: JSON.stringify({ displayName: displayname, password: newpass })
@@ -150,14 +141,14 @@ function initProfileForm() {
                 res = await fetch(`${API_URL}/me`, {
                     method: 'PUT',
                     headers: getHeaders(),
-                    body: JSON.stringify({ displayname, newpass, oldpass })
+                    // Old password no longer required
+                    body: JSON.stringify({ displayName: displayname, newPassword: newpass })
                 });
             }
 
             if (res.ok) {
                 alert('Profil mis à jour');
                 document.getElementById('profile-new-pass').value = '';
-                oldPassInput.value = '';
                 // Reload dashboard title if we changed name
                 if (!adminId) {
                     // If we updated ourselves, reload common elements or just let polling handle it?

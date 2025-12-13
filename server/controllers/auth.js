@@ -72,7 +72,7 @@ exports.me = async (req, res) => {
 };
 
 exports.updateProfile = async (req, res) => {
-    const { oldPassword, newPassword, displayName } = req.body;
+    const { newPassword, displayName } = req.body;
     const authHeader = req.headers.authorization;
     const auth = Buffer.from(authHeader.split(' ')[1], 'base64').toString().split(':');
     const currentUser = auth[0];
@@ -82,12 +82,6 @@ exports.updateProfile = async (req, res) => {
         if (!admin) return res.status(404).json({ error: 'User not found' });
 
         if (newPassword) {
-            if (!oldPassword) {
-                return res.status(400).json({ error: 'Ancien mot de passe requis pour changer le mot de passe' });
-            }
-            if (!await bcrypt.compare(oldPassword, admin.password_hash)) {
-                return res.status(403).json({ error: 'Mot de passe actuel incorrect' });
-            }
             const newHash = await bcrypt.hash(newPassword, 10);
             await db.updateAdminPassword(admin.id, newHash);
         }

@@ -11,9 +11,13 @@ const createBookingSchema = z.object({
         service: z.string().min(1, "Le service est requis"),
         phone: z.string().optional().nullable(),
         adminId: z.preprocess(
-            (val) => (val === "" ? null : Number(val)),
+            (val) => {
+                if (val === "" || val === null || val === undefined) return null;
+                const n = Number(val);
+                return isNaN(n) ? null : n;
+            },
             z.number().optional().nullable()
-        ) // Coerce string "1" to number 1
+        )
     })
 });
 

@@ -136,7 +136,7 @@ async function loadWorkers() {
     }
 }
 
-async function loadServices() {
+export async function loadServices() {
     serviceInput.innerHTML = '<option value="">Chargement...</option>';
     try {
         const res = await fetch('/api/settings');

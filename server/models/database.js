@@ -149,7 +149,34 @@ const initDB = async () => {
 
   } else {
     // Postgres schema init
-    await db.query(`
+    const queries = `
+      CREATE TABLE IF NOT EXISTS settings (
+        key TEXT PRIMARY KEY,
+        value TEXT NOT NULL
+      );
+      CREATE TABLE IF NOT EXISTS images (
+        id SERIAL PRIMARY KEY,
+        filename TEXT UNIQUE NOT NULL,
+        data BYTEA NOT NULL,
+        mimetype TEXT NOT NULL
+      );
+      CREATE TABLE IF NOT EXISTS admins (
+        id SERIAL PRIMARY KEY,
+        username TEXT UNIQUE NOT NULL,
+        password_hash TEXT NOT NULL,
+        display_name TEXT
+      );
+      CREATE TABLE IF NOT EXISTS appointments (
+        id SERIAL PRIMARY KEY,
+        name TEXT NOT NULL,
+        phone TEXT,
+        service TEXT NOT NULL,
+        date TEXT NOT NULL,
+        time TEXT NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        admin_id INTEGER,
+        UNIQUE(date, time, admin_id)
+      );
       CREATE TABLE IF NOT EXISTS leaves (
         id SERIAL PRIMARY KEY,
         start_date TEXT NOT NULL,
@@ -158,8 +185,8 @@ const initDB = async () => {
         note TEXT,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
-      // ... existing tables
-    `);
+    `;
+    await db.query(queries);
 
     // ...
   }

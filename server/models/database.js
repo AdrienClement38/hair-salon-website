@@ -328,7 +328,18 @@ const updateAdminProfile = async (id, displayName) => {
 };
 
 const deleteAdmin = async (username) => {
-  if (type === 'pg') return await query('DELETE FROM admins WHERE username = $1', [username]);
+  // First get ID to delete associated leaves (Manual Cascade)
+  const admin = await getAdmin(username);
+  if (!admin) return;
+
+  if (type === 'pg') {
+    await query('DELETE FROM leaves WHERE admin_id = $1', [admin.id]);
+    await query('DELETE FROM appointments WHERE admin_id = $1', [admin.id]); // Also appointments
+    return await query('DELETE FROM admins WHERE username = $1', [username]);
+  }
+
+  await query('DELETE FROM leaves WHERE admin_id = ?', [admin.id]);
+  await query('DELETE FROM appointments WHERE admin_id = ?', [admin.id]);
   return await query('DELETE FROM admins WHERE username = ?', [username]);
 };
 

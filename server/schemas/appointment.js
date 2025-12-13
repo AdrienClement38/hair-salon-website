@@ -10,7 +10,10 @@ const createBookingSchema = z.object({
         time: z.string().regex(timeRegex, "Format d'heure invalide (HH:MM)"),
         service: z.string().min(1, "Le service est requis"),
         phone: z.string().optional().nullable(),
-        adminId: z.number().optional().nullable() // For multi-admin support
+        adminId: z.preprocess(
+            (val) => (val === "" ? null : Number(val)),
+            z.number().optional().nullable()
+        ) // Coerce string "1" to number 1
     })
 });
 

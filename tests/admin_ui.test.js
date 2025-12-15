@@ -181,4 +181,29 @@ describe('Admin UI & Profile Switching', () => {
         expect(profileInputVal3).toBe('Salon');
 
     }, 70000);
+
+    test('Should ensure Team Management form is empty on load', async () => {
+        // Navigate to Admin
+        await page.goto(`${BASE_URL}/admin.html`);
+
+        // Login
+        await page.type('#username', TEST_USER.username);
+        await page.type('#password', TEST_USER.password);
+        await page.click('#login-form button[type="submit"]');
+        await page.waitForSelector('#dashboard-view', { visible: true });
+
+        // Go to Settings tab
+        await page.click('#tab-btn-settings');
+        await page.waitForSelector('#tab-settings', { visible: true });
+        await page.waitForSelector('#team-form', { visible: true });
+
+        // Check fields are empty
+        const usernameVal = await page.$eval('#team-username', el => el.value);
+        const displayVal = await page.$eval('#team-displayname', el => el.value);
+        const passVal = await page.$eval('#team-password', el => el.value);
+
+        expect(usernameVal).toBe('');
+        expect(displayVal).toBe('');
+        expect(passVal).toBe('');
+    });
 });

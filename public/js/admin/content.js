@@ -50,6 +50,11 @@ export function initContentForms() {
     // Profile listener moved to settings.js for dynamic handling
 
     // Team
+    // Explicitly clear fields to fight browser autofill
+    if (document.getElementById('team-username')) document.getElementById('team-username').value = '';
+    if (document.getElementById('team-displayname')) document.getElementById('team-displayname').value = '';
+    if (document.getElementById('team-password')) document.getElementById('team-password').value = '';
+
     document.getElementById('team-form').addEventListener('submit', async (e) => {
         e.preventDefault();
         const username = document.getElementById('team-username').value;

@@ -43,6 +43,23 @@ const { initPromise, deleteLeave, getAllLeaves, deleteAppointment, getAllAppoint
             console.log('Database is clean. No test artifacts found.');
         }
 
+        // 3. Cleanup File System Logs (test_result*.log)
+        const fs = require('fs');
+        const path = require('path');
+        const rootDir = path.resolve(__dirname, '..');
+
+        fs.readdirSync(rootDir).forEach(file => {
+            if (file.startsWith('test_result') && file.endsWith('.log')) {
+                const filePath = path.join(rootDir, file);
+                try {
+                    fs.unlinkSync(filePath);
+                    console.log(`Deleted log file: ${file}`);
+                } catch (err) {
+                    console.error(`Failed to delete ${file}:`, err.message);
+                }
+            }
+        });
+
         // Force exit because db connection might keep process alive.
         // Wait, sql.js might need time to flush if we used saveDB?
         // saveDB is synchronous fs.writeFileSync.

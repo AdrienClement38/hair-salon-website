@@ -180,6 +180,9 @@ export function renderProducts(products) {
             <p style="font-size:0.9em; color:#ddd; margin-top:5px;">${prod.description || ''}</p>
         </div>
     `).join('');
+
+    // Update UI state after render
+    setTimeout(updateCarouselUI, 0);
 }
 
 // Carousel Logic
@@ -195,5 +198,31 @@ export function scrollProducts(direction) {
     });
 }
 
+// UI State Update for Carousel
+function updateCarouselUI() {
+    const container = document.getElementById('products-grid');
+    const wrapper = document.querySelector('.carousel-wrapper');
+    if (!container || !wrapper) return;
+
+    const prevBtn = wrapper.querySelector('.prev-btn');
+    const nextBtn = wrapper.querySelector('.next-btn');
+
+    // Check overflow
+    // Allow a small buffer (1px) for rounding errors
+    const isOverflowing = container.scrollWidth > container.clientWidth + 1;
+
+    if (isOverflowing) {
+        container.style.justifyContent = 'flex-start';
+        if (prevBtn) prevBtn.style.display = 'flex';
+        if (nextBtn) nextBtn.style.display = 'flex';
+    } else {
+        container.style.justifyContent = 'center';
+        if (prevBtn) prevBtn.style.display = 'none';
+        if (nextBtn) nextBtn.style.display = 'none';
+    }
+}
+
 // Expose to window for onclick
 window.scrollProducts = scrollProducts;
+// Listen for resize
+window.addEventListener('resize', updateCarouselUI);

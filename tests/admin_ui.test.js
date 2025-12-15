@@ -2,24 +2,23 @@ const puppeteer = require('puppeteer');
 const path = require('path');
 const bcrypt = require('bcryptjs');
 
-const BASE_URL = 'http://localhost:3000';
-// We need a known admin. The setup likely already has one 'admin' from init.
-// Or we rely on the server having at least one admin.
-// If not, we have a chicken and egg problem for API auth.
-// But checkAdminExists handles 401 if no admins.
-// Let's assume standard 'admin'/'password' or similar, or try to create one if allowed (public endpoint if no admins).
+const http = require('http');
+const app = require('../server/app'); // Import app
+const { initPromise } = require('../server/models/database'); // Ensure DB init
 
-const TEST_USER = { username: 'test_runner_' + Date.now(), password: 'password123', displayName: 'Test Runner' };
-const WORKER = { username: 'ui_test_worker_' + Date.now(), password: 'password123', displayName: 'Automated Worker' };
+let server;
+let BASE_URL;
 
 // Native fetch Node 18+
 const fetch = global.fetch;
 
-xdescribe('Admin UI & Profile Switching', () => {
+describe('Admin UI & Profile Switching', () => {
     let browser;
     let page;
     let workerId;
-    let cleanupIds = [];
+
+    const TEST_USER = { username: 'test_runner_' + Date.now(), password: 'password123', displayName: 'Test Runner' };
+    const WORKER = { username: 'ui_test_worker_' + Date.now(), password: 'password123', displayName: 'Automated Worker' };
 
     jest.setTimeout(60000);
 
@@ -27,75 +26,45 @@ xdescribe('Admin UI & Profile Switching', () => {
     const getAuth = (u, p) => ({ 'Authorization': `Basic ${Buffer.from(`${u}:${p}`).toString('base64')}`, 'Content-Type': 'application/json' });
 
     beforeAll(async () => {
-        // 1. Try to create Test Runner via Public Setup (if no admins exist)
-        // Or login as default admin and create it.
-        // We can't easily access DB directly anymore cleanly without init logic duplicata.
+        // Start Isolated Server
+        await initPromise; // Wait for DB to be ready (InMemory due to NODE_ENV=test)
 
-        // Strategy: Try to setup first. 
-        let auth = getAuth(TEST_USER.username, TEST_USER.password);
+        server = http.createServer(app);
+        await new Promise(resolve => server.listen(0, resolve));
+        const port = server.address().port;
+        BASE_URL = `http://localhost:${port}`;
+        // console.log(`UI Test Server running on ${BASE_URL}`);
 
-        // Try to create TEST_USER. If 403, it means admins exist.
-        const setupRes = await fetch(`${BASE_URL}/api/admin/setup`, {
+        // 1. Setup Data - Since DB is fresh/in-memory, we start from scratch.
+        // Create first admin (Setup)
+        const setupRes = await fetch(`${BASE_URL}/api/auth/setup`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(TEST_USER)
         });
 
-        if (setupRes.ok) {
-            console.log("Created first admin:", TEST_USER.username);
-            const data = await setupRes.json();
-            cleanupIds.push(data.adminId || (await setupRes.json()).id); // might fail if logic diff
-        } else if (setupRes.status === 403) {
-            // Admins exist. We need to login as existing admin to create our test user.
-            // Assumption: 'admin' / 'password' exists from previous tests or logic?
-            // If not, we might be stuck without direct DB access or credentials.
-            // Let's try 'admin':'password' default.
-            const defaultAuth = getAuth('admin', 'password');
-            const createRes = await fetch(`${BASE_URL}/api/admin/workers`, {
-                method: 'POST',
-                headers: defaultAuth,
-                body: JSON.stringify(TEST_USER)
-            });
-
-            if (createRes.ok) {
-                console.log("Created test admin using default creds");
-                // cleanupIds added later by username check
-                const allRes = await fetch(`${BASE_URL}/api/admin/workers`, { headers: defaultAuth });
-                const all = await allRes.json();
-                const me = all.find(a => a.username === TEST_USER.username);
-                if (me) cleanupIds.push(me.id);
-            } else {
-                console.warn("Could not create test runner with default admin. Tests might fail if not logged in.");
-                // We might already exist?
-            }
+        if (!setupRes.ok) {
+            throw new Error(`Failed to setup test runner: ${await setupRes.text()}`);
         }
 
-        // 2. Setup Worker (via API) - Authenticated as test_runner (if created) or admin
-        // Let's assume we use TEST_USER if created, otherwise admin.
-        let workerCreatorAuth = auth;
-        // Verify TEST_USER works
-        const checkRes = await fetch(`${BASE_URL}/api/admin/settings`, { headers: auth });
-        if (!checkRes.ok) {
-            console.log("TEST_USER not valid, using default admin for worker creation");
-            workerCreatorAuth = getAuth('admin', 'password');
-        }
+        // 2. Login and Create Worker
+        const auth = getAuth(TEST_USER.username, TEST_USER.password);
 
         const createWorkerRes = await fetch(`${BASE_URL}/api/admin/workers`, {
             method: 'POST',
-            headers: workerCreatorAuth,
+            headers: auth,
             body: JSON.stringify(WORKER)
         });
 
         if (createWorkerRes.ok) {
-            const allRes = await fetch(`${BASE_URL}/api/admin/workers`, { headers: workerCreatorAuth });
+            const allRes = await fetch(`${BASE_URL}/api/admin/workers`, { headers: auth });
             const all = await allRes.json();
             const w = all.find(u => u.username === WORKER.username);
             if (w) {
                 workerId = w.id;
-                cleanupIds.push(w.id);
             }
         } else {
-            console.error("Failed to create worker", await createWorkerRes.text());
+            throw new Error("Failed to create worker for test");
         }
     });
 
@@ -112,13 +81,9 @@ xdescribe('Admin UI & Profile Switching', () => {
     afterAll(async () => {
         // Cleanup via API using default admin (assuming it persists)
         const auth = getAuth('admin', 'password');
-        for (const id of cleanupIds) {
-            try {
-                if (id) await fetch(`${BASE_URL}/api/admin/workers/${id}`, { method: 'DELETE', headers: auth });
-            } catch (e) {
-                console.error("Cleanup failed for id", id);
-            }
-        }
+        // No explicit DB cleanup needed as it is in-memory and process ends/server closes.
+        // But we should close the server.
+        if (server) server.close();
     });
 
     test('Should update dashboard title and settings headers when switching profiles', async () => {

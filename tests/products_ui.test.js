@@ -2,53 +2,44 @@ const puppeteer = require('puppeteer');
 const path = require('path');
 const bcrypt = require('bcryptjs');
 
-const BASE_URL = 'http://localhost:3000';
-const TEST_USER = { username: 'prod_tester_' + Date.now(), password: 'password123', displayName: 'Product Tester' };
+const http = require('http');
+const app = require('../server/app');
+const { initPromise } = require('../server/models/database');
+
+let server;
+let BASE_URL;
 
 // Native fetch Node 18+
 const fetch = global.fetch;
 
-xdescribe('Product Management UI', () => {
+describe('Product Management UI', () => {
     let browser;
     let page;
-    let cleanupIds = [];
 
     jest.setTimeout(60000);
+
+    const TEST_USER = { username: 'prod_tester_' + Date.now(), password: 'password123', displayName: 'Product Tester' };
 
     const getAuth = (u, p) => ({ 'Authorization': `Basic ${Buffer.from(`${u}:${p}`).toString('base64')}`, 'Content-Type': 'application/json' });
 
     beforeAll(async () => {
-        // Create Test User via API
-        let auth = getAuth('admin', 'password');
+        // Start Isolated Server
+        await initPromise;
 
-        // Check if admin exists, if not create logic (simplified from admin_ui test)
-        // Try public setup first just in case
-        const setupRes = await fetch(`${BASE_URL}/api/admin/setup`, {
+        server = http.createServer(app);
+        await new Promise(resolve => server.listen(0, resolve));
+        const port = server.address().port;
+        BASE_URL = `http://localhost:${port}`;
+
+        // Create Test User via API setup
+        const setupRes = await fetch(`${BASE_URL}/api/auth/setup`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(TEST_USER)
         });
 
-        if (setupRes.ok) {
-            console.log("Created test user via setup");
-            cleanupIds.push((await setupRes.json()).id || (await setupRes.json()).adminId);
-        } else {
-            // Use existing admin to create
-            const createRes = await fetch(`${BASE_URL}/api/admin/workers`, {
-                method: 'POST',
-                headers: auth,
-                body: JSON.stringify(TEST_USER)
-            });
-
-            if (createRes.ok) {
-                console.log("Created test user via existing admin");
-                const allRes = await fetch(`${BASE_URL}/api/admin/workers`, { headers: auth });
-                const all = await allRes.json();
-                const w = all.find(u => u.username === TEST_USER.username);
-                if (w) cleanupIds.push(w.id);
-            } else {
-                console.warn("Could not create test user. Using default admin fallback for logic.");
-            }
+        if (!setupRes.ok) {
+            throw new Error(`Failed to setup test runner: ${await setupRes.text()}`);
         }
     });
 
@@ -63,11 +54,7 @@ xdescribe('Product Management UI', () => {
     });
 
     afterAll(async () => {
-        // Cleanup Test User
-        const auth = getAuth('admin', 'password');
-        for (const id of cleanupIds) {
-            if (id) await fetch(`${BASE_URL}/api/admin/workers/${id}`, { method: 'DELETE', headers: auth });
-        }
+        if (server) server.close();
     });
 
     test('Should handle Product Edit UX correctly (Button text changes, Cancel button)', async () => {

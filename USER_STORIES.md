@@ -8,6 +8,7 @@ Ce document liste toutes les fonctionnalités actuellement implémentées sur le
 - **US-1.1** : En tant que visiteur, je veux voir le nom du salon, le sous-titre et la philosophie sur la page d'accueil pour comprendre l'identité du salon.
 - **US-1.2** : En tant que visiteur, je veux voir la liste des prestations et leurs prix pour choisir ce que je veux.
 - **US-1.3** : En tant que visiteur, je veux voir les horaires d'ouverture hebdomadaires pour savoir quand venir.
+- **US-1.7** : En tant que visiteur, je veux parcourir les produits du salon via un carrousel horizontal si la liste est trop longue pour l'écran.
 
 ### Épopée : Réservation
 - **US-1.4** : En tant que client, je veux voir les créneaux disponibles pour une date donnée afin de choisir une heure qui m'arrange.

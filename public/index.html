@@ -86,10 +86,14 @@
     <section id="products" class="section">
         <div class="container">
             <h2 class="text-center text-gold">Nos Produits</h2>
+        </div>
+        <div class="carousel-wrapper" style="position: relative; max-width: 95%; margin: 0 auto;">
+            <button class="carousel-btn prev-btn" aria-label="Précédent" onclick="scrollProducts(-1)">&#10094;</button>
             <div class="grid-3" id="products-grid">
                 <!-- Dynamic Products loaded via JS -->
                 <p class="text-center">Chargement des produits...</p>
             </div>
+            <button class="carousel-btn next-btn" aria-label="Suivant" onclick="scrollProducts(1)">&#10095;</button>
         </div>
     </section>
 

@@ -331,18 +331,73 @@ ul {
     color: #ffeb3b;
 }
 
-/* Dedicated Products Grid (Flex Center) */
+/* Carousel / Products Layout */
+.carousel-wrapper {
+    position: relative;
+    padding: 0 60px;
+    /* Increased space for buttons */
+}
+
 #products-grid {
     display: flex;
-    justify-content: center;
-    flex-wrap: wrap;
-    gap: 2rem;
+    justify-content: flex-start;
+    /* Start from left */
+    flex-wrap: nowrap;
+    /* Prevent wrapping */
+    overflow-x: auto;
+    /* Enable horizontal scroll */
+    gap: 1.5rem;
+    /* Reduced from 2rem */
     margin-top: 2rem;
+    padding-bottom: 20px;
+    /* Space for scrollbar if visible */
+    scroll-behavior: smooth;
+    -ms-overflow-style: none;
+    /* IE and Edge */
+    scrollbar-width: none;
+    /* Firefox */
+}
+
+/* Hide scrollbar for Chrome, Safari and Opera */
+#products-grid::-webkit-scrollbar {
+    display: none;
 }
 
 #products-grid .card {
-    flex: 0 0 240px;
-    /* Reduced from 280px to fit 4 items */
-    width: 240px;
+    flex: 0 0 230px;
+    width: 230px;
     margin: 0;
+    padding: 1rem;
+}
+
+.carousel-btn {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    background: var(--dark);
+    color: var(--primary);
+    border: 1px solid var(--primary);
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    cursor: pointer;
+    z-index: 10;
+    transition: 0.3s;
+    font-size: 1.2rem;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.carousel-btn:hover {
+    background: var(--primary);
+    color: var(--white);
+}
+
+.prev-btn {
+    left: 0;
+}
+
+.next-btn {
+    right: 0;
 }

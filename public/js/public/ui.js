@@ -181,3 +181,19 @@ export function renderProducts(products) {
         </div>
     `).join('');
 }
+
+// Carousel Logic
+export function scrollProducts(direction) {
+    const container = document.getElementById('products-grid');
+    if (!container) return;
+
+    // Scroll by card width + gap approx
+    const scrollAmount = 260 * direction;
+    container.scrollBy({
+        left: scrollAmount,
+        behavior: 'smooth'
+    });
+}
+
+// Expose to window for onclick
+window.scrollProducts = scrollProducts;

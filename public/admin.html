@@ -40,7 +40,13 @@
         </div>
     </div>
 
-    <div id="login-view" class="login-wrapper">
+    <!-- Loader (Visible by default) -->
+    <div id="loading-view"
+        style="display: flex; justify-content: center; align-items: center; height: 100vh; background-color: #f4f4f4;">
+        <p style="font-family: 'Lato', sans-serif; color: #666;">Chargement...</p>
+    </div>
+
+    <div id="login-view" class="login-wrapper" style="display: none;">
         <div class="login-box">
             <h2 style="text-align: center;">Admin Panel</h2>
             <form id="login-form">

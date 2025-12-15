@@ -6,6 +6,7 @@ const loginForm = document.getElementById('login-form');
 const setupView = document.getElementById('setup-view');
 const loginView = document.getElementById('login-view');
 const dashboardView = document.getElementById('dashboard-view');
+const loadingView = document.getElementById('loading-view'); // New
 const setupForm = document.getElementById('setup-form');
 
 export function initAuth() {
@@ -16,6 +17,7 @@ export function initAuth() {
             const data = await res.json();
 
             if (data.setupRequired) {
+                if (loadingView) loadingView.style.display = 'none';
                 setupView.style.display = 'flex';
                 loginView.style.display = 'none';
                 dashboardView.style.display = 'none';
@@ -112,12 +114,14 @@ export async function verifyAuth() {
 }
 
 function showLogin() {
+    if (loadingView) loadingView.style.display = 'none';
     loginView.style.display = 'flex';
     dashboardView.style.display = 'none';
     setupView.style.display = 'none';
 }
 
 function showDashboard() {
+    if (loadingView) loadingView.style.display = 'none';
     loginView.style.display = 'none';
     dashboardView.style.display = 'block';
     setupView.style.display = 'none';

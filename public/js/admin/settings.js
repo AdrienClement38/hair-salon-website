@@ -90,6 +90,7 @@ function initProfileForm() {
         if (adminId) {
             // Editing specific worker
             sectionTitle.textContent = `Profil de ${adminName}`;
+            displayInput.disabled = false; // Allow editing workers
 
             // Fetch worker details to ensure we have the latest display name
             try {
@@ -105,16 +106,12 @@ function initProfileForm() {
 
         } else {
             // Editing Self (Salon/Logged-in User)
-            sectionTitle.textContent = 'Mon Profil';
+            sectionTitle.textContent = 'Profil du Salon';
+            displayInput.value = 'Salon';
+            displayInput.disabled = true; // Enforce "Salon" cannot be changed
 
-            // Fetch own details
-            try {
-                const res = await fetch(`${API_URL}/me`, { headers: getHeaders() });
-                const me = await res.json();
-                displayInput.value = me.displayName;
-            } catch (e) {
-                console.log(e);
-            }
+            // We do not fetch /me name here to avoid overwriting "Salon" with "Roger".
+            // The user wants "Salon" to be displayed automatically.
         }
     };
 

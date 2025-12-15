@@ -71,6 +71,11 @@ export function initAuth() {
             if (res.ok) {
                 const authString = btoa(`${username}:${password}`);
                 localStorage.setItem('auth', authString);
+
+                // Clear fields to prevent autofill on other forms
+                document.getElementById('username').value = '';
+                document.getElementById('password').value = '';
+
                 verifyAuth();
             } else {
                 document.getElementById('login-error').style.display = 'block';

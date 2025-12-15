@@ -19,11 +19,11 @@ async function loadCurrentUser() {
         const res = await fetch(`${API_URL}/me`, { headers: getHeaders() });
         const user = await res.json();
 
-        // Populate Profile Form
-        const displayInput = document.getElementById('profile-displayname');
-        if (displayInput && user.displayName) {
-            displayInput.value = user.displayName;
-        }
+        // Populate Profile Form - HANDLED IN settings.js dynamically
+        // const displayInput = document.getElementById('profile-displayname');
+        // if (displayInput && user.displayName) {
+        //    displayInput.value = user.displayName;
+        // }
 
         // Maybe show name in header
         const headerTitle = document.querySelector('#dashboard-view header h1');

@@ -123,7 +123,10 @@ describe('Admin UI & Profile Switching', () => {
         await page.waitForSelector('#tab-settings', { visible: true });
 
         const profileHeader1 = await page.$eval('#profile-form', el => el.closest('.settings-section').querySelector('h3').textContent);
-        expect(profileHeader1).toBe('Mon Profil');
+        expect(profileHeader1).toBe('Profil du Salon');
+
+        const profileInputVal1 = await page.$eval('#profile-displayname', el => el.value);
+        expect(profileInputVal1).toBe('Salon');
 
         // 2. Switch to Worker
         if (!workerId) {
@@ -172,7 +175,10 @@ describe('Admin UI & Profile Switching', () => {
         expect(title3).toContain('Salon');
 
         const profileHeader3 = await page.$eval('#profile-form', el => el.closest('.settings-section').querySelector('h3').textContent);
-        expect(profileHeader3).toBe('Mon Profil');
+        expect(profileHeader3).toBe('Profil du Salon');
+
+        const profileInputVal3 = await page.$eval('#profile-displayname', el => el.value);
+        expect(profileInputVal3).toBe('Salon');
 
     }, 70000);
 });

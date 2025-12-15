@@ -24,10 +24,13 @@ const query = async (sql, params = []) => {
   if (!db) await initPromise;
 
   if (type === 'sqlite') {
+    // Sanitize params: sql.js does not like undefined, prefers null
+    const safeParams = params.map(p => p === undefined ? null : p);
+
     if (sql.trim().toUpperCase().startsWith('SELECT')) {
       try {
         const stmt = db.prepare(sql);
-        stmt.bind(params);
+        stmt.bind(safeParams);
         const rows = [];
         while (stmt.step()) {
           rows.push(stmt.getAsObject());
@@ -40,7 +43,7 @@ const query = async (sql, params = []) => {
       }
     } else {
       try {
-        db.run(sql, params);
+        db.run(sql, safeParams);
         // Get last insert ID
         const idRes = db.exec("SELECT last_insert_rowid()");
         const lastId = idRes[0]?.values[0]?.[0] || 0;

@@ -43,8 +43,15 @@ const { initPromise, deleteLeave, getAllLeaves, deleteAppointment, getAllAppoint
             console.log('Database is clean. No test artifacts found.');
         }
 
-        // Force exit because db connection might keep process alive
-        process.exit(0);
+        // Force exit because db connection might keep process alive.
+        // Wait, sql.js might need time to flush if we used saveDB?
+        // saveDB is synchronous fs.writeFileSync.
+        // The error UV_HANDLE_CLOSING suggests something is still closing.
+        // Let's perform a small delay before exit.
+
+        setTimeout(() => {
+            process.exit(0);
+        }, 500);
 
     } catch (e) {
         console.error('Cleanup failed:', e);

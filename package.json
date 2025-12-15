@@ -5,20 +5,22 @@
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
-    "test": "jest"
+    "test": "jest",
+    "db:clean": "node scripts/cleanup_test_data.js",
+    "posttest": "npm run db:clean"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "dependencies": {
     "bcryptjs": "^3.0.3",
-    "better-sqlite3": "^9.6.0",
     "body-parser": "^2.2.1",
     "cors": "^2.8.5",
     "express": "^5.2.1",
     "multer": "^2.0.2",
     "pg": "^8.16.3",
     "socket.io": "^4.8.1",
+    "sql.js": "^1.13.0",
     "zod": "^4.1.13"
   },
   "devDependencies": {

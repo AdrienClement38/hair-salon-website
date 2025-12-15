@@ -330,3 +330,19 @@ ul {
     font-weight: bold;
     color: #ffeb3b;
 }
+
+/* Dedicated Products Grid (Flex Center) */
+#products-grid {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 2rem;
+    margin-top: 2rem;
+}
+
+#products-grid .card {
+    flex: 0 0 240px;
+    /* Reduced from 280px to fit 4 items */
+    width: 240px;
+    margin: 0;
+}

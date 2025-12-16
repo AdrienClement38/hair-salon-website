@@ -183,6 +183,24 @@ ul {
     margin-top: 2rem;
 }
 
+#services-grid {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 2rem;
+    margin-top: 2rem;
+}
+
+#services-grid .card {
+    flex: 0 1 220px;
+    min-width: 200px;
+    /* Fits 4 per row on standard desktop (1200px container) */
+    height: 300px;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+}
+
 .card {
     background: rgba(255, 255, 255, 0.05);
     /* slightly visible on dark */

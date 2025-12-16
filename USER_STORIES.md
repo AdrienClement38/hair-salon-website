@@ -9,6 +9,8 @@ Ce document liste toutes les fonctionnalités actuellement implémentées sur le
 - **US-1.2** : En tant que visiteur, je veux voir la liste des prestations et leurs prix pour choisir ce que je veux.
 - **US-1.3** : En tant que visiteur, je veux voir les horaires d'ouverture hebdomadaires pour savoir quand venir.
 - **US-1.7** : En tant que visiteur, je veux parcourir les produits du salon via un carrousel horizontal si la liste est trop longue pour l'écran.
+- **US-1.8** : En tant que visiteur, je veux que la liste des prestations soit centrée visuellement sur la page pour une meilleure esthétique.
+- **US-1.9** : En tant que visiteur, je veux que toutes les cartes de prestations aient la même hauteur pour une présentation uniforme et propre.
 
 ### Épopée : Réservation
 - **US-1.4** : En tant que client, je veux voir les créneaux disponibles pour une date donnée afin de choisir une heure qui m'arrange.

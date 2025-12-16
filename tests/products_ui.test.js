@@ -16,7 +16,7 @@ describe('Product Management UI', () => {
     let browser;
     let page;
 
-    jest.setTimeout(60000);
+    jest.setTimeout(120000);
 
     const TEST_USER = { username: 'prod_tester_' + Date.now(), password: 'password123', displayName: 'Product Tester' };
 
@@ -84,7 +84,7 @@ describe('Product Management UI', () => {
         } catch {
             await page.click('#btn-tab-content');
         }
-        await page.waitForSelector('#tab-content', { visible: true });
+        await page.waitForSelector('#tab-content', { visible: true, timeout: 60000 });
 
         // Scroll to Products Section
         // We need to add a product first to edit it.

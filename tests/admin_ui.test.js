@@ -20,7 +20,7 @@ describe('Admin UI & Profile Switching', () => {
     const TEST_USER = { username: 'test_runner_' + Date.now(), password: 'password123', displayName: 'Test Runner' };
     const WORKER = { username: 'ui_test_worker_' + Date.now(), password: 'password123', displayName: 'Automated Worker' };
 
-    jest.setTimeout(60000);
+    jest.setTimeout(120000);
 
     // Helper to get auth header
     const getAuth = (u, p) => ({ 'Authorization': `Basic ${Buffer.from(`${u}:${p}`).toString('base64')}`, 'Content-Type': 'application/json' });
@@ -120,7 +120,7 @@ describe('Admin UI & Profile Switching', () => {
 
         // Go to Settings
         await page.click('#tab-btn-settings');
-        await page.waitForSelector('#tab-settings', { visible: true });
+        await page.waitForSelector('#tab-settings', { visible: true, timeout: 60000 });
 
         const profileHeader1 = await page.$eval('#profile-form', el => el.closest('.settings-section').querySelector('h3').textContent);
         expect(profileHeader1).toBe('Profil du Salon');

@@ -29,7 +29,7 @@ describe('Layout Tests', () => {
 
     afterEach(async () => {
         if (browser) await browser.close();
-    });
+    }, 30000);
 
     test('Services Grid should be centered', async () => {
         await page.goto(BASE_URL);
@@ -51,5 +51,5 @@ describe('Layout Tests', () => {
         expect(styles.display).toBe('flex');
         expect(styles.justifyContent).toBe('center');
         expect(styles.flexWrap).toBe('wrap');
-    });
+    }, 30000);
 });

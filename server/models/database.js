@@ -314,6 +314,23 @@ const createPortfolioItem = async (filename, description, adminId) => {
   }
 };
 
+const getPortfolioItemIds = async () => {
+  return await query('SELECT id FROM portfolio ORDER BY created_at DESC'); // Date order useful for polling check, client will shuffle
+}
+
+const getPortfolioItemsByIds = async (ids) => {
+  if (!ids || ids.length === 0) return [];
+
+  if (type === 'pg') {
+    // PG specific array handling or simpler IN clause
+    const placeholders = ids.map((_, i) => `$${i + 1}`).join(',');
+    return await query(`SELECT * FROM portfolio WHERE id IN (${placeholders})`, ids);
+  } else {
+    const placeholders = ids.map(() => '?').join(',');
+    return await query(`SELECT * FROM portfolio WHERE id IN (${placeholders})`, ids);
+  }
+}
+
 const getPortfolioItems = async () => {
   return await query('SELECT * FROM portfolio ORDER BY created_at DESC');
 }
@@ -430,8 +447,11 @@ module.exports = {
   deleteAppointment,
   updateAppointment,
   anonymizePastAppointments,
+  anonymizePastAppointments,
   createPortfolioItem,
   getPortfolioItems,
+  getPortfolioItemIds,
+  getPortfolioItemsByIds,
   deletePortfolioItem,
   getSetting,
   setSetting,

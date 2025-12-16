@@ -11,6 +11,8 @@ Ce document liste toutes les fonctionnalités actuellement implémentées sur le
 - **US-1.7** : En tant que visiteur, je veux parcourir les produits du salon via un carrousel horizontal si la liste est trop longue pour l'écran.
 - **US-1.8** : En tant que visiteur, je veux que la liste des prestations soit centrée visuellement sur la page pour une meilleure esthétique.
 - **US-1.9** : En tant que visiteur, je veux que toutes les cartes de prestations aient la même hauteur pour une présentation uniforme et propre.
+- **US-1.10** : En tant que visiteur, je veux cliquer sur une photo de la galerie pour l'afficher en grand (lightbox) afin de voir les détails, avec la possibilité de fermer en cliquant à côté.
+- **US-1.11** : En tant que visiteur, je veux voir une sélection aléatoire de 50 photos maximum dans la galerie pour avoir un aperçu rapide et frais, sans être submergé.
 
 ### Épopée : Réservation
 - **US-1.4** : En tant que client, je veux voir les créneaux disponibles pour une date donnée afin de choisir une heure qui m'arrange.

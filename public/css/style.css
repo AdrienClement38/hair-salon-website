@@ -60,6 +60,10 @@ ul {
     font-style: italic;
 }
 
+.d-none {
+    display: none !important;
+}
+
 .btn {
     display: inline-block;
     padding: 12px 24px;
@@ -477,5 +481,63 @@ ul {
 @media (max-width: 600px) {
     .masonry-grid {
         column-count: 1;
+    }
+}
+
+/* Lightbox Modal */
+#lightbox-modal {
+    display: none;
+    /* Hidden by default */
+    position: fixed;
+    z-index: 2000;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.75);
+    /* Darker background */
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+#lightbox-modal.active {
+    display: flex;
+    opacity: 1;
+}
+
+#lightbox-img {
+    max-width: 90%;
+    max-height: 90%;
+    border-radius: 8px;
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+    transform: scale(0.8);
+    transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    /* Bouncy zoom */
+}
+
+#lightbox-modal.active #lightbox-img {
+    transform: scale(1);
+}
+
+/* Spinner */
+.spinner {
+    border: 4px solid rgba(0, 0, 0, 0.1);
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    border-left-color: var(--primary);
+    animation: spin 1s linear infinite;
+    margin: 0 auto 1rem auto;
+}
+
+@keyframes spin {
+    0% {
+        transform: rotate(0deg);
+    }
+
+    100% {
+        transform: rotate(360deg);
     }
 }

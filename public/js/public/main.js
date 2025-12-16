@@ -83,4 +83,14 @@ document.addEventListener('DOMContentLoaded', () => {
         });
         window.scrollTo(0, 0);
     };
+    // Navigation Logic
+    document.querySelectorAll('.nav-list a, .logo, .btn[href^="#"]').forEach(link => {
+        link.addEventListener('click', (e) => {
+            const href = link.getAttribute('href');
+            if (href && href.startsWith('#') && href !== '#') {
+                // If it's an anchor link (not portfolio toggle), restore home
+                window.showHome();
+            }
+        });
+    });
 });

@@ -127,6 +127,10 @@ test('Admin Portfolio: Layout should be 5 columns and square items', async () =>
         const pos1 = await items[1].boundingBox();
         expect(pos1.x).toBeGreaterThan(pos0.x);
 
+        // Check for counter element
+        const counter = await page.$('#portfolio-count');
+        expect(counter).not.toBeNull();
+
     } finally {
         await browser.close();
     }

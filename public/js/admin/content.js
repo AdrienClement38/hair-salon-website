@@ -96,6 +96,17 @@ export async function loadPortfolio() {
         const res = await fetch(`${API_URL}/portfolio`, { headers: getHeaders() });
         const items = await res.json();
 
+        const countSpan = document.getElementById('portfolio-count');
+        if (countSpan) {
+            countSpan.textContent = `(${items.length} / 50)`;
+            if (items.length >= 50) {
+                countSpan.style.color = 'red';
+                countSpan.textContent += ' (Limite atteinte)';
+            } else {
+                countSpan.style.color = 'var(--primary)'; // Reset to gold/primary
+            }
+        }
+
         list.innerHTML = items.map(item => `
             <div class="portfolio-item">
                 <img src="/images/${item.filename}" alt="Portfolio">

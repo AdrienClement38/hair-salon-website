@@ -87,7 +87,7 @@ describe('Admin UI & Profile Switching', () => {
     });
 
     test('Should update dashboard title and settings headers when switching profiles', async () => {
-        await page.goto(`${BASE_URL}/admin.html`);
+        await page.goto(`${BASE_URL}/lbc-admin`);
 
         // Login (Try TEST_USER first, else admin)
         // If TEST_USER creation failed, this login will fail.
@@ -184,7 +184,7 @@ describe('Admin UI & Profile Switching', () => {
 
     test('Should ensure Team Management form is empty on load', async () => {
         // Navigate to Admin
-        await page.goto(`${BASE_URL}/admin.html`);
+        await page.goto(`${BASE_URL}/lbc-admin`);
 
         // Login
         await page.type('#username', TEST_USER.username);

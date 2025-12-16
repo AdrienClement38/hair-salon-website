@@ -35,8 +35,9 @@ describe('Public Interface Tests', () => {
         const date = '2099-01-01'; // Future date
         const res = await request(app).get(`/api/slots?date=${date}`);
         expect(res.statusCode).toBe(200);
-        expect(Array.isArray(res.body)).toBe(true);
-        // expect(Array.isArray(res.body.morning)).toBe(true); // API returns flat list
+        expect(res.body).toHaveProperty('slots');
+        expect(Array.isArray(res.body.slots)).toBe(true);
+        expect(res.body).toHaveProperty('reason');
     });
 
     // US-1.6: Booking - Make Appointment

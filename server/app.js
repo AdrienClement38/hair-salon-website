@@ -28,7 +28,7 @@ app.get('/images/:filename', settingsController.serveImage);
 
 // Serve Admin Page (Explicit route or rely on static?)
 // Static logic in server.js was: app.get('/admin', sendFile admin.html)
-app.get('/admin', (req, res) => {
+app.get('/lbc-admin', (req, res) => {
     res.sendFile('admin.html', { root: path.join(__dirname, '../public') });
 });
 

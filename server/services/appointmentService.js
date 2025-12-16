@@ -11,7 +11,7 @@ class AppointmentService {
         // 1. Check Global Holidays (Dates)
         const holidays = (await db.getSetting('holidays')) || [];
         if (holidays.includes(date)) {
-            return [];
+            return { slots: [], reason: 'holiday' };
         }
 
         // 2. Check Leaves (Global + Admin Specific)
@@ -25,7 +25,7 @@ class AppointmentService {
         });
 
         if (isLeave) {
-            return [];
+            return { slots: [], reason: 'leave' };
         }
 
         // 3. Get Opening Hours
@@ -47,7 +47,7 @@ class AppointmentService {
         }
 
         if (!daySettings || !daySettings.isOpen) {
-            return [];
+            return { slots: [], reason: 'closed' };
         }
 
         // 4. Generate Slots
@@ -55,7 +55,7 @@ class AppointmentService {
         let current = parseInt(daySettings.open.split(':')[0]);
         const end = parseInt(daySettings.close.split(':')[0]);
 
-        if (isNaN(current) || isNaN(end)) return [];
+        if (isNaN(current) || isNaN(end)) return { slots: [], reason: 'closed' };
 
         for (let h = current; h < end; h++) {
             timeSlots.push(`${h.toString().padStart(2, '0')}:00`);
@@ -65,10 +65,18 @@ class AppointmentService {
         const booked = await db.getBookingsForDate(date, adminId);
         const bookedTimes = booked.map(b => b.time);
 
-        return timeSlots.map(time => ({
+        const slots = timeSlots.map(time => ({
             time,
             isAvailable: !bookedTimes.includes(time)
         }));
+
+        const hasAvailable = slots.some(s => s.isAvailable);
+        let reason = null;
+        if (!hasAvailable) {
+            reason = 'full';
+        }
+
+        return { slots, reason };
     }
 
     async createBooking(data) {

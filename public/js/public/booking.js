@@ -84,18 +84,29 @@ async function loadSlots(date, adminId) {
 
     try {
         const res = await fetch(`/api/slots?date=${date}&adminId=${adminId}`);
-        const slots = await res.json();
-        renderSlots(slots);
+        const data = await res.json();
+        renderSlots(data.slots || [], data.reason);
     } catch (err) {
         slotsContainer.innerHTML = '<span style="color:red">Erreur lors du chargement des créneaux.</span>';
     }
 }
 
-function renderSlots(slots) {
+function renderSlots(slots, reason) {
     slotsContainer.innerHTML = '';
 
-    if (slots.length === 0) {
-        slotsContainer.innerHTML = '<p class="text-muted">Aucun créneau disponible (Fermé ou Complet).</p>';
+    if (!slots || slots.length === 0) {
+        let message = 'Aucun créneau disponible.';
+        const workerName = workerInput.options[workerInput.selectedIndex]?.text || "Le coiffeur";
+
+        if (reason === 'leave') {
+            message = `${workerName} est absent(e) à cette date.`;
+        } else if (reason === 'holiday' || reason === 'closed') {
+            message = 'Le salon est fermé.';
+        } else if (reason === 'full') {
+            message = 'Complet pour cette date.';
+        }
+
+        slotsContainer.innerHTML = `<p class="text-muted">${message}</p>`;
         return;
     }
 

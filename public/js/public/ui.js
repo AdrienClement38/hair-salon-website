@@ -16,7 +16,7 @@ export function renderServices(services) {
         <div class="card">
             <div class="card-icon" style="color:var(--gold); display:flex; justify-content:center; align-items:center; height:50px; margin-bottom: 15px;">${svgs[svc.icon] || svgs.star}</div>
             <h3 style="margin:0 0 15px 0; text-align:center; line-height:1.2; min-height: 3rem; display: flex; align-items: center; justify-content: center;">${svc.name}</h3>
-            ${svc.description ? `<p style="font-size:0.9em; color:#ddd; margin:0;">${svc.description}</p>` : ''}
+            <p style="font-size:0.9em; color:#ddd; margin:0; height: 50px; overflow: hidden; display: flex; align-items: flex-start; justify-content: center;">${svc.description || ''}</p>
             <div style="margin-top:auto;">
                  <span style="font-weight:bold; color:var(--gold); font-size:1.2em;">${svc.price}€</span>
             </div>

@@ -183,6 +183,11 @@ ul {
     margin-top: 2rem;
 }
 
+/* Services Specific */
+#services .container {
+    max-width: 1600px;
+}
+
 #services-grid {
     display: flex;
     flex-wrap: wrap;
@@ -194,8 +199,9 @@ ul {
 #services-grid .card {
     flex: 0 1 220px;
     min-width: 200px;
-    /* Fits 4 per row on standard desktop (1200px container) */
-    height: 300px;
+    /* Fits more per row with wider container */
+    height: auto;
+    min-height: 300px;
     display: flex;
     flex-direction: column;
     justify-content: flex-start;

@@ -8,6 +8,7 @@ const appointmentsController = require('../controllers/appointments');
 const leavesController = require('../controllers/leaves');
 const settingsController = require('../controllers/settings');
 const updatesController = require('../controllers/updates');
+const portfolioController = require('../controllers/portfolio');
 const checkAuth = require('../middleware/auth');
 const validate = require('../middleware/validate');
 
@@ -58,5 +59,11 @@ router.post('/book', validate(createBookingSchema), appointmentsController.creat
 
 // --- Updates (Polling) ---
 router.get('/updates', updatesController.checkUpdates);
+
+// --- Portfolio ---
+router.get('/portfolio', portfolioController.list);
+router.get('/admin/portfolio', portfolioController.list); // Add this alias for keys in Admin UI
+router.post('/admin/portfolio', checkAuth, upload.any(), portfolioController.create);
+router.delete('/admin/portfolio/:id', checkAuth, portfolioController.delete);
 
 module.exports = router;

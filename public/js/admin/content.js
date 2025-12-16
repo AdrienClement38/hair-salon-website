@@ -82,7 +82,81 @@ export function initContentForms() {
 
     // Initial Thumb Load
     updateThumbnails();
+    loadPortfolio();
 }
+
+// ... existing code ...
+
+// --- Portfolio ---
+export async function loadPortfolio() {
+    const list = document.getElementById('portfolio-list');
+    if (!list) return;
+
+    try {
+        const res = await fetch(`${API_URL}/portfolio`, { headers: getHeaders() });
+        const items = await res.json();
+
+        list.innerHTML = items.map(item => `
+            <div style="border: 1px solid #ddd; padding: 5px; border-radius: 4px; position: relative;">
+                <img src="/images/${item.filename}" style="width: 100%; height: 150px; object-fit: cover; border-radius: 4px;">
+                <button onclick="deletePortfolioItem(${item.id})" style="position: absolute; top: 5px; right: 5px; background: rgba(255,0,0,0.8); color: white; border: none; padding: 2px 6px; border-radius: 4px; cursor: pointer;">&times;</button>
+            </div>
+        `).join('');
+    } catch (e) {
+        console.error("Error loading portfolio:", e);
+    }
+}
+
+export async function addPortfolioItem() {
+    // const descInput = document.getElementById('new-portfolio-desc'); // Removed
+    const fileInput = document.getElementById('new-portfolio-file');
+
+    if (!fileInput.files[0]) {
+        alert("Veuillez sélectionner une image.");
+        return;
+    }
+
+    const formData = new FormData();
+    formData.append('image', fileInput.files[0]);
+    formData.append('description', ''); // Send empty string
+
+    try {
+        const res = await fetch(`${API_URL}/portfolio`, {
+            method: 'POST',
+            headers: { 'Authorization': getHeaders().Authorization },
+            body: formData
+        });
+
+        if (res.ok) {
+            // descInput.value = '';
+            fileInput.value = '';
+            loadPortfolio();
+        } else {
+            alert("Erreur lors de l'ajout.");
+        }
+    } catch (e) {
+        console.error(e);
+        alert("Erreur réseau.");
+    }
+}
+
+export async function deletePortfolioItem(id) {
+    if (!confirm("Supprimer cette photo ?")) return;
+    try {
+        const res = await fetch(`${API_URL}/portfolio/${id}`, {
+            method: 'DELETE',
+            headers: getHeaders()
+        });
+        if (res.ok) loadPortfolio();
+    } catch (e) {
+        console.error(e);
+    }
+}
+
+window.addPortfolioItem = addPortfolioItem;
+window.deletePortfolioItem = deletePortfolioItem;
+
+// Positioning Logic
 
 function updateThumbnails() {
     const ts = Date.now();

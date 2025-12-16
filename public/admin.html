@@ -410,6 +410,30 @@
                         </div>
                     </div>
                 </div>
+
+                <!-- Portfolio (Notre Travail) -->
+                <div class="settings-section">
+                    <h3>Notre Travail</h3>
+                    <p>Ajoutez des photos de vos réalisations.</p>
+                    <div id="portfolio-list"
+                        style="display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; margin-bottom: 20px;">
+                    </div>
+
+                    <div style="background: #fafafa; padding: 15px; border-radius: 4px;">
+                        <h5>Ajouter une photo</h5>
+                        <!-- Description removed as per user request -->
+                        <div class="form-group">
+                            <label>Photo</label>
+                            <form id="upload-portfolio" style="display:flex; align-items:center; gap:10px;">
+                                <input type="file" name="portfolio-image" accept="image/*" required
+                                    id="new-portfolio-file">
+                            </form>
+                        </div>
+                        <div style="display:flex; gap: 10px; margin-top: 15px;">
+                            <button class="btn" onclick="addPortfolioItem()" style="width:auto">Ajouter</button>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>

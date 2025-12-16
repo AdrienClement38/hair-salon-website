@@ -1,5 +1,7 @@
 import { initBooking, refreshSlots, loadServices as refreshBookingServices } from './booking.js';
 import { renderOpeningHours, renderHolidays, renderHomeContent, renderServices, refreshImages, renderContactInfo, renderProducts } from './ui.js';
+import { loadPublicPortfolio } from './portfolio.js';
+
 
 let lastSettingsTS = Date.now();
 let lastApptTS = Date.now();
@@ -57,4 +59,28 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Start polling
     setInterval(pollUpdates, 5000);
+
+    // Expose navigation
+    window.showPortfolio = () => {
+        // Hide all main sections
+        document.querySelectorAll('section.hero, section.section').forEach(el => el.style.display = 'none');
+        document.getElementById('portfolio-section').style.display = 'block';
+
+        // Start polling
+        import('./portfolio.js').then(m => m.startPortfolioPolling());
+
+        window.scrollTo(0, 0);
+    };
+
+    window.showHome = () => {
+        document.getElementById('portfolio-section').style.display = 'none';
+
+        // Stop polling
+        import('./portfolio.js').then(m => m.stopPortfolioPolling());
+
+        document.querySelectorAll('section.hero, section.section').forEach(el => {
+            if (el.id !== 'portfolio-section') el.style.display = 'block';
+        });
+        window.scrollTo(0, 0);
+    };
 });

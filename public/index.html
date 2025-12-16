@@ -25,6 +25,7 @@
                     <li><a href="#presentation">Le Salon</a></li>
                     <li><a href="#services">Prestations</a></li>
                     <li><a href="#products">Produits</a></li>
+                    <li><a href="#" onclick="showPortfolio(); return false;">Notre Travail</a></li>
                     <li><a href="#booking" class="btn btn-primary">Prendre RDV</a></li>
                 </ul>
             </nav>
@@ -147,6 +148,20 @@
                     <button type="submit" class="btn btn-gold full-width">Confirmer le RDV</button>
                     <p id="form-message" class="message"></p>
                 </form>
+            </div>
+        </div>
+    </section>
+
+    <!-- Portfolio Section (Hidden by default) -->
+    <section id="portfolio-section" class="section-content" style="display: none; padding: 40px 20px;">
+        <div class="container">
+            <h2 class="section-title text-center">Notre Travail</h2>
+            <p class="section-subtitle text-center">Découvrez nos réalisations</p>
+            <div id="public-portfolio-grid" class="masonry-grid">
+                <!-- Items injected here -->
+            </div>
+            <div style="text-align: center; margin-top: 30px;">
+                <button class="btn btn-outline" onclick="showHome()">Retour à l'accueil</button>
             </div>
         </div>
     </section>

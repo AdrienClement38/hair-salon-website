@@ -168,6 +168,15 @@ const initDB = async () => {
           created_at DATETIME DEFAULT CURRENT_TIMESTAMP
       );
     `);
+    db.run(`
+      CREATE TABLE IF NOT EXISTS portfolio (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          filename TEXT NOT NULL,
+          description TEXT,
+          admin_id INTEGER,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
     saveDB();
 
     // Migration Logic
@@ -295,6 +304,25 @@ const anonymizePastAppointments = async () => {
   return await query("UPDATE appointments SET phone = NULL WHERE date < ? AND phone IS NOT NULL", [today]);
 };
 
+const createPortfolioItem = async (filename, description, adminId) => {
+  if (type === 'pg') {
+    const sql = 'INSERT INTO portfolio (filename, description, admin_id) VALUES ($1, $2, $3) RETURNING id';
+    const res = await db.query(sql, [filename, description, adminId]);
+    return { lastInsertRowid: res.rows[0].id };
+  } else {
+    return await query('INSERT INTO portfolio (filename, description, admin_id) VALUES (?, ?, ?)', [filename, description, adminId]);
+  }
+};
+
+const getPortfolioItems = async () => {
+  return await query('SELECT * FROM portfolio ORDER BY created_at DESC');
+}
+
+const deletePortfolioItem = async (id) => {
+  if (type === 'pg') return await query('DELETE FROM portfolio WHERE id = $1', [id]);
+  return await query('DELETE FROM portfolio WHERE id = ?', [id]);
+}
+
 const saveImage = async (filename, buffer, mimetype) => {
   if (type === 'pg') {
     const sql = `
@@ -402,6 +430,9 @@ module.exports = {
   deleteAppointment,
   updateAppointment,
   anonymizePastAppointments,
+  createPortfolioItem,
+  getPortfolioItems,
+  deletePortfolioItem,
   getSetting,
   setSetting,
   saveImage,

@@ -206,4 +206,32 @@ describe('Admin UI & Profile Switching', () => {
         expect(displayVal).toBe('');
         expect(passVal).toBe('');
     });
+
+    test('Should display "Notre Travail" section in content tab', async () => {
+        await page.goto(`${BASE_URL}/lbc-admin`);
+
+        // Login
+        await page.type('#username', TEST_USER.username);
+        await page.type('#password', TEST_USER.password);
+        await page.click('#login-form button[type="submit"]');
+        await page.waitForSelector('#dashboard-view', { visible: true });
+
+        // Go to Content tab
+        await page.click('#tab-btn-content');
+        await page.waitForSelector('#tab-content', { visible: true });
+
+        // Check for Portfolio header
+        // Since sections are multiple, we check text content
+        const portfolioHeader = await page.$eval('#tab-content', el => {
+            const h3s = Array.from(el.querySelectorAll('h3'));
+            return h3s.some(h => h.textContent.includes('Notre Travail'));
+        });
+        expect(portfolioHeader).toBe(true);
+
+        // Check for Add button
+        const addBtn = await page.$eval('#tab-content', el => {
+            return !!el.querySelector('button[onclick="addPortfolioItem()"]');
+        });
+        expect(addBtn).toBe(true);
+    });
 });

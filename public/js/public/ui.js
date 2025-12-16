@@ -164,13 +164,18 @@ export function renderProducts(products) {
         return;
     }
 
-    container.innerHTML = products.map(prod => `
+    container.innerHTML = products.map(prod => {
+        const safeName = prod.name.replace(/'/g, "\\'");
+        const safeDesc = (prod.description || '').replace(/'/g, "\\'");
+
+        return `
         <div class="card product-card" style="background: var(--dark); border: 1px solid var(--primary); box-shadow: none;">
             ${prod.image ?
-            `<div style="width: 170px; height: 170px; margin: 0 auto 15px auto; border-radius: 8px; overflow: hidden; background:#f0f0f0;">
+                `<div style="width: 170px; height: 170px; margin: 0 auto 15px auto; border-radius: 8px; overflow: hidden; background:#f0f0f0; cursor: pointer;" 
+                  onclick="openLightbox('/images/${prod.image}', '${safeName}', '${prod.price}', '${safeDesc}')">
                     <img src="/images/${prod.image}" alt="${prod.name}" style="width:100%; height:100%; object-fit:cover; ${prod.imagePosition ? `object-position: ${prod.imagePosition.x}% ${prod.imagePosition.y}%;` : ''}">
                  </div>`
-            : `<div style="width: 170px; height: 170px; margin: 0 auto 15px auto; border-radius: 8px; background:#333; display:flex; align-items:center; justify-content:center;"><span style="color:#666;">Pas d'image</span></div>`}
+                : `<div style="width: 170px; height: 170px; margin: 0 auto 15px auto; border-radius: 8px; background:#333; display:flex; align-items:center; justify-content:center;"><span style="color:#666;">Pas d'image</span></div>`}
             
             <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:10px; gap:15px;">
                  <h3 style="margin:0; text-align:left; line-height:1.2; color: var(--primary);">${prod.name}</h3>
@@ -179,7 +184,7 @@ export function renderProducts(products) {
             
             <p style="font-size:0.9em; color:#ddd; margin-top:5px;">${prod.description || ''}</p>
         </div>
-    `).join('');
+    `}).join('');
 
     // Update UI state after render
     setTimeout(updateCarouselUI, 0);
@@ -221,6 +226,41 @@ function updateCarouselUI() {
         if (nextBtn) nextBtn.style.display = 'none';
     }
 }
+
+// Lightbox Logic
+window.openLightbox = (src, title, price, desc) => {
+    const modal = document.getElementById('lightbox-modal');
+    const img = document.getElementById('lightbox-img');
+    const caption = document.getElementById('lightbox-caption');
+
+    if (!modal || !img) return;
+
+    img.src = src;
+
+    if (title || price) {
+        caption.style.display = 'block';
+        document.getElementById('lightbox-title').textContent = title || '';
+        document.getElementById('lightbox-price').textContent = price ? price + '€' : '';
+        document.getElementById('lightbox-desc').textContent = desc || '';
+    } else {
+        caption.style.display = 'none';
+    }
+
+    modal.classList.add('active');
+};
+
+// Close Lightbox
+document.addEventListener('DOMContentLoaded', () => {
+    const modal = document.getElementById('lightbox-modal');
+    if (modal) {
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                modal.classList.remove('active');
+            }
+        });
+    }
+});
+
 
 // Expose to window for onclick
 window.scrollProducts = scrollProducts;

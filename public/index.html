@@ -179,7 +179,15 @@
 
     <!-- Lightbox Modal -->
     <div id="lightbox-modal">
-        <img id="lightbox-img" src="" alt="Zoom">
+        <div style="display: flex; flex-direction: column; align-items: center; max-width: 90%; max-height: 90%;">
+            <img id="lightbox-img" src="" alt="Zoom" style="margin-bottom: 15px;">
+            <div id="lightbox-caption"
+                style="color: white; text-align: center; background: rgba(0,0,0,0.8); padding: 15px; border-radius: 8px; display: none; min-width: 300px;">
+                <h3 id="lightbox-title" style="color: var(--primary); margin-bottom: 5px;"></h3>
+                <p id="lightbox-price" style="font-size: 1.2rem; font-weight: bold; color: white;"></p>
+                <p id="lightbox-desc" style="color: #ccc; font-size: 0.9rem; margin-top: 5px;"></p>
+            </div>
+        </div>
     </div>
 </body>
 

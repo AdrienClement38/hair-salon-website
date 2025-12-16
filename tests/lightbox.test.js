@@ -17,49 +17,87 @@ afterAll(async () => {
     if (browser) await browser.close();
 });
 
-test.skip('Lightbox: Open image on click and close on background click', async () => {
+test('Lightbox: Portfolio - Open image on click and close', async () => {
     // Navigate to Home
     await page.goto(BASE_URL);
 
     // Wait for "Notre Travail" link and click it
-    console.log("Waiting for portfolio link...");
     await page.waitForSelector('a[href="#"][onclick*="showPortfolio"]', { timeout: 5000 });
-    console.log("Clicking portfolio link...");
     await page.click('a[href="#"][onclick*="showPortfolio"]');
 
-    // Inject a dummy item if grid is empty (to test Lightbox UI independently of content)
+    // Inject a dummy item if grid is empty
     await page.evaluate(() => {
         const grid = document.getElementById('public-portfolio-grid');
         if (!grid.hasChildNodes()) {
             const div = document.createElement('div');
             div.className = 'masonry-item';
-            div.innerHTML = '<img src="/images/hero-bg.jpg" alt="Test Image">'; // Use an existing image or dummy
+            div.innerHTML = '<img src="/images/hero-bg.jpg" alt="Test Image">';
             grid.appendChild(div);
         }
     });
 
-    console.log("Waiting for masonry items...");
     await page.waitForSelector('.masonry-item img', { timeout: 10000 });
-    console.log("Items found.");
 
-    // Get the src of the first image
     const firstImgSrc = await page.$eval('.masonry-item img', img => img.src);
-
-    // Click the first image
     await page.click('.masonry-item img');
 
-    // Assert: #lightbox-modal is displayed
     await page.waitForSelector('#lightbox-modal', { visible: true });
-
-    // Assert: Image inside lightbox matches clicked image
+    // Verify image
     const lightboxImgSrc = await page.$eval('#lightbox-img', img => img.src);
     expect(lightboxImgSrc).toBe(firstImgSrc);
+    // Verify Caption HIDDEN for portfolio
+    const display = await page.$eval('#lightbox-caption', el => getComputedStyle(el).display);
+    expect(display).toBe('none');
 
-    // Click on the background (we need a selector for the background overlay)
-    // Assuming #lightbox-modal is the overlay
-    await page.click('#lightbox-modal');
+    await page.mouse.click(10, 10);
+    await page.waitForSelector('#lightbox-modal', { hidden: true });
 
-    // Assert: Modal is hidden
+}, 30000);
+
+test('Lightbox: Product - Open image with details', async () => {
+    await page.goto(BASE_URL);
+
+    // Wait for initial UI render (products loaded or empty message)
+    await page.waitForFunction(() => {
+        const grid = document.getElementById('products-grid');
+        return grid && grid.innerHTML.trim().length > 0;
+    });
+
+    // Inject dummy product (Force overwrite)
+    await page.evaluate(() => {
+        const grid = document.getElementById('products-grid');
+        grid.innerHTML = `
+            <div class="card product-card">
+                <div style="cursor: pointer;" onclick="openLightbox('/images/hero-bg.jpg', 'Test Product', '99', 'Desc')">
+                    <img src="/images/hero-bg.jpg" class="test-prod-img">
+                </div>
+                <h3>Test Product</h3>
+            </div>
+         `;
+    });
+
+    await new Promise(r => setTimeout(r, 1000)); // Wait for render
+
+    // Find product image
+    const prodImg = await page.$('.product-card img');
+    if (!prodImg) {
+        console.warn("No product image found even after injection?");
+        return;
+    }
+
+    await prodImg.click();
+
+    await page.waitForSelector('#lightbox-modal', { visible: true });
+
+    // Check Content
+    const title = await page.$eval('#lightbox-title', el => el.textContent);
+    const price = await page.$eval('#lightbox-price', el => el.textContent);
+
+    expect(title).toBe('Test Product');
+    expect(price).toContain('99');
+
+    // Close
+    await page.mouse.click(10, 10);
     await page.waitForSelector('#lightbox-modal', { hidden: true });
 
 }, 30000);

@@ -116,34 +116,12 @@ function shuffleArray(array) {
     }
 }
 
-// Lightbox Logic
-export function openLightbox(src) {
-    const modal = document.getElementById('lightbox-modal');
-    const img = document.getElementById('lightbox-img');
-    if (modal && img) {
-        img.src = src;
-        modal.classList.add('active');
-    }
-}
 
-export function closeLightbox() {
-    const modal = document.getElementById('lightbox-modal');
-    if (modal) {
-        modal.classList.remove('active');
-    }
-}
-
-if (!window.lightboxInitialized) {
-    document.addEventListener('click', (e) => {
-        if (e.target.id === 'lightbox-modal') {
-            closeLightbox();
-        }
-    });
-    window.lightboxInitialized = true;
-}
 
 document.addEventListener('click', (e) => {
     if (e.target.matches('.masonry-item img')) {
-        openLightbox(e.target.src);
+        if (window.openLightbox) {
+            window.openLightbox(e.target.src);
+        }
     }
 });

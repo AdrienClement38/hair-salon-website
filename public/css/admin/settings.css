@@ -117,14 +117,16 @@
 
 .z-over {
     z-index: 10;
-    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-    background: #fff; /* Ensure opacity doesn't show through */
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    background: #fff;
+    /* Ensure opacity doesn't show through */
 }
 
 .z-under {
     z-index: 1;
     opacity: 0.6;
-    transform: scale(0.95); /* Initial state for under item */
+    transform: scale(0.95);
+    /* Initial state for under item */
 }
 
 /* Specific transitions for the movement */
@@ -134,4 +136,70 @@
 
 .z-under.slide-down {
     transform: translateY(100%) scale(0.95);
+}
+
+/* Unified Button Styles */
+.btn-gold {
+    background-color: #d4af37;
+    /* Gold color */
+    color: #000;
+    text-transform: uppercase;
+    font-weight: bold;
+    font-size: 0.8rem;
+    padding: 6px 12px;
+    /* Thinner padding */
+    border: none;
+    cursor: pointer;
+    border-radius: 2px;
+    transition: background-color 0.2s;
+}
+
+.btn-gold:hover {
+    background-color: #fff;
+    color: #d4af37;
+    box-shadow: inset 0 0 0 1px #d4af37;
+}
+
+.btn-orange {
+    background-color: #f0ad4e;
+    /* Orange */
+    color: #000;
+    text-transform: uppercase;
+    font-weight: bold;
+    font-size: 0.8rem;
+    padding: 6px 12px;
+    border: none;
+    cursor: pointer;
+    border-radius: 2px;
+    transition: all 0.2s;
+}
+
+.btn-orange:hover {
+    background-color: #fff;
+    color: #f0ad4e;
+    box-shadow: inset 0 0 0 1px #f0ad4e;
+}
+
+.vertical-sep {
+    border-left: 1px solid #ddd;
+    margin: 0;
+    /* Gaps handle spacing */
+    height: 20px;
+    display: block;
+}
+
+.btn-x {
+    background: none;
+    border: none;
+    color: #dc3545;
+    /* Red */
+    font-size: 1.5rem;
+    font-weight: bold;
+    cursor: pointer;
+    padding: 0 5px;
+    line-height: 1;
+}
+
+.btn-x:hover {
+    color: #c82333;
 }

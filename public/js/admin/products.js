@@ -1,5 +1,6 @@
 import { API_URL, getHeaders } from './config.js';
 import { currentProducts, setProducts } from './state.js';
+import { renderActionButtons } from './ui-components.js';
 
 export function renderProductsList() {
     const list = document.getElementById('products-list');
@@ -30,20 +31,21 @@ export function renderProductsList() {
                     <br><small style="color:#666;">${prod.description || ''}</small>
                 </div>
             </div>
-            <div style="display:flex; gap:10px; align-items:center;">
-                 <div style="display:flex; flex-direction:column; gap:2px; align-items:center;">
-                     <img src="/images/arrow-up.svg" 
-                          onclick="moveProductUp(${index})" 
-                          style="width:24px; height:24px; cursor:pointer; ${isFirst ? 'opacity:0.3; cursor:default;' : ''}"
-                          title="Monter">
-                     <img src="/images/arrow-down.svg" 
-                          onclick="moveProductDown(${index})" 
-                          style="width:24px; height:24px; cursor:pointer; ${isLast ? 'opacity:0.3; cursor:default;' : ''}"
-                          title="Descendre">
-                 </div>
-                ${prod.image ? `<button onclick="openProductPositioning(${index})" class="btn-action" style="background:#f0ad4e;" title="Positionner la photo">Positionner</button>` : ''}
-                <button onclick="editProduct(${index})" class="btn-action btn-edit" title="Modifier">Modifier</button>
-                <button onclick="removeProduct(${index})" style="background:none; border:none; color:red; cursor:pointer; font-size: 24px; padding: 0 10px;" title="Supprimer">&times;</button>
+            ${renderActionButtons(`editProduct(${index})`, `removeProduct(${index})`, {
+            extraHtml: `
+                     <div style="display:flex; flex-direction:column; gap:2px; align-items:center;">
+                         <img src="/images/arrow-up.svg" 
+                              onclick="moveProductUp(${index})" 
+                              style="width:24px; height:24px; cursor:pointer; ${isFirst ? 'opacity:0.3; cursor:default;' : ''}"
+                              title="Monter">
+                         <img src="/images/arrow-down.svg" 
+                              onclick="moveProductDown(${index})" 
+                              style="width:24px; height:24px; cursor:pointer; ${isLast ? 'opacity:0.3; cursor:default;' : ''}"
+                              title="Descendre">
+                     </div>
+                    ${prod.image ? `<span class="vertical-sep"></span><button onclick="openProductPositioning(${index})" class="btn-orange" title="Positionner la photo">POSITIONNER</button>` : ''}
+                `
+        })}
             </div>
         `;
         list.appendChild(item);

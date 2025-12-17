@@ -1,5 +1,6 @@
 // public/js/admin/services.js
 import { API_URL, getHeaders } from './config.js';
+import { renderActionButtons } from './ui-components.js';
 
 let currentServices = [];
 
@@ -95,20 +96,20 @@ export function renderServicesList() {
             <td>${service.price}</td>
              <td style="font-size:0.9em; color:#666;">${service.description || ''}</td>
             <td>
-                <div style="display:flex; align-items:center; gap:10px;">
-                     <div style="display:flex; flex-direction:column; gap:2px; align-items:center;">
-                        <img src="/images/arrow-up.svg" 
-                             onclick="moveServiceUp(${index})" 
-                             style="width:24px; height:24px; cursor:pointer; ${isFirst ? 'opacity:0.3; cursor:default;' : ''}"
-                             title="Monter">
-                        <img src="/images/arrow-down.svg" 
-                             onclick="moveServiceDown(${index})" 
-                             style="width:24px; height:24px; cursor:pointer; ${isLast ? 'opacity:0.3; cursor:default;' : ''}"
-                             title="Descendre">
-                     </div>
-                     <span style="border-left:1px solid #ddd; margin:0 5px; height:30px;"></span>
-                    <button class="btn-action btn-edit" onclick="editService(${index})">Modifier</button>
-                    <button onclick="removeService(${index})" style="background:none; border:none; color:red; cursor:pointer; font-size: 24px; padding: 0 10px;" title="Supprimer">&times;</button>
+                    ${renderActionButtons(`editService(${index})`, `removeService(${index})`, {
+            extraHtml: `
+                             <div style="display:flex; flex-direction:column; gap:2px; align-items:center;">
+                                <img src="/images/arrow-up.svg" 
+                                     onclick="moveServiceUp(${index})" 
+                                     style="width:24px; height:24px; cursor:pointer; ${isFirst ? 'opacity:0.3; cursor:default;' : ''}"
+                                     title="Monter">
+                                <img src="/images/arrow-down.svg" 
+                                     onclick="moveServiceDown(${index})" 
+                                     style="width:24px; height:24px; cursor:pointer; ${isLast ? 'opacity:0.3; cursor:default;' : ''}"
+                                     title="Descendre">
+                             </div>
+                        `
+        })}
                 </div>
             </td>
         `;

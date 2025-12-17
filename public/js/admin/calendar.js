@@ -1,5 +1,6 @@
 import { API_URL, getHeaders, formatDateDisplay } from './config.js';
 import { currentSchedule, currentLeaves, salonClosingTime } from './state.js';
+import { renderActionButtons } from './ui-components.js';
 
 let appointmentsCache = [];
 let currentCalendarDate = new Date();
@@ -339,8 +340,7 @@ function openDayDetails(dateStr, appointments, shouldScroll = true) {
                             <td>${apt.phone || '-'}</td>
                             <td>${apt.service}</td>
                             <td>
-                                <button class="btn-action btn-edit" onclick="openEdit(${apt.id}, '${apt.name.replace("'", "\\'")}', '${apt.date}', '${apt.time}')">Edit</button>
-                                <button class="btn-action btn-delete" onclick="deleteApt(${apt.id})">Suppr</button>
+                                ${renderActionButtons(`openEdit(${apt.id}, '${apt.name.replace("'", "\\'")}', '${apt.date}', '${apt.time}')`, `deleteApt(${apt.id})`)}
                             </td>
                         </tr>
                         `;

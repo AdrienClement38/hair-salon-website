@@ -137,7 +137,7 @@ describe('Product Management UI', () => {
         await page.evaluate(() => {
             const items = Array.from(document.querySelectorAll('.service-item'));
             const item = items.find(i => i.innerText.includes('Test Product UI'));
-            const editBtn = item.querySelector('.btn-edit');
+            const editBtn = item.querySelector('button[title="Modifier"]');
             // Scroll to view
             if (editBtn) editBtn.click();
         });

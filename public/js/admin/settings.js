@@ -4,6 +4,7 @@ import { renderServicesList, setServicesData } from './services.js';
 import { renderProductsList } from './products.js';
 import { loadAppointments } from './calendar.js';
 import { setSchedule, setHolidayRanges, setHomeContent, setSalonClosingTime, currentHolidayRanges, currentHomeContent, setProducts } from './state.js';
+import { renderActionButtons } from './ui-components.js';
 
 let currentHolidays = [];
 // Cache for leaves
@@ -252,7 +253,7 @@ function renderHolidayList() {
 
         item.innerHTML = `
             <span><strong>${formatDateDisplay(leave.start_date)}</strong> au <strong>${formatDateDisplay(leave.end_date)}</strong>${noteDisplay}</span>
-            <button onclick="removeHolidayRange(${leave.id})" style="background:none; border:none; color:red; cursor:pointer; font-weight:bold;">Supprimer</button>
+            ${renderActionButtons(null, `removeHolidayRange(${leave.id})`)}
         `;
         list.appendChild(item);
     });

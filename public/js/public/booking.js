@@ -147,6 +147,8 @@ async function loadWorkers() {
     }
 }
 
+export const refreshBookingWorkers = loadWorkers;
+
 export async function loadServices() {
     serviceInput.innerHTML = '<option value="">Chargement...</option>';
     try {

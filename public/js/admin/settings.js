@@ -59,6 +59,21 @@ export async function loadSettings() {
         if (document.getElementById('content-phone')) document.getElementById('content-phone').value = contact_info?.phone || '';
 
         loadAppointments();
+
+        // Explicitly update Profile Title if filter is selected (to handle renames)
+        const filterEl = document.getElementById('admin-filter');
+        if (filterEl) {
+            const selectedText = filterEl.options[filterEl.selectedIndex]?.text || 'Salon';
+            const profileTitle = document.querySelector('#profile-form')?.closest('.settings-section')?.querySelector('h3');
+            if (profileTitle) {
+                if (filterEl.value) {
+                    profileTitle.textContent = `Profil de ${selectedText}`;
+                } else {
+                    profileTitle.textContent = 'Profil du Salon';
+                }
+            }
+        }
+
         initProfileForm(); // Initialize profile dynamic logic
 
     } catch (e) {
@@ -152,11 +167,23 @@ function initProfileForm() {
             if (res.ok) {
                 alert('Profil mis à jour');
                 document.getElementById('profile-new-pass').value = '';
-                // Reload dashboard title if we changed name
-                if (!adminId) {
-                    // If we updated ourselves, reload common elements or just let polling handle it?
-                    // Reloading settings fetches /me used by other things maybe.
+
+                // Reload Admin Filter and Dashboard Title immediately
+                // Reload Admin Filter and Dashboard Title immediately
+                // await loadWorkersForFilter(); // Reverted to fix circular/load issue
+
+                // If we edited a specific worker, re-select them in the filter to keep context
+                if (adminId) {
+                    filterEl.value = adminId;
+                } else {
+                    // If we updated ourselves (Salon), might be "Salon" or actual user ID if implemented differently.
+                    // Assuming "Salon" is empty string value
+                    // filterEl.value = ""; 
                 }
+
+                // Refresh title
+                loadAppointments();
+
             } else {
                 const err = await res.json();
                 alert('Erreur: ' + (err.error || 'Erreur inconnue'));

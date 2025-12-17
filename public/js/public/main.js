@@ -1,4 +1,4 @@
-import { initBooking, refreshSlots, loadServices as refreshBookingServices } from './booking.js';
+import { initBooking, refreshSlots, loadServices as refreshBookingServices, refreshBookingWorkers } from './booking.js';
 import { renderOpeningHours, renderHolidays, renderHomeContent, renderServices, refreshImages, renderContactInfo, renderProducts } from './ui.js';
 import { loadPublicPortfolio } from './portfolio.js';
 
@@ -17,6 +17,7 @@ async function pollUpdates() {
             lastSettingsTS = data.settingsTimestamp;
             loadSettings();
             refreshBookingServices(); // Update booking dropdown
+            refreshBookingWorkers(); // Update workers dropdown
 
             // Refresh Images
             refreshImages();

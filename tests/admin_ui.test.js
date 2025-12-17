@@ -207,6 +207,64 @@ describe('Admin UI & Profile Switching', () => {
         expect(passVal).toBe('');
     });
 
+    test('Should sync profile name updates across UI components', async () => {
+        // 1. Setup - Go to Admin
+        await page.goto(`${BASE_URL}/lbc-admin`);
+        await page.type('#username', TEST_USER.username);
+        await page.type('#password', TEST_USER.password);
+        await page.click('#login-form button[type="submit"]');
+        await page.waitForSelector('#dashboard-view', { visible: true });
+
+        // 2. Select Worker
+        await page.select('#admin-filter', String(workerId));
+
+        // Go to Settings
+        await page.click('#tab-btn-settings');
+        await page.waitForSelector('#tab-settings', { visible: true });
+
+        // Verify initial state
+        const initialProfileHeader = await page.$eval('#profile-form', el => el.closest('.settings-section').querySelector('h3').textContent);
+        expect(initialProfileHeader).toContain(WORKER.displayName);
+
+        // 3. Rename Worker
+        const NEW_NAME = "Renamed Worker " + Date.now();
+        await page.evaluate((val) => {
+            document.getElementById('profile-displayname').value = val;
+        }, NEW_NAME);
+
+        // Submit
+        // We need to handle the alert that pops up
+        page.on('dialog', async dialog => {
+            await dialog.accept();
+        });
+
+        await page.click('#profile-form button[type="submit"]');
+
+        // 4. Wait for Polling Cycle (approx 5s)
+        // We wait slightly longer to ensure the poll triggers and UI updates
+        await new Promise(r => setTimeout(r, 6000));
+
+        // 5. Verify UI Updates without page reload
+
+        // A. Verify Filter Dropdown Text
+        const dropdownText = await page.$eval('#admin-filter', el => el.options[el.selectedIndex].text);
+        expect(dropdownText).toBe(NEW_NAME);
+
+        // B. Verify "Profil de ..." Header
+        const updatedProfileHeader = await page.$eval('#profile-form', el => el.closest('.settings-section').querySelector('h3').textContent);
+        expect(updatedProfileHeader).toContain(NEW_NAME);
+
+        // C. Verify "Période de congés de ..." Header
+        const holidaysHeader = await page.$eval('#leaves-section-title', el => el.textContent);
+        expect(holidaysHeader).toContain(NEW_NAME);
+
+        // D. Verify Dashboard Header Title
+        // Need to check if header is visible or if we need to look at the DOM
+        const dashboardTitle = await page.$eval('header h1', el => el.textContent);
+        expect(dashboardTitle).toContain(NEW_NAME);
+
+    }, 30000); // 30s timeout
+
     test('Should display "Notre Travail" section in content tab', async () => {
         await page.goto(`${BASE_URL}/lbc-admin`);
 

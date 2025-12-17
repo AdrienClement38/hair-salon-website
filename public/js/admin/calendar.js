@@ -40,12 +40,13 @@ function initYearSelect() {
     }
 }
 
-async function loadWorkersForFilter() {
+export async function loadWorkersForFilter() {
     try {
         const res = await fetch('/api/workers');
         const workers = await res.json();
         currentWorkers = workers;
         const select = document.getElementById('admin-filter');
+        const currentValue = select.value;
 
         // Keep first option (All)
         select.innerHTML = '<option value="">Salon</option>';
@@ -56,6 +57,10 @@ async function loadWorkersForFilter() {
             opt.textContent = w.name;
             select.appendChild(opt);
         });
+
+        if (currentValue) {
+            select.value = currentValue;
+        }
     } catch (e) {
         console.error('Failed to load workers', e);
     }

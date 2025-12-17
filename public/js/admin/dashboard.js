@@ -1,6 +1,6 @@
 import { API_URL, getHeaders } from './config.js';
 import { loadSettings } from './settings.js';
-import { loadAppointments, autoOpenDayDetails } from './calendar.js';
+import { loadAppointments, autoOpenDayDetails, loadWorkersForFilter } from './calendar.js';
 
 let lastSettingsTS = Date.now();
 let lastApptTS = Date.now();
@@ -54,7 +54,8 @@ export async function pollUpdates() {
         if (data.needsSettingsUpdate) {
             console.log('Settings update detected');
             lastSettingsTS = data.settingsTimestamp;
-            await loadSettings();
+            await loadWorkersForFilter(); // Reload workers first to update names
+            await loadSettings(); // Then re-render UI (headers, holidays) using new names
             settingsChanged = true;
         }
 

@@ -33,6 +33,9 @@ exports.listPublicWorkers = async (req, res) => {
     }
 };
 
+
+const polling = require('../config/polling');
+
 exports.updateWorker = async (req, res) => {
     const { id } = req.params;
     const { password, displayName } = req.body;
@@ -48,10 +51,12 @@ exports.updateWorker = async (req, res) => {
 
         if (displayName) {
             await db.updateAdminProfile(id, displayName);
+            polling.triggerUpdate('settings'); // Trigger public update
         }
 
         res.json({ success: true });
     } catch (e) {
+        console.error("Update Worker Error:", e);
         res.status(500).json({ error: e.message });
     }
 };

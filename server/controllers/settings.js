@@ -43,8 +43,9 @@ exports.get = async (req, res) => {
 
 exports.uploadImages = async (req, res) => {
     try {
-        console.log('Uploading images:', req.files.map(f => f.fieldname));
-        const promises = req.files.map(file => {
+        const files = req.files ? Object.values(req.files).flat() : [];
+        console.log('Uploading images:', files.map(f => f.fieldname));
+        const promises = files.map(file => {
             // Save using the specific field name as ID (e.g. 'hero-bg'), ignoring extension
             // Mime type is saved in DB so serving works correctly.
             const filename = file.fieldname;

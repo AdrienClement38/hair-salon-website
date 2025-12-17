@@ -13,7 +13,7 @@ exports.list = async (req, res) => {
 
 exports.create = async (req, res) => {
     const { description } = req.body;
-    const file = req.files[0]; // Multer middleware puts files here
+    const file = req.file; // Multer upload.single puts file here
 
     if (!file) {
         return res.status(400).json({ error: 'No image uploaded' });

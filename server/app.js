@@ -2,12 +2,40 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const cors = require('cors');
 const path = require('path');
+const helmet = require('helmet');
+const rateLimit = require('express-rate-limit');
+const hpp = require('hpp');
 const apiRoutes = require('./routes/api');
 const settingsController = require('./controllers/settings');
 
 const app = express();
 
-app.use(cors());
+// Security Headers
+app.use(helmet({
+    contentSecurityPolicy: false, // Disable for now to avoid breaking inline scripts if not ready
+    crossOriginEmbedderPolicy: false
+}));
+
+// Rate Limiting
+const limiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 100, // Limit each IP to 100 requests per windowMs
+    standardHeaders: true,
+    legacyHeaders: false,
+});
+app.use('/api', limiter);
+
+// Prevent HTTP Parameter Pollution
+app.use(hpp());
+
+// CORS configuration
+const corsOptions = {
+    origin: process.env.FRONTEND_URL || '*', // Restrict in production
+    methods: ['GET', 'POST', 'PUT', 'DELETE'],
+    allowedHeaders: ['Content-Type', 'Authorization']
+};
+app.use(cors(corsOptions));
+
 app.use(bodyParser.json());
 app.use(express.static(path.join(__dirname, '../public')));
 

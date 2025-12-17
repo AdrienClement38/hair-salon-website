@@ -232,6 +232,13 @@ const initDB = async () => {
          note TEXT,
          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
        );
+       CREATE TABLE IF NOT EXISTS portfolio (
+          id SERIAL PRIMARY KEY,
+          filename TEXT NOT NULL,
+          description TEXT,
+          admin_id INTEGER,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+       );
      `;
     await db.query(queries);
   }

@@ -94,7 +94,17 @@ export async function loadPortfolio() {
 
     try {
         const res = await fetch(`${API_URL}/portfolio`, { headers: getHeaders() });
-        const items = await res.json();
+        let items = [];
+        try {
+            items = await res.json();
+        } catch (jsonErr) {
+            console.warn("Invalid JSON from portfolio API", jsonErr);
+        }
+
+        if (!Array.isArray(items)) {
+            console.error("Portfolio items is not an array:", items);
+            items = []; // Fallback to empty to prevent crash
+        }
 
         const countSpan = document.getElementById('portfolio-count');
         if (countSpan) {

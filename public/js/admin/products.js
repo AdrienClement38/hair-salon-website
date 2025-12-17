@@ -31,9 +31,15 @@ export function renderProductsList() {
                 </div>
             </div>
             <div style="display:flex; gap:10px; align-items:center;">
-                 <div style="display:flex; gap:2px; margin-right:5px;">
-                     <button class="btn-action btn-up" onclick="moveProductUp(${index})" ${isFirst ? 'disabled style="opacity:0.3; cursor:default;"' : ''} title="Monter">⬆️</button>
-                     <button class="btn-action btn-down" onclick="moveProductDown(${index})" ${isLast ? 'disabled style="opacity:0.3; cursor:default;"' : ''} title="Descendre">⬇️</button>
+                 <div style="display:flex; flex-direction:column; gap:2px; align-items:center;">
+                     <img src="/images/arrow-up.svg" 
+                          onclick="moveProductUp(${index})" 
+                          style="width:24px; height:24px; cursor:pointer; ${isFirst ? 'opacity:0.3; cursor:default;' : ''}"
+                          title="Monter">
+                     <img src="/images/arrow-down.svg" 
+                          onclick="moveProductDown(${index})" 
+                          style="width:24px; height:24px; cursor:pointer; ${isLast ? 'opacity:0.3; cursor:default;' : ''}"
+                          title="Descendre">
                  </div>
                 ${prod.image ? `<button onclick="openProductPositioning(${index})" class="btn-action" style="background:#f0ad4e;" title="Positionner la photo">Positionner</button>` : ''}
                 <button onclick="editProduct(${index})" class="btn-action btn-edit" title="Modifier">Modifier</button>
@@ -214,20 +220,68 @@ async function saveProducts(products) {
 // Reordering
 export function moveProductUp(index) {
     if (index <= 0) return;
-    const temp = currentProducts[index];
-    currentProducts[index] = currentProducts[index - 1];
-    currentProducts[index - 1] = temp;
-    renderProductsList();
-    saveProducts(currentProducts);
+
+    const container = document.getElementById('products-list');
+    const items = container.querySelectorAll('.service-item');
+    const currentItem = items[index];
+    const prevItem = items[index - 1];
+
+    // Add animation classes
+    currentItem.classList.add('anim-row', 'z-over');
+    prevItem.classList.add('anim-row', 'z-under');
+
+    // Trigger reflow
+    void currentItem.offsetWidth;
+
+    // Apply transform
+    currentItem.classList.add('slide-up');
+    prevItem.classList.add('slide-down');
+
+    // Wait for animation
+    setTimeout(() => {
+        const temp = currentProducts[index];
+        currentProducts[index] = currentProducts[index - 1];
+        currentProducts[index - 1] = temp;
+
+        // Optimistic Render: Update UI immediately
+        renderProductsList();
+
+        // Save in background
+        saveProducts(currentProducts);
+    }, 400);
 }
 
 export function moveProductDown(index) {
     if (index >= currentProducts.length - 1) return;
-    const temp = currentProducts[index];
-    currentProducts[index] = currentProducts[index + 1];
-    currentProducts[index + 1] = temp;
-    renderProductsList();
-    saveProducts(currentProducts);
+
+    const container = document.getElementById('products-list');
+    const items = container.querySelectorAll('.service-item');
+    const currentItem = items[index];
+    const nextItem = items[index + 1];
+
+    // Add animation classes
+    currentItem.classList.add('anim-row', 'z-over');
+    nextItem.classList.add('anim-row', 'z-under');
+
+    // Trigger reflow
+    void currentItem.offsetWidth;
+
+    // Apply transform
+    currentItem.classList.add('slide-down');
+    nextItem.classList.add('slide-up');
+
+    // Wait for animation
+    setTimeout(() => {
+        const temp = currentProducts[index];
+        currentProducts[index] = currentProducts[index + 1];
+        currentProducts[index + 1] = temp;
+
+        // Optimistic Render
+        renderProductsList();
+
+        // Save in background
+        saveProducts(currentProducts);
+    }, 400);
 }
 
 window.addProduct = addProduct;

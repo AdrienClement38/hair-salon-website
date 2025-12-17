@@ -96,6 +96,42 @@
     transition: background 0.2s;
 }
 
+
 .btn-delete-overlay:hover {
     background: #c82333;
+}
+
+/* Animation for Row Reordering */
+.anim-row {
+    position: relative;
+    transition: transform 0.4s ease-in-out, opacity 0.4s ease, box-shadow 0.4s ease;
+}
+
+.slide-up {
+    transform: translateY(-100%);
+}
+
+.slide-down {
+    transform: translateY(100%);
+}
+
+.z-over {
+    z-index: 10;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    background: #fff; /* Ensure opacity doesn't show through */
+}
+
+.z-under {
+    z-index: 1;
+    opacity: 0.6;
+    transform: scale(0.95); /* Initial state for under item */
+}
+
+/* Specific transitions for the movement */
+.z-under.slide-up {
+    transform: translateY(-100%) scale(0.95);
+}
+
+.z-under.slide-down {
+    transform: translateY(100%) scale(0.95);
 }

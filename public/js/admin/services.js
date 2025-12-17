@@ -220,22 +220,63 @@ export async function saveServicesSettings(silent = false) {
 
 // Global exposure
 // Reordering
+// Reordering with Animation
 export function moveServiceUp(index) {
     if (index <= 0) return;
-    const temp = currentServices[index];
-    currentServices[index] = currentServices[index - 1];
-    currentServices[index - 1] = temp;
-    renderServicesList();
-    saveServicesSettings(true);
+
+    const tbody = document.getElementById('services-tbody');
+    const rows = tbody.querySelectorAll('tr');
+    const currentRow = rows[index];
+    const prevRow = rows[index - 1];
+
+    // Add animation classes
+    currentRow.classList.add('anim-row', 'z-over');
+    prevRow.classList.add('anim-row', 'z-under');
+
+    // Trigger reflow
+    void currentRow.offsetWidth;
+
+    // Apply transform
+    currentRow.classList.add('slide-up');
+    prevRow.classList.add('slide-down');
+
+    // Wait for animation
+    setTimeout(() => {
+        const temp = currentServices[index];
+        currentServices[index] = currentServices[index - 1];
+        currentServices[index - 1] = temp;
+        renderServicesList();
+        saveServicesSettings(true);
+    }, 400);
 }
 
 export function moveServiceDown(index) {
     if (index >= currentServices.length - 1) return;
-    const temp = currentServices[index];
-    currentServices[index] = currentServices[index + 1];
-    currentServices[index + 1] = temp;
-    renderServicesList();
-    saveServicesSettings(true);
+
+    const tbody = document.getElementById('services-tbody');
+    const rows = tbody.querySelectorAll('tr');
+    const currentRow = rows[index];
+    const nextRow = rows[index + 1];
+
+    // Add animation classes
+    currentRow.classList.add('anim-row', 'z-over');
+    nextRow.classList.add('anim-row', 'z-under');
+
+    // Trigger reflow
+    void currentRow.offsetWidth;
+
+    // Apply transform
+    currentRow.classList.add('slide-down');
+    nextRow.classList.add('slide-up');
+
+    // Wait for animation
+    setTimeout(() => {
+        const temp = currentServices[index];
+        currentServices[index] = currentServices[index + 1];
+        currentServices[index + 1] = temp;
+        renderServicesList();
+        saveServicesSettings(true);
+    }, 400);
 }
 
 // Global exposure

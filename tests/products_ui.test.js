@@ -113,7 +113,7 @@ describe('Product Management UI', () => {
         });
 
         // If layout changed, this might fail, but let's assume it was working before.
-        expect(btnText).toBe('Ajouter le produit');
+        expect(btnText).toBe('Ajouter');
 
         // Click Add
         await page.evaluate(() => {

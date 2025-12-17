@@ -135,11 +135,16 @@ describe('Product Management UI', () => {
         // Products are likely .service-item
 
         await page.evaluate(() => {
-            const items = Array.from(document.querySelectorAll('.service-item'));
-            const item = items.find(i => i.innerText.includes('Test Product UI'));
-            const editBtn = item.querySelector('button[title="Modifier"]');
-            // Scroll to view
-            if (editBtn) editBtn.click();
+            const rows = Array.from(document.querySelectorAll('#products-list tr'));
+            for (const row of rows) {
+                if (row.innerText.includes('Test Product UI')) {
+                    const editBtn = row.querySelector('button[title="Modifier"]');
+                    if (editBtn) {
+                        editBtn.click();
+                        return;
+                    }
+                }
+            }
         });
 
         // CHECK 1: Form scrolls into view (Puppeteer handles this implicitly usually, but we check state)
@@ -182,15 +187,15 @@ describe('Product Management UI', () => {
         expect(cancelBtnGone).toBe(true);
 
         // Cleanup: Delete the product we added
+        // Cleanup: Eliminate the product
+        page.on('dialog', async dialog => await dialog.accept());
+
         await page.evaluate(() => {
-            const rows = Array.from(document.querySelectorAll('.service-item')); // products use service-item class
-            const row = rows.find(r => r.innerText.includes('Test Product UI'));
-            if (row) {
-                const delBtn = row.querySelector('button[title="Supprimer"]');
-                if (delBtn) {
-                    // Start listener for confirm dialog
-                    window.confirm = () => true;
-                    delBtn.click();
+            const rows = Array.from(document.querySelectorAll('#products-list tr'));
+            for (const row of rows) {
+                if (row.innerText.includes('Test Product UI')) {
+                    const delBtn = row.querySelector('button[title="Supprimer"]');
+                    if (delBtn) delBtn.click();
                 }
             }
         });
@@ -198,6 +203,6 @@ describe('Product Management UI', () => {
         // Wait for removal
         await page.waitForFunction(() => {
             return !document.body.innerText.includes('Test Product UI');
-        });
+        }, { timeout: 10000 });
     }, 70000);
 });

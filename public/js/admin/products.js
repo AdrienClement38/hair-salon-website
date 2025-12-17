@@ -13,25 +13,39 @@ export function renderProductsList() {
         return;
     }
 
+    const table = document.createElement('table');
+    table.innerHTML = `
+        <thead>
+            <tr>
+                <th style="width: 60px;">Photo</th>
+                <th>Nom</th>
+                <th>Prix</th>
+                <th>Description</th>
+                <th style="width: 380px;">Actions</th>
+            </tr>
+        </thead>
+        <tbody id="products-tbody"></tbody>
+    `;
+
+    const tbody = table.querySelector('tbody');
+
     currentProducts.forEach((prod, index) => {
-        const item = document.createElement('div');
-        item.className = 'service-item';
-        item.style.cssText = 'display:flex; justify-content:space-between; align-items:center; background:#eee; padding:10px; margin-bottom:5px; border-radius:4px;';
+        const tr = document.createElement('tr');
 
         const isFirst = index === 0;
         const isLast = index === currentProducts.length - 1;
 
-        const imgDisplay = prod.image ? `<img src="/images/${prod.image}" style="width:40px; height:40px; object-fit:cover; border-radius:4px; margin-right:10px;">` : '';
+        const imgDisplay = prod.image ? `<img src="/images/${prod.image}" style="width:40px; height:40px; object-fit:cover; border-radius:4px;">` : '';
 
-        item.innerHTML = `
-            <div style="display:flex; align-items:center;">
-                ${imgDisplay}
-                <div>
-                    <strong>${prod.name}</strong> - ${prod.price}€
-                    <br><small style="color:#666;">${prod.description || ''}</small>
-                </div>
-            </div>
-            ${renderActionButtons(`editProduct(${index})`, `removeProduct(${index})`, {
+        tr.innerHTML = `
+            <td style="text-align:center; vertical-align:middle;">
+                <div style="display:flex; justify-content:center; align-items:center; height:100%;">${imgDisplay}</div>
+            </td>
+            <td><strong>${prod.name}</strong></td>
+            <td>${prod.price} €</td>
+            <td style="font-size:0.9em; color:#666;">${prod.description || ''}</td>
+            <td>
+                ${renderActionButtons(`editProduct(${index})`, `removeProduct(${index})`, {
             extraHtml: `
                      <div style="display:flex; flex-direction:column; gap:2px; align-items:center;">
                          <img src="/images/arrow-up.svg" 
@@ -46,10 +60,12 @@ export function renderProductsList() {
                     ${prod.image ? `<span class="vertical-sep"></span><button onclick="openProductPositioning(${index})" class="btn-orange" title="Positionner la photo">POSITIONNER</button>` : ''}
                 `
         })}
-            </div>
+            </td>
         `;
-        list.appendChild(item);
+        tbody.appendChild(tr);
     });
+
+    list.appendChild(table);
 }
 
 export function openProductPositioning(index) {
@@ -224,9 +240,11 @@ export function moveProductUp(index) {
     if (index <= 0) return;
 
     const container = document.getElementById('products-list');
-    const items = container.querySelectorAll('.service-item');
+    const items = container.querySelectorAll('tbody tr');
     const currentItem = items[index];
     const prevItem = items[index - 1];
+
+    if (!currentItem || !prevItem) return;
 
     // Add animation classes
     currentItem.classList.add('anim-row', 'z-over');
@@ -257,9 +275,11 @@ export function moveProductDown(index) {
     if (index >= currentProducts.length - 1) return;
 
     const container = document.getElementById('products-list');
-    const items = container.querySelectorAll('.service-item');
+    const items = container.querySelectorAll('tbody tr');
     const currentItem = items[index];
     const nextItem = items[index + 1];
+
+    if (!currentItem || !nextItem) return;
 
     // Add animation classes
     currentItem.classList.add('anim-row', 'z-over');

@@ -35,6 +35,8 @@ describe('Admin - Reorder Services & Products', () => {
     beforeEach(async () => {
         browser = await puppeteer.launch({ headless: 'new' });
         page = await browser.newPage();
+        page.on('console', msg => console.log('PAGE LOG:', msg.text()));
+        page.on('pageerror', err => console.log('PAGE ERROR:', err));
         await page.setViewport({ width: 1280, height: 800 });
     });
 
@@ -144,7 +146,11 @@ describe('Admin - Reorder Services & Products', () => {
             });
 
             await page.click('#btn-add-product');
-            await new Promise(r => setTimeout(r, 500));
+            // Wait for product to appear in the list
+            await page.waitForFunction((n) => {
+                const list = document.getElementById('products-list');
+                return list && list.innerText.includes(n);
+            }, { timeout: 3000 }, name);
         };
 
         try {
@@ -165,8 +171,18 @@ describe('Admin - Reorder Services & Products', () => {
 
         // 4. Verify Initial Order
         let names = await page.evaluate(() => {
-            return Array.from(document.querySelectorAll('#products-list .service-item strong'))
-                .map(el => el.textContent.trim());
+            const rows = Array.from(document.querySelectorAll('#products-list tr'));
+            const results = rows.map(row => {
+                const tds = row.querySelectorAll('td');
+                if (tds.length < 2) return null; // Header or invalid
+                return tds[1].textContent.trim();
+            }).filter(n => n !== null);
+
+            if (results.length === 0) {
+                const list = document.getElementById('products-list');
+                throw new Error('DEBUG_EMPTY_LIST: ' + (list ? list.innerHTML : 'LIST_NOT_FOUND'));
+            }
+            return results;
         });
         expect(names).toEqual(['Prod A', 'Prod B', 'Prod C']);
 
@@ -175,12 +191,16 @@ describe('Admin - Reorder Services & Products', () => {
             const btns = document.querySelectorAll('#products-list img[title="Monter"]');
             if (btns.length > 2) btns[2].click();
         });
-        await new Promise(r => setTimeout(r, 1000));
+        await new Promise(r => setTimeout(r, 2000));
 
         // 6. Verify New Order (A, C, B)
         names = await page.evaluate(() => {
-            return Array.from(document.querySelectorAll('#products-list .service-item strong'))
-                .map(el => el.textContent.trim());
+            const rows = Array.from(document.querySelectorAll('#products-list tr'));
+            return rows.map(row => {
+                const tds = row.querySelectorAll('td');
+                if (tds.length < 2) return null; // Header or invalid
+                return tds[1].textContent.trim();
+            }).filter(n => n !== null);
         });
         expect(names).toEqual(['Prod A', 'Prod C', 'Prod B']);
 

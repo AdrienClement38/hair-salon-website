@@ -406,7 +406,10 @@
                             </form>
                         </div>
                         <div style="display:flex; gap: 10px; margin-top: 15px;">
-                            <button class="btn" onclick="addProduct()" style="width:auto">Ajouter le produit</button>
+                            <button class="btn" id="btn-add-product" onclick="addProduct()"
+                                style="width:auto">Ajouter</button>
+                            <button class="btn btn-outline" id="btn-cancel-product" onclick="cancelEdit()"
+                                style="display:none; width:auto">Annuler</button>
                         </div>
                     </div>
                 </div>
@@ -488,6 +491,8 @@
 
     <!-- Socket.io removed -->
     <script type="module" src="js/admin/main.js"></script>
+    <script type="module" src="js/admin/settings.js"></script>
+    <script type="module" src="js/admin/products.js"></script>
 </body>
 
 </html>

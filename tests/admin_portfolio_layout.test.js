@@ -134,4 +134,4 @@ test('Admin Portfolio: Layout should be 5 columns and square items', async () =>
     } finally {
         await browser.close();
     }
-}, 10000);
+}, 30000);

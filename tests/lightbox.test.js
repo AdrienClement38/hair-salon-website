@@ -39,7 +39,8 @@ test('Lightbox: Portfolio - Open image on click and close', async () => {
     await page.waitForSelector('.masonry-item img', { timeout: 10000 });
 
     const firstImgSrc = await page.$eval('.masonry-item img', img => img.src);
-    await page.click('.masonry-item img');
+    // Click the first image using JS to make it robust against layout shifts/overlays
+    await page.$eval('.masonry-item img', el => el.click());
 
     await page.waitForSelector('#lightbox-modal', { visible: true });
     // Verify image

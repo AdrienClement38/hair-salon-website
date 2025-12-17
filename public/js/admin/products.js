@@ -87,25 +87,17 @@ export function editProduct(index) {
         container.classList.add('editing-mode');
         container.scrollIntoView({ behavior: 'smooth', block: 'center' });
 
-        // Update Button
-        // Find the first button, which is "Ajouter le produit"
-        const btn = container.querySelector('button');
-        if (btn) btn.textContent = 'Mettre à jour';
+        // Update Add Button
+        const addBtn = document.getElementById('btn-add-product');
+        if (addBtn) addBtn.textContent = 'Mettre à jour';
 
-        // Add Cancel Button
-        let cancelBtn = document.getElementById('cancel-edit-product');
-        if (!cancelBtn) {
-            cancelBtn = document.createElement('button');
-            cancelBtn.id = 'cancel-edit-product';
-            cancelBtn.textContent = 'Annuler';
-            cancelBtn.className = 'btn btn-outline';
-            cancelBtn.style.width = 'auto';
-            cancelBtn.onclick = cancelEdit;
-
-            // Append next to the main button
-            if (btn && btn.parentNode) {
-                btn.parentNode.appendChild(cancelBtn);
-            }
+        // Show Cancel Button
+        const cancelBtn = document.getElementById('btn-cancel-product');
+        if (cancelBtn) {
+            cancelBtn.style.display = 'inline-block';
+            cancelBtn.style.background = '#ccc';
+            cancelBtn.style.color = '#000';
+            cancelBtn.style.marginLeft = '10px';
         }
     }
 }
@@ -124,12 +116,12 @@ export function cancelEdit() {
 
         container.classList.remove('editing-mode');
 
-        const btn = container.querySelector('button');
-        if (btn) btn.textContent = 'Ajouter le produit';
-    }
+        const addBtn = document.getElementById('btn-add-product');
+        if (addBtn) addBtn.textContent = 'Ajouter';
 
-    const cancelBtn = document.getElementById('cancel-edit-product');
-    if (cancelBtn) cancelBtn.remove();
+        const cancelBtn = document.getElementById('btn-cancel-product');
+        if (cancelBtn) cancelBtn.style.display = 'none';
+    }
 }
 
 export async function addProduct() {
@@ -216,3 +208,4 @@ window.addProduct = addProduct;
 window.removeProduct = removeProduct;
 window.editProduct = editProduct;
 window.openProductPositioning = openProductPositioning;
+window.cancelEdit = cancelEdit;

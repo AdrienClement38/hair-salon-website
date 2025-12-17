@@ -1,0 +1,11 @@
+:root {
+    --primary: #D4AF37;
+    /* Gold */
+    --primary-hover: #b8962e;
+    --dark: #1A1A1A;
+    --light: #F9F9F9;
+    --white: #FFFFFF;
+    --gray: #666666;
+    --font-heading: 'Playfair Display', serif;
+    --font-body: 'Lato', sans-serif;
+}

@@ -6,12 +6,12 @@ const BASE_URL = 'http://localhost:3000';
 
 beforeAll(async () => {
     browser = await puppeteer.launch({
-        headless: true, // Set to false to see interaction
+        headless: "new",
         args: ['--no-sandbox', '--disable-setuid-sandbox']
     });
     page = await browser.newPage();
     await page.setViewport({ width: 1280, height: 800 });
-});
+}, 60000); // 60s for browser launch
 
 afterAll(async () => {
     if (browser) await browser.close();

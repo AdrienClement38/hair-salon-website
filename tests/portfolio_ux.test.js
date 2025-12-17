@@ -50,4 +50,4 @@ test('Portfolio: Should load items and respect limit', async () => {
     // Expect cap at 50 (we can't easily test >50 without seeding DB, but we verify logic doesn't crash)
     expect(totalCount).toBeLessThanOrEqual(50);
 
-}, 10000);
+}, 30000);

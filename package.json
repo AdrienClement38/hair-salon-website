@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
-    "test": "jest",
+    "test": "jest --runInBand",
     "db:clean": "node scripts/cleanup_test_data.js",
     "posttest": "npm run db:clean"
   },

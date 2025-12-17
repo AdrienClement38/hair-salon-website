@@ -217,8 +217,17 @@ describe('Admin UI & Profile Switching', () => {
         await page.waitForSelector('#dashboard-view', { visible: true });
 
         // Go to Content tab
+        await page.waitForSelector('#tab-btn-content', { visible: true });
+        await new Promise(r => setTimeout(r, 500)); // Small yield
         await page.click('#tab-btn-content');
-        await page.waitForSelector('#tab-content', { visible: true });
+
+        try {
+            await page.waitForSelector('#tab-content', { visible: true, timeout: 5000 });
+        } catch (e) {
+            console.log("Retry clicking content tab...");
+            await page.click('#tab-btn-content');
+            await page.waitForSelector('#tab-content', { visible: true, timeout: 5000 });
+        }
 
         // Check for Portfolio header
         // Since sections are multiple, we check text content

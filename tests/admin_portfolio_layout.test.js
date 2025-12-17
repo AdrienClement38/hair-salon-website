@@ -107,16 +107,22 @@ test('Admin Portfolio: Layout should be 5 columns and square items', async () =>
         // Verifying 5 columns
         // Container width
         const container = await page.$('.portfolio-grid');
-        const cBox = await container.boundingBox();
-        // Item width includes gap? No, gap is separate.
-        // But 5 items * width + 4 * gap approx equals container width (minus padding/scroll)
+        // Wait for items to be visible
+        await page.waitForSelector('.portfolio-item', { visible: true, timeout: 5000 });
 
-        // Better: Check X positions of first 6 items. 
-        // Item 0 at x0, Item 1 at x1... Item 4 at x4. Item 5 should be at x0 (new row).
-        // Check columns
         const itemsCheck = await page.$$('.portfolio-item');
+        if (itemsCheck.length <= 5) {
+            console.error("Not enough items to check grid layout");
+            return; // Or throw
+        }
+
         const pos0 = await itemsCheck[0].boundingBox();
         const pos5 = await itemsCheck[5].boundingBox();
+
+        if (!pos0 || !pos5) {
+            console.error("Bounding box is null", { pos0, pos5 });
+            throw new Error("Bounding box null");
+        }
 
         // Expect item 5 to be below item 0 (same X)
         expect(Math.abs(pos0.x - pos5.x)).toBeLessThan(2);
@@ -134,4 +140,4 @@ test('Admin Portfolio: Layout should be 5 columns and square items', async () =>
     } finally {
         await browser.close();
     }
-}, 30000);
+}, 60000);

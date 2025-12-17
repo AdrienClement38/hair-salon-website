@@ -83,6 +83,10 @@ export function renderServicesList() {
 
     currentServices.forEach((service, index) => {
         const tr = document.createElement('tr');
+
+        const isFirst = index === 0;
+        const isLast = index === currentServices.length - 1;
+
         tr.innerHTML = `
             <td style="text-align:center; vertical-align:middle;">
                 <div style="display:flex; justify-content:center; align-items:center; height:100%;">${svgs[service.icon] || svgs.star}</div>
@@ -91,8 +95,13 @@ export function renderServicesList() {
             <td>${service.price}</td>
              <td style="font-size:0.9em; color:#666;">${service.description || ''}</td>
             <td>
-                <button class="btn-action btn-edit" onclick="editService(${index})">Modifier</button>
-                <button onclick="removeService(${index})" style="background:none; border:none; color:red; cursor:pointer; font-size: 24px; padding: 0 10px;" title="Supprimer">&times;</button>
+                <div style="display:flex; align-items:center; gap:5px;">
+                     <button class="btn-action btn-up" onclick="moveServiceUp(${index})" ${isFirst ? 'disabled style="opacity:0.3; cursor:default;"' : ''} title="Monter">⬆️</button>
+                     <button class="btn-action btn-down" onclick="moveServiceDown(${index})" ${isLast ? 'disabled style="opacity:0.3; cursor:default;"' : ''} title="Descendre">⬇️</button>
+                     <span style="border-left:1px solid #ddd; margin:0 5px; height:20px;"></span>
+                    <button class="btn-action btn-edit" onclick="editService(${index})">Modifier</button>
+                    <button onclick="removeService(${index})" style="background:none; border:none; color:red; cursor:pointer; font-size: 24px; padding: 0 10px;" title="Supprimer">&times;</button>
+                </div>
             </td>
         `;
         tbody.appendChild(tr);
@@ -202,8 +211,30 @@ export async function saveServicesSettings(silent = false) {
 }
 
 // Global exposure
+// Reordering
+export function moveServiceUp(index) {
+    if (index <= 0) return;
+    const temp = currentServices[index];
+    currentServices[index] = currentServices[index - 1];
+    currentServices[index - 1] = temp;
+    renderServicesList();
+    saveServicesSettings(true);
+}
+
+export function moveServiceDown(index) {
+    if (index >= currentServices.length - 1) return;
+    const temp = currentServices[index];
+    currentServices[index] = currentServices[index + 1];
+    currentServices[index + 1] = temp;
+    renderServicesList();
+    saveServicesSettings(true);
+}
+
+// Global exposure
 window.addService = addService;
 window.editService = editService;
 window.removeService = removeService;
 window.cancelEditService = cancelEditService;
 window.saveServicesSettings = saveServicesSettings;
+window.moveServiceUp = moveServiceUp;
+window.moveServiceDown = moveServiceDown;

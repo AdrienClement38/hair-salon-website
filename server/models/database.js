@@ -98,7 +98,7 @@ const initDB = async () => {
     const initSqlJs = require('sql.js');
     SQL = await initSqlJs();
     db = new SQL.Database();
-    console.log('Using In-Memory sql.js (Test)');
+
   } else if (connectionString) {
     type = 'pg';
     const { Pool } = require('pg');

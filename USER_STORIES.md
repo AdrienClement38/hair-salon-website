@@ -35,7 +35,8 @@ Ce document liste toutes les fonctionnalités actuellement implémentées sur le
 ### Épopée : Configuration du Salon (Paramètres)
 - **US-2.8** : En tant qu'administrateur, je veux modifier les horaires d'ouverture hebdomadaires (heures d'ouverture/fermeture, jours fermés).
 - **US-2.9** : En tant qu'administrateur, je veux définir des périodes de fermeture exceptionnelle (vacances) pour bloquer les réservations sur ces dates.
-- **US-2.10** : En tant qu'administrateur, je veux ajouter, supprimer ou modifier des prestations (Prix, Nom, Icône).
+- [ ] US-2.10 : En tant qu'administrateur, je veux ajouter, supprimer ou modifier des prestations (Prix, Nom, Icône).
+- [ ] US-2.21 : En tant qu'administrateur, je veux réorganiser l'ordre d'affichage des prestations et des produits pour mettre en avant ce que je souhaite.
 
 ### Épopée : Gestion du Contenu (CMS)
 - **US-2.11** : En tant qu'administrateur, je veux mettre à jour les textes de l'Accueil (Titre, Sous-titre, Philosophie).

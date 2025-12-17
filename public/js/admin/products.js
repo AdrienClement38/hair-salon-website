@@ -17,6 +17,9 @@ export function renderProductsList() {
         item.className = 'service-item';
         item.style.cssText = 'display:flex; justify-content:space-between; align-items:center; background:#eee; padding:10px; margin-bottom:5px; border-radius:4px;';
 
+        const isFirst = index === 0;
+        const isLast = index === currentProducts.length - 1;
+
         const imgDisplay = prod.image ? `<img src="/images/${prod.image}" style="width:40px; height:40px; object-fit:cover; border-radius:4px; margin-right:10px;">` : '';
 
         item.innerHTML = `
@@ -27,7 +30,11 @@ export function renderProductsList() {
                     <br><small style="color:#666;">${prod.description || ''}</small>
                 </div>
             </div>
-            <div style="display:flex; gap:10px;">
+            <div style="display:flex; gap:10px; align-items:center;">
+                 <div style="display:flex; gap:2px; margin-right:5px;">
+                     <button class="btn-action btn-up" onclick="moveProductUp(${index})" ${isFirst ? 'disabled style="opacity:0.3; cursor:default;"' : ''} title="Monter">⬆️</button>
+                     <button class="btn-action btn-down" onclick="moveProductDown(${index})" ${isLast ? 'disabled style="opacity:0.3; cursor:default;"' : ''} title="Descendre">⬇️</button>
+                 </div>
                 ${prod.image ? `<button onclick="openProductPositioning(${index})" class="btn-action" style="background:#f0ad4e;" title="Positionner la photo">Positionner</button>` : ''}
                 <button onclick="editProduct(${index})" class="btn-action btn-edit" title="Modifier">Modifier</button>
                 <button onclick="removeProduct(${index})" style="background:none; border:none; color:red; cursor:pointer; font-size: 24px; padding: 0 10px;" title="Supprimer">&times;</button>
@@ -204,8 +211,29 @@ async function saveProducts(products) {
     renderProductsList();
 }
 
+// Reordering
+export function moveProductUp(index) {
+    if (index <= 0) return;
+    const temp = currentProducts[index];
+    currentProducts[index] = currentProducts[index - 1];
+    currentProducts[index - 1] = temp;
+    renderProductsList();
+    saveProducts(currentProducts);
+}
+
+export function moveProductDown(index) {
+    if (index >= currentProducts.length - 1) return;
+    const temp = currentProducts[index];
+    currentProducts[index] = currentProducts[index + 1];
+    currentProducts[index + 1] = temp;
+    renderProductsList();
+    saveProducts(currentProducts);
+}
+
 window.addProduct = addProduct;
 window.removeProduct = removeProduct;
 window.editProduct = editProduct;
 window.openProductPositioning = openProductPositioning;
 window.cancelEdit = cancelEdit;
+window.moveProductUp = moveProductUp;
+window.moveProductDown = moveProductDown;

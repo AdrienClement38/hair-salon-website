@@ -70,6 +70,7 @@ document.addEventListener('DOMContentLoaded', () => {
         import('./portfolio.js').then(m => m.startPortfolioPolling());
 
         window.scrollTo(0, 0);
+        history.pushState(null, null, '#portfolio');
     };
 
     window.showHome = () => {
@@ -81,16 +82,28 @@ document.addEventListener('DOMContentLoaded', () => {
         document.querySelectorAll('section.hero, section.section').forEach(el => {
             if (el.id !== 'portfolio-section') el.style.display = 'block';
         });
-        window.scrollTo(0, 0);
+        // Remove hash or set to home? Better remove to look clean or set to #
+        if (window.location.hash === '#portfolio') {
+            history.pushState(null, null, ' '); // Clear hash
+        }
     };
+    // Navigation Logic
     // Navigation Logic
     document.querySelectorAll('.nav-list a, .logo, .btn[href^="#"]').forEach(link => {
         link.addEventListener('click', (e) => {
             const href = link.getAttribute('href');
-            if (href && href.startsWith('#') && href !== '#') {
-                // If it's an anchor link (not portfolio toggle), restore home
+            // If it's a specific section anchor (not just # or portfolio trigger), assume "Home" context
+            if (href && href.startsWith('#') && href !== '#' && !link.onclick) {
                 window.showHome();
+                // Allow default behavior for smooth scroll
             }
         });
     });
+
+    // Check initial hash
+    if (window.location.hash === '#portfolio') {
+        window.showPortfolio();
+    } else {
+        // Ensure home is clearly visible by default logic
+    }
 });

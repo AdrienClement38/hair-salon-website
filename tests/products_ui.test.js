@@ -77,15 +77,18 @@ describe('Product Management UI', () => {
             await page.waitForSelector('#dashboard-view', { visible: true });
         }
 
-        // Go to Content Tab where Products are located (based on recent code changes, Products are in Content tab, or separate?)
-        // Let's check admin.html content... Products section is in #tab-content
-        // Selector might be specific, checking common patterns nearby
+        // Go to Content Tab where Products are located
+        await page.waitForSelector('#tab-btn-content', { visible: true });
+        await new Promise(r => setTimeout(r, 500)); // Yield
+        await page.click('#tab-btn-content');
+
         try {
+            await page.waitForSelector('#tab-content', { visible: true, timeout: 5000 });
+        } catch (e) {
+            console.log("Retry clicking content tab in products test...");
             await page.click('#tab-btn-content');
-        } catch {
-            await page.click('#btn-tab-content');
+            await page.waitForSelector('#tab-content', { visible: true, timeout: 60000 });
         }
-        await page.waitForSelector('#tab-content', { visible: true, timeout: 60000 });
 
         // Scroll to Products Section
         // We need to add a product first to edit it.

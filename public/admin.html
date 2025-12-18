@@ -152,9 +152,8 @@
             <div class="settings-form">
 
                 <div class="settings-section">
-                    <div
-                        style="display:flex; justify-content:space-between; align-items:center; border-bottom: 2px solid var(--primary); padding-bottom: 10px; margin-bottom: 15px;">
-                        <h3 style="margin:0; border:none; padding:0;">Horaires Hebdomadaires</h3>
+                    <div class="section-header">
+                        <h3>Horaires Hebdomadaires</h3>
                         <button class="btn" style="width:auto; padding:5px 10px; font-size:0.8rem;"
                             onclick="copyMondayToAll()">Copier Lundi partout</button>
                     </div>
@@ -274,36 +273,38 @@
         <!-- Content Tab (Replaces Photos) -->
         <div id="tab-content" class="tab-content">
             <div class="settings-form">
-                <h3>Contenu du Site</h3>
-                <p>Personnalisez les éléments de la page d'accueil.</p>
+
 
                 <!-- General Text -->
                 <div class="settings-section">
-                    <h4>Textes</h4>
-                    <div class="form-group">
-                        <label>Titre Principal (Section Accueil)</label>
-                        <input type="text" id="content-title" placeholder="Ex: La Base Coiffure">
+                    <h3>Textes</h3>
+                    <div class="admin-form-card">
+                        <div class="form-group">
+                            <label>Titre Principal (Section Accueil)</label>
+                            <input type="text" id="content-title" placeholder="Ex: La Base Coiffure">
+                        </div>
+                        <div class="form-group">
+                            <label>Sous-titre (Section Accueil)</label>
+                            <input type="text" id="content-subtitle" placeholder="Ex: L'Art de la Coupe">
+                        </div>
+                        <div class="form-group">
+                            <label>Texte "Notre Philosophie"</label>
+                            <textarea id="content-philosophy" rows="4" style="width:100%; padding:8px;"
+                                placeholder="Votre texte ici..."></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label>Adresse (Pied de page)</label>
+                            <input type="text" id="content-address" placeholder="12 Rue de la Mode, 75001 Paris">
+                        </div>
+                        <div class="form-group">
+                            <label>Téléphone (Pied de page)</label>
+                            <input type="text" id="content-phone" placeholder="01 23 45 67 89">
+                        </div>
+                        <div class="form-actions">
+                            <button class="btn" onclick="saveTextSettings()" style="width:auto;">Enregistrer les
+                                Textes</button>
+                        </div>
                     </div>
-                    <div class="form-group">
-                        <label>Sous-titre (Section Accueil)</label>
-                        <input type="text" id="content-subtitle" placeholder="Ex: L'Art de la Coupe">
-                    </div>
-                    <div class="form-group">
-                        <label>Texte "Notre Philosophie"</label>
-                        <textarea id="content-philosophy" rows="4" style="width:100%; padding:8px;"
-                            placeholder="Votre texte ici..."></textarea>
-                    </div>
-                    <div class="form-group">
-                        <label>Adresse (Pied de page)</label>
-                        <input type="text" id="content-address" placeholder="12 Rue de la Mode, 75001 Paris">
-                    </div>
-                    <div class="form-group">
-                        <label>Téléphone (Pied de page)</label>
-                        <input type="text" id="content-phone" placeholder="01 23 45 67 89">
-                    </div>
-                    <button class="btn" onclick="saveTextSettings()" style="width:auto; margin-top:10px;">Enregistrer
-                        les
-                        Textes</button>
                 </div>
 
                 <!-- Images -->
@@ -347,8 +348,8 @@
                     <h3>Prestations</h3>
                     <div id="services-list"></div>
 
-                    <div style="margin-top: 20px; background: #fafafa; padding: 15px; border-radius: 4px;">
-                        <h5>Ajouter une prestation</h5>
+                    <div class="admin-form-card">
+                        <h5 style="margin-top:0;">Ajouter une prestation</h5>
                         <div class="form-group">
                             <label>Nom</label>
                             <input type="text" id="new-service-name">
@@ -372,7 +373,7 @@
                             <label>Description (Info-bulle)</label>
                             <input type="text" id="new-service-desc">
                         </div>
-                        <div style="display:flex; gap: 10px; margin-top: 15px;">
+                        <div class="form-actions">
                             <button class="btn" id="btn-add-service" onclick="addService()" style="width:auto">Ajouter à
                                 la liste</button>
                             <button class="btn btn-outline" id="btn-cancel-service" onclick="cancelEditService()"
@@ -386,8 +387,8 @@
                     <h3>Nos Produits</h3>
                     <div id="products-list"></div>
 
-                    <div style="margin-top: 20px; background: #fafafa; padding: 15px; border-radius: 4px;">
-                        <h5>Ajouter un produit</h5>
+                    <div class="admin-form-card">
+                        <h5 style="margin-top:0;">Ajouter un produit</h5>
                         <div class="form-group">
                             <label>Nom</label>
                             <input type="text" id="new-product-name">
@@ -408,9 +409,9 @@
                                 <input type="file" name="product-image" accept="image/*" required id="new-product-file">
                             </form>
                         </div>
-                        <div style="display:flex; gap: 10px; margin-top: 15px;">
-                            <button class="btn" id="btn-add-product" onclick="addProduct()"
-                                style="width:auto">Ajouter</button>
+                        <div class="form-actions">
+                            <button class="btn" id="btn-add-product" onclick="addProduct()" style="width:auto">Ajouter à
+                                la liste</button>
                             <button class="btn btn-outline" id="btn-cancel-product" onclick="cancelEdit()"
                                 style="display:none; width:auto">Annuler</button>
                         </div>
@@ -425,7 +426,7 @@
                     <div id="portfolio-list" class="portfolio-grid">
                     </div>
 
-                    <div style="background: #fafafa; padding: 15px; border-radius: 4px;">
+                    <div class="admin-form-card">
                         <h5>Ajouter une photo</h5>
                         <!-- Description removed as per user request -->
                         <div class="form-group">
@@ -435,8 +436,9 @@
                                     id="new-portfolio-file">
                             </form>
                         </div>
-                        <div style="display:flex; gap: 10px; margin-top: 15px;">
-                            <button class="btn" onclick="addPortfolioItem()" style="width:auto">Ajouter</button>
+                        <div class="form-actions">
+                            <button class="btn" onclick="addPortfolioItem()" style="width:auto">Ajouter à la
+                                liste</button>
                         </div>
                     </div>
                 </div>

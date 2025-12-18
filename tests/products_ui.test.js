@@ -116,7 +116,7 @@ describe('Product Management UI', () => {
         });
 
         // If layout changed, this might fail, but let's assume it was working before.
-        expect(btnText).toBe('Ajouter');
+        expect(btnText.trim().replace(/\s+/g, ' ')).toBe('Ajouter à la liste');
 
         // Click Add
         await page.evaluate(() => {
@@ -180,11 +180,12 @@ describe('Product Management UI', () => {
         }, { timeout: 10000 });
         console.error('Revert confirmed.');
 
-        // CHECK 5: Cancel button gone
-        const cancelBtnGone = await page.evaluate(() => {
-            return document.getElementById('cancel-edit-product') === null;
+        // CHECK 5: Cancel button gone (hidden)
+        const cancelBtnHidden = await page.evaluate(() => {
+            const btn = document.getElementById('btn-cancel-product');
+            return !btn || btn.style.display === 'none';
         });
-        expect(cancelBtnGone).toBe(true);
+        expect(cancelBtnHidden).toBe(true);
 
         // Cleanup: Delete the product we added
         // Cleanup: Eliminate the product

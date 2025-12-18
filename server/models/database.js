@@ -13,7 +13,24 @@ const saveDB = () => {
       const data = db.export();
       const buffer = Buffer.from(data);
       const dbPath = path.resolve(__dirname, '../../salon.db');
-      fs.writeFileSync(dbPath, buffer);
+      const tempPath = dbPath + '.tmp';
+
+      // Atomic write: write to temp file, then rename
+      fs.writeFileSync(tempPath, buffer);
+
+      // Retry rename if locked (basic retry logic)
+      try {
+        fs.renameSync(tempPath, dbPath);
+      } catch (err) {
+        console.warn("Rename failed (locked?), retrying in 100ms...", err.message);
+        setTimeout(() => {
+          try {
+            fs.renameSync(tempPath, dbPath);
+          } catch (e) {
+            console.error("Retry failed, DB not saved:", e.message);
+          }
+        }, 100);
+      }
     } catch (e) {
       console.error("Failed to save DB:", e);
     }
@@ -382,7 +399,8 @@ const createAdmin = async (username, passwordHash, displayName) => {
 };
 
 const getAdmin = async (username) => {
-  return await getOne('SELECT * FROM admins WHERE username = ?', [username]);
+  const admin = await getOne('SELECT * FROM admins WHERE username = ?', [username]);
+  return admin;
 };
 
 const getAdminById = async (id) => {

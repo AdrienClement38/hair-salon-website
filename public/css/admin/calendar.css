@@ -70,3 +70,52 @@
 .appt-badge.has-appt {
     background: var(--primary);
 }
+
+@media (max-width: 600px) {
+    .calendar-grid {
+        gap: 1px;
+        background: #ccc;
+        border: 1px solid #ccc;
+    }
+
+    .calendar-day-header {
+        font-size: 2.5vw;
+        padding: 4px 0;
+        border-radius: 0;
+    }
+
+    .day-cell {
+        height: 14vw;
+        min-height: 0;
+        padding: 2px;
+        border-radius: 0;
+        border: none;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-start;
+    }
+
+    .day-number {
+        font-size: 2.5vw;
+        margin-bottom: 2px;
+        line-height: 1;
+        position: relative;
+        /* Reset absolute to flow normally if needed, or keep absolute */
+        top: 0;
+        left: 0;
+    }
+
+    .appt-badge {
+        font-size: 1.3vw;
+        padding: 1px 1px;
+        border-radius: 2px;
+        line-height: 1;
+        /* Ensure truncation */
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        width: 100%;
+        margin-top: 1px;
+    }
+}

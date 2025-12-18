@@ -195,8 +195,18 @@ export function scrollProducts(direction) {
     const container = document.getElementById('products-grid');
     if (!container) return;
 
-    // Scroll by card width + gap approx
-    const scrollAmount = 260 * direction;
+    // Get the first card to measure exact width
+    const card = container.querySelector('.card');
+    if (!card) return;
+
+    // Calculate dynamic width: Card Width + Gap
+    // Computed style gap might return "24px" or "1.5rem" converted to px
+    const style = window.getComputedStyle(container);
+    const gap = parseFloat(style.gap || style.columnGap) || 24; // Default to 24px if failing
+    const itemWidth = card.offsetWidth + gap;
+
+    const scrollAmount = itemWidth * direction;
+
     container.scrollBy({
         left: scrollAmount,
         behavior: 'smooth'

@@ -29,8 +29,16 @@
     text-align: center;
     border: 1px solid rgba(212, 175, 55, 0.2);
     border-radius: 8px;
-    overflow-wrap: break-word;
     word-break: break-word;
+}
+
+@media (max-width: 768px) {
+    .card {
+        width: 100%;
+        max-width: 340px;
+        /* Safe width for 375px viewport */
+        margin: 0 auto;
+    }
 }
 
 .card-icon {

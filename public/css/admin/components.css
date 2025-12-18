@@ -211,10 +211,28 @@ input {
 /* Tables */
 table {
     width: 100%;
+    max-width: 100%;
     border-collapse: collapse;
     background: white;
     border-radius: 8px;
     overflow: hidden;
+    display: block;
+    /* Allows overflow on the element itself if needed, or wrap */
+    overflow-x: auto;
+    white-space: nowrap;
+}
+
+@media (max-width: 600px) {
+    .modal-content {
+        width: 95%;
+        margin: 10 auto;
+        padding: 1rem;
+    }
+
+    .admin-thumb-container {
+        flex-direction: column;
+        align-items: flex-start;
+    }
 }
 
 th,

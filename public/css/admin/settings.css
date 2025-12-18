@@ -193,6 +193,119 @@
         font-size: 0.7rem;
         border: 1px solid #ddd;
     }
+
+    /* Services Table Optimization */
+    #services-list table {
+        width: 100%;
+        display: block;
+    }
+
+    #services-list thead {
+        display: none;
+    }
+
+    #services-list tbody {
+        display: block;
+        width: 100%;
+        max-height: 400px;
+        /* Approx 5 items */
+        overflow-y: auto;
+        /* Enable vertical scroll */
+        padding-right: 5px;
+        /* Avoid scrollbar covering content */
+    }
+
+    #services-list tr {
+        display: grid;
+        grid-template-columns: 50px 1fr auto;
+        /* Icon | Name+Price+Desc | Actions */
+        grid-template-rows: auto auto auto;
+        gap: 2px;
+        padding: 10px;
+        border-bottom: 1px solid #eee;
+        align-items: center;
+        width: 100%;
+        box-sizing: border-box;
+        margin-bottom: 5px;
+        background: #fff;
+        border-radius: 8px;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    }
+
+    /* Icon (td1) */
+    #services-list td:nth-child(1) {
+        grid-row: 1 / span 3;
+        grid-column: 1;
+        display: flex;
+        justify-content: center;
+        align-items: flex-start;
+        /* Align to top */
+        padding-top: 8px;
+        /* Visual cushion */
+        border: none !important;
+        height: 100%;
+    }
+
+    /* Name (td2) */
+    #services-list td:nth-child(2) {
+        grid-row: 1;
+        grid-column: 2;
+        font-weight: bold;
+        font-size: 1rem;
+        padding: 0 !important;
+        border: none !important;
+        white-space: normal;
+        overflow: visible;
+    }
+
+    /* Price (td3) */
+    #services-list td:nth-child(3) {
+        grid-row: 2;
+        grid-column: 2;
+        font-weight: bold;
+        color: #d4af37;
+        padding: 0 !important;
+        border: none !important;
+        font-size: 0.9rem;
+    }
+
+    #services-list td:nth-child(3)::after {
+        content: " €";
+    }
+
+    /* Description (td4) */
+    #services-list td:nth-child(4) {
+        grid-row: 3;
+        grid-column: 2;
+        font-size: 0.8rem;
+        color: #666;
+        font-style: italic;
+        padding: 0 !important;
+        border: none !important;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 200px;
+        display: block;
+    }
+
+    /* Actions (td5) */
+    #services-list td:nth-child(5) {
+        grid-row: 1 / span 3;
+        grid-column: 3;
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        border: none !important;
+        padding: 0 !important;
+        height: 100%;
+    }
+
+    /* Reset button styles for better fit if needed */
+    #services-list .btn-gold {
+        padding: 4px;
+        /* Reduced padding for icon button */
+    }
 }
 
 /* Unified Button Styles */

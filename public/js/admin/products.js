@@ -46,6 +46,7 @@ export function renderProductsList() {
             <td style="font-size:0.9em; color:#666;">${prod.description || ''}</td>
             <td>
                 ${renderActionButtons(`editProduct(${index})`, `removeProduct(${index})`, {
+            editLabel: `<svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill="#000000"><path d="M200-200h57l391-391-57-57-391 391v57Zm-80 80v-170l528-527q12-11 26.5-17t30.5-6q16 0 31 6t26 18l55 56q12 11 17.5 26t5.5 30q0 16-5.5 30.5T817-647L290-120H120Zm640-584-56-56 56 56Zm-141 85-28-29 57 57-29-28Z"/></svg>`,
             extraHtml: `
                      <div style="display:flex; flex-direction:column; gap:2px; align-items:center;">
                          <img src="/images/arrow-up.svg" 
@@ -57,7 +58,7 @@ export function renderProductsList() {
                               style="width:24px; height:24px; cursor:pointer; ${isLast ? 'opacity:0.3; cursor:default;' : ''}"
                               title="Descendre">
                      </div>
-                    ${prod.image ? `<span class="vertical-sep"></span><button onclick="openProductPositioning(${index})" class="btn-orange" title="Positionner la photo">POSITIONNER</button>` : ''}
+                    ${prod.image ? `<span class="vertical-sep"></span><button onclick="openProductPositioning(${index})" class="btn-orange" title="Positionner la photo"><svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill="#000000"><path d="M340-420h58l156-157-57-57-157 156v58Zm243-186 28-28q5-5 5-10.5t-5-10.5l-36-36q-5-5-10.5-5t-10.5 5l-28 28 57 57ZM480-186q122-112 181-203.5T720-552q0-109-69.5-178.5T480-800q-101 0-170.5 69.5T240-552q0 71 59 162.5T480-186Zm0 106Q319-217 239.5-334.5T160-552q0-150 96.5-239T480-880q127 0 223.5 89T800-552q0 100-79.5 217.5T480-80Zm0-480Z"/></svg></button>` : ''}
                 `
         })}
             </td>

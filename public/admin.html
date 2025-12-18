@@ -180,9 +180,14 @@
 
                 <div class="settings-section">
                     <h3 id="leaves-section-title">Congés Exceptionnels</h3>
+
+                    <div id="holiday-list" style="margin-bottom: 20px;">
+                        <!-- Ranges injected here -->
+                    </div>
+
                     <div class="form-group">
                         <label>Ajouter une période de congés</label>
-                        <div style="display: flex; gap: 10px; align-items: flex-end;">
+                        <div style="display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap;">
                             <div>
                                 <label style="font-size: 0.9em;">Début</label>
                                 <input type="date" id="holiday-start">
@@ -191,13 +196,11 @@
                                 <label style="font-size: 0.9em;">Fin</label>
                                 <input type="date" id="holiday-end">
                             </div>
+                        </div>
+                        <div style="margin-top: 10px;">
                             <button class="btn" onclick="addHolidayRange()"
                                 style="width: auto; padding: 10px 20px;">Ajouter</button>
                         </div>
-                    </div>
-
-                    <div id="holiday-list" style="margin-top: 20px;">
-                        <!-- Ranges injected here -->
                     </div>
                 </div>
 
@@ -235,7 +238,7 @@
                     <h3>Gestion de l'Équipe</h3>
                     <p>Ajouter un nouveau coiffeur / administrateur.</p>
                     <form id="team-form" autocomplete="off">
-                        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+                        <div style="display:flex; flex-direction:column; gap:10px;">
                             <div class="form-group">
                                 <label>Identifiant (Login)</label>
                                 <input type="text" id="team-username" required autocomplete="off" readonly

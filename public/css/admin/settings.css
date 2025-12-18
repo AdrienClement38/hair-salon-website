@@ -138,6 +138,63 @@
     transform: translateY(100%) scale(0.95);
 }
 
+/* Mobile Settings Optimization */
+@media (max-width: 768px) {
+    .settings-section {
+        padding: 5px;
+        width: 100%;
+        box-sizing: border-box;
+        overflow-x: hidden;
+    }
+
+    /* Force table to fit */
+    #schedule-table {
+        width: 100%;
+        table-layout: fixed;
+        border: none;
+    }
+
+    #schedule-table th,
+    #schedule-table td {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        padding: 4px 2px;
+        font-size: 0.7rem;
+    }
+
+    /* Column Widths */
+    #schedule-table th:nth-child(1) {
+        width: 20%;
+    }
+
+    /* Jour */
+    #schedule-table th:nth-child(2) {
+        width: 10%;
+        font-size: 0.6rem;
+    }
+
+    /* Ouvert (small) */
+    #schedule-table th:nth-child(3) {
+        width: 35%;
+    }
+
+    /* Open */
+    #schedule-table th:nth-child(4) {
+        width: 35%;
+    }
+
+    /* Close */
+
+    #schedule-table input[type="time"] {
+        width: 95%;
+        /* Slight buffer */
+        padding: 0;
+        font-size: 0.7rem;
+        border: 1px solid #ddd;
+    }
+}
+
 /* Unified Button Styles */
 .btn-gold {
     background-color: #f2cb4a;

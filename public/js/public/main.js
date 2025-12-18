@@ -3,6 +3,13 @@ import { renderOpeningHours, renderHolidays, renderHomeContent, renderServices, 
 import { loadPublicPortfolio } from './portfolio.js';
 
 
+
+// Mobile Menu Toggle
+window.toggleMenu = function () {
+    const navList = document.getElementById('nav-list');
+    navList.classList.toggle('active');
+}
+
 let lastSettingsTS = Date.now();
 let lastApptTS = Date.now();
 

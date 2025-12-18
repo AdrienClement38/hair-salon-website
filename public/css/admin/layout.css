@@ -11,6 +11,38 @@
     padding: 2rem;
     max-width: 1000px;
     margin: 0 auto;
+    margin: 0 auto;
+}
+
+@media (max-width: 768px) {
+    .dashboard {
+        padding: 0.5rem;
+    }
+
+    header {
+        flex-direction: column;
+        gap: 1rem;
+        align-items: flex-start;
+    }
+
+    header div {
+        width: 100%;
+        justify-content: space-between;
+    }
+
+    .tabs {
+        flex-wrap: wrap;
+        /* Allow wrapping */
+        gap: 0.5rem;
+    }
+
+    .tab-btn {
+        flex: 1 1 auto;
+        /* Grow to fill */
+        text-align: center;
+        font-size: 0.9rem;
+        padding: 0.5rem;
+    }
 }
 
 header {

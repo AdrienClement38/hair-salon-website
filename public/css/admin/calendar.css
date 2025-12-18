@@ -70,3 +70,29 @@
 .appt-badge.has-appt {
     background: var(--primary);
 }
+
+/* Mobile Calendar Optimization */
+@media (max-width: 768px) {
+    .calendar-grid {
+        gap: 2px;
+    }
+
+    .calendar-day-header {
+        padding: 4px 0;
+        font-size: 0.8rem;
+    }
+
+    .day-cell {
+        min-height: 60px;
+        padding: 2px;
+    }
+
+    .day-number {
+        font-size: 0.9rem;
+    }
+
+    .appt-badge {
+        padding: 2px 4px;
+        font-size: 0.7rem;
+    }
+}

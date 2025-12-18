@@ -42,7 +42,19 @@
 
 @media (max-width: 768px) {
     .hero h1 {
-        font-size: 2.5rem;
+        font-size: 8vw;
+        /* Adaptive font size */
+    }
+
+    .hero p {
+        font-size: 1rem;
+        padding: 0 1rem;
+    }
+
+    .hero-hours {
+        width: 90%;
+        font-size: 0.9rem;
+        padding: 1rem;
     }
 }
 
@@ -80,6 +92,19 @@
     justify-content: flex-start;
 }
 
+@media (max-width: 768px) {
+    #services-grid {
+        flex-direction: column;
+        align-items: center;
+    }
+
+    #services-grid .card {
+        width: 100%;
+        flex: 1 1 auto;
+        min-width: unset;
+    }
+}
+
 /* Booking Section */
 .booking-wrapper {
     max-width: 600px;
@@ -88,6 +113,14 @@
     padding: 2rem;
     border-radius: 8px;
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+}
+
+@media (max-width: 768px) {
+    .booking-wrapper {
+        max-width: 95%;
+        /* Fits screen */
+        padding: 1rem;
+    }
 }
 
 .slots-grid {

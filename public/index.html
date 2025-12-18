@@ -20,13 +20,18 @@
     <header class="header">
         <div class="container">
             <a href="#" class="logo">La Base Coiffure</a>
+            <button class="hamburger-menu" aria-label="Menu" onclick="toggleMenu()">
+                <span></span>
+                <span></span>
+                <span></span>
+            </button>
             <nav class="nav">
-                <ul class="nav-list">
-                    <li><a href="#presentation">Le Salon</a></li>
-                    <li><a href="#services">Prestations</a></li>
-                    <li><a href="#products">Produits</a></li>
-                    <li><a href="#" onclick="showPortfolio(); return false;">Notre Travail</a></li>
-                    <li><a href="#booking" class="btn btn-primary">Prendre RDV</a></li>
+                <ul class="nav-list" id="nav-list">
+                    <li><a href="#presentation" onclick="toggleMenu()">Le Salon</a></li>
+                    <li><a href="#services" onclick="toggleMenu()">Prestations</a></li>
+                    <li><a href="#products" onclick="toggleMenu()">Produits</a></li>
+                    <li><a href="#" onclick="showPortfolio(); toggleMenu(); return false;">Notre Travail</a></li>
+                    <li><a href="#booking" class="btn btn-primary" onclick="toggleMenu()">Prendre RDV</a></li>
                 </ul>
             </nav>
         </div>

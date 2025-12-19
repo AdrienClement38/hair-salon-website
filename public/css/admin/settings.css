@@ -12,6 +12,7 @@
     border-bottom: 2px solid var(--primary);
     padding-bottom: 10px;
     margin-bottom: 15px;
+    padding-left: 5px;
 }
 
 /* Reusable Section Header for Title + Actions */
@@ -165,6 +166,23 @@
 
 .z-under.slide-down {
     transform: translateY(100%) scale(0.95);
+}
+
+/* Specific button style for left-aligned submit */
+.btn-submit-left {
+    background-color: #111;
+    color: #fff;
+    width: auto !important;
+    align-self: flex-start;
+    padding: 8px 16px;
+    font-size: 0.8rem;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.btn-submit-left:hover {
+    background-color: #333;
 }
 
 /* Mobile Settings Optimization */

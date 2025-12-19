@@ -314,13 +314,23 @@
                         <label>Image d'Accueil</label>
                         <div class="admin-thumb-container">
                             <img id="thumb-hero" class="admin-thumb" src="" alt="Aperçu Hero">
-                            <button class="btn" onclick="openPositioning('hero-bg')"
-                                style="width:auto; font-size:0.8rem; background-color: var(--primary); color:black;">Positionner
-                                l'image</button>
+                            <button class="btn" onclick="openPositioning('hero-bg')" title="Positionner l'image"
+                                style="width:auto; padding: 8px; background-color: var(--primary); color:black; display:flex; align-items:center; justify-content:center; margin-left: auto;">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"
+                                    fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                    stroke-linejoin="round">
+                                    <circle cx="12" cy="12" r="10"></circle>
+                                    <line x1="22" y1="12" x2="18" y2="12"></line>
+                                    <line x1="6" y1="12" x2="2" y2="12"></line>
+                                    <line x1="12" y1="6" x2="12" y2="2"></line>
+                                    <line x1="12" y1="22" x2="12" y2="18"></line>
+                                </svg>
+                            </button>
                         </div>
-                        <form id="upload-hero" style="display:flex; align-items:center; gap:10px; margin-top:5px;">
+                        <form id="upload-hero"
+                            style="display:flex; flex-direction:column; align-items:flex-start; gap:10px; margin-top:5px;">
                             <input type="file" name="hero-bg" accept="image/*" required>
-                            <button type="submit" class="btn btn-outline" style="width:auto; font-size:0.8rem;">Mettre à
+                            <button type="submit" class="btn-submit-left">Mettre à
                                 jour le fichier</button>
                         </form>
                     </div>
@@ -329,14 +339,23 @@
                         <label>Image "Notre Philosophie"</label>
                         <div class="admin-thumb-container">
                             <img id="thumb-philosophy" class="admin-thumb" src="" alt="Aperçu Philo">
-                            <button class="btn" onclick="openPositioning('philosophy-bg')"
-                                style="width:auto; font-size:0.8rem; background-color: var(--primary); color:black;">Positionner
-                                l'image</button>
+                            <button class="btn" onclick="openPositioning('philosophy-bg')" title="Positionner l'image"
+                                style="width:auto; padding: 8px; background-color: var(--primary); color:black; display:flex; align-items:center; justify-content:center; margin-left: auto;">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"
+                                    fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                    stroke-linejoin="round">
+                                    <circle cx="12" cy="12" r="10"></circle>
+                                    <line x1="22" y1="12" x2="18" y2="12"></line>
+                                    <line x1="6" y1="12" x2="2" y2="12"></line>
+                                    <line x1="12" y1="6" x2="12" y2="2"></line>
+                                    <line x1="12" y1="22" x2="12" y2="18"></line>
+                                </svg>
+                            </button>
                         </div>
                         <form id="upload-philosophy"
-                            style="display:flex; align-items:center; gap:10px; margin-top:5px;">
+                            style="display:flex; flex-direction:column; align-items:flex-start; gap:10px; margin-top:5px;">
                             <input type="file" name="philosophy-bg" accept="image/*" required>
-                            <button type="submit" class="btn btn-outline" style="width:auto; font-size:0.8rem;">Mettre à
+                            <button type="submit" class="btn-submit-left">Mettre à
                                 jour le fichier</button>
                         </form>
                     </div>

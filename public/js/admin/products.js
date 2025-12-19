@@ -58,7 +58,15 @@ export function renderProductsList() {
                               style="width:24px; height:24px; cursor:pointer; ${isLast ? 'opacity:0.3; cursor:default;' : ''}"
                               title="Descendre">
                      </div>
-                    ${prod.image ? `<span class="vertical-sep"></span><button onclick="openProductPositioning(${index})" class="btn-orange" title="Positionner la photo"><svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill="#000000"><path d="M340-420h58l156-157-57-57-157 156v58Zm243-186 28-28q5-5 5-10.5t-5-10.5l-36-36q-5-5-10.5-5t-10.5 5l-28 28 57 57ZM480-186q122-112 181-203.5T720-552q0-109-69.5-178.5T480-800q-101 0-170.5 69.5T240-552q0 71 59 162.5T480-186Zm0 106Q319-217 239.5-334.5T160-552q0-150 96.5-239T480-880q127 0 223.5 89T800-552q0 100-79.5 217.5T480-80Zm0-480Z"/></svg></button>` : ''}
+                    ${prod.image ? `<span class="vertical-sep"></span><button onclick="openProductPositioning(${index})" title="Positionner la photo"
+                        style="width: 36px; height: 36px; padding: 0; background-color: var(--primary); color: var(--dark); display: inline-flex; align-items: center; justify-content: center; border: none; border-radius: 4px; cursor: pointer;">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <line x1="22" y1="12" x2="18" y2="12"></line>
+                            <line x1="6" y1="12" x2="2" y2="12"></line>
+                            <line x1="12" y1="6" x2="12" y2="2"></line>
+                            <line x1="12" y1="22" x2="12" y2="18"></line>
+                        </svg></button>` : ''}
                 `
         })}
             </td>

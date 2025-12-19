@@ -38,10 +38,22 @@ const upload = multer({
     }
 });
 
+const rateLimit = require('express-rate-limit');
+
+// Specific Rate Limiter for Login
+const loginLimiter = rateLimit({
+    windowMs: 10 * 60 * 1000, // 10 minutes
+    max: 5, // Limit each IP to 5 failed requests per windowMs
+    skipSuccessfulRequests: true, // Don't count successful logins
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { error: "Trop de tentatives de connexions. Veuillez réessayer dans 10 minutes." }
+});
+
 // --- Auth Routes ---
 router.get('/auth/status', authController.status);
 router.post('/auth/setup', authController.setup); // Setup might need schema too, but usually one-off
-router.post('/auth/login', validate(loginSchema), authController.login);
+router.post('/auth/login', loginLimiter, validate(loginSchema), authController.login);
 
 // --- Admin Auth/Profile ---
 router.get('/admin/me', checkAuth, authController.me);

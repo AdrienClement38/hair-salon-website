@@ -80,7 +80,16 @@ export function initAuth() {
 
                 verifyAuth();
             } else {
-                document.getElementById('login-error').style.display = 'block';
+                let errorMsg = 'Identifiants incorrects';
+                try {
+                    const data = await res.json();
+                    if (data.error) errorMsg = data.error;
+                } catch (jsonErr) {
+                    console.warn('Non-JSON error response');
+                }
+                const errorEl = document.getElementById('login-error');
+                errorEl.textContent = errorMsg;
+                errorEl.style.display = 'block';
             }
         } catch (e) {
             console.error(e);

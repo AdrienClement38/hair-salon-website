@@ -229,6 +229,65 @@ th {
     color: white;
 }
 
+.th-actions-services {
+    width: 220px;
+}
+
+.th-actions-products {
+    width: 380px;
+}
+
+@media (min-width: 769px) {
+
+    /* Compact Actions Column */
+    .th-actions-services,
+    .th-actions-products {
+        width: 1%;
+        white-space: nowrap;
+    }
+
+    /* Expand Description Column (4th column) */
+    th:nth-child(4) {
+        width: 60%;
+    }
+
+    /* Content Right Aligned, Header Left Aligned */
+    td:last-child {
+        text-align: right;
+    }
+
+    th:last-child {
+        text-align: left;
+    }
+}
+
+/* Scrollable Table Containers */
+#services-list,
+#products-list {
+    max-height: 550px;
+    /* Increased to show more elements */
+    overflow-y: auto;
+    display: block;
+    border: 1px solid #eee;
+    border-radius: 8px;
+}
+
+#services-list table,
+#products-list table {
+    overflow: visible;
+    /* Required for position: sticky to work */
+}
+
+/* Sticky Header */
+#services-list thead th,
+#products-list thead th {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    box-shadow: 0 2px 2px -1px rgba(0, 0, 0, 0.4);
+    /* Visual separation */
+}
+
 .btn-action {
     padding: 5px 10px;
     border: 1px solid transparent;

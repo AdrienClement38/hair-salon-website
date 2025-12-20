@@ -71,28 +71,65 @@
     background: var(--primary);
 }
 
+.text-mobile {
+    display: none;
+}
+
+.text-desktop {
+    display: inline;
+}
+
+.mobile-break {
+    display: none;
+}
+
+/* Mobile Calendar Optimization */
 /* Mobile Calendar Optimization */
 @media (max-width: 768px) {
     .calendar-grid {
-        gap: 2px;
+        gap: 1px;
     }
 
     .calendar-day-header {
-        padding: 4px 0;
-        font-size: 0.8rem;
+        padding: 2px 0;
+        font-size: 0.65rem;
     }
 
     .day-cell {
-        min-height: 60px;
+        min-height: 85px;
+        /* Taller cells as requested */
         padding: 2px;
+        word-break: break-word;
+        /* Allow text to wrap */
     }
 
     .day-number {
-        font-size: 0.9rem;
+        font-size: 0.65rem;
+        margin-bottom: 2px;
     }
 
     .appt-badge {
-        padding: 2px 4px;
-        font-size: 0.7rem;
+        padding: 1px 2px;
+        font-size: 0.65rem;
+        white-space: normal;
+        /* Force wrapping */
+        line-height: 1;
+        margin-bottom: 2px;
+        width: 100%;
+        /* Take full width of narrow cell */
+        box-sizing: border-box;
+        text-align: center;
+    }
+
+    .text-desktop {
+        display: none;
+    }
+
+    .text-mobile {
+        display: inline;
+    }
+
+    .mobile-break {
+        display: block;
     }
 }

@@ -21,7 +21,7 @@ export function renderProductsList() {
                 <th>Nom</th>
                 <th>Prix</th>
                 <th>Description</th>
-                <th style="width: 380px;">Actions</th>
+                <th class="th-actions-products">Actions</th>
             </tr>
         </thead>
         <tbody id="products-tbody"></tbody>

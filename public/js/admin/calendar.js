@@ -228,7 +228,7 @@ function renderCalendar() {
         let html = `<div class="day-number">${day}</div>`;
 
         if (holidayType === 'global') {
-            html += `<span class="appt-badge" style="background:#e57373; color:white">Fermeture Salon</span>`;
+            html += `<span class="appt-badge" style="background:#e57373; color:white"><span class="text-desktop">Fermeture Salon</span><span class="text-mobile">Congé Salon</span></span>`;
         } else if (holidayType === 'personal') {
             html += `<span class="appt-badge" style="background:#ffa726; color:white">Congés</span>`;
         } else if (isClosedDay) {
@@ -256,7 +256,7 @@ function renderCalendar() {
                     leavesToday.forEach(l => {
                         const worker = currentWorkers.find(w => w.id == l.admin_id);
                         const name = worker ? worker.name : 'Inconnu';
-                        html += `<span class="appt-badge" style="background:#fff3e0; color:#e65100; border:1px solid #ffcc80; display:block; margin-top:2px; font-size:0.75rem;">Congés: ${name}</span>`;
+                        html += `<span class="appt-badge" style="background:#fff3e0; color:#e65100; border:1px solid #ffcc80; display:block; margin-top:2px;">Congés: ${name}</span>`;
                     });
                 }
 
@@ -277,7 +277,7 @@ function renderCalendar() {
                             const worker = currentWorkers.find(w => w.id == adminId);
                             name = worker ? worker.name : 'Inconnu';
                         }
-                        html += `<span class="appt-badge has-appt" style="display:block; margin-top:2px; font-size:0.75rem;">${name}: ${count}</span>`;
+                        html += `<span class="appt-badge has-appt" style="display:block; margin-top:2px;">${name}<span class="text-desktop"> : </span><span class="mobile-break"></span>${count}</span>`;
                     });
                 }
             }

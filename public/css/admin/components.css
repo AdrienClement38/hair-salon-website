@@ -220,13 +220,14 @@ table {
 th,
 td {
     padding: 1rem;
-    text-align: left;
+    text-align: center;
     border-bottom: 1px solid #eee;
 }
 
 th {
     background: var(--dark);
     color: white;
+    text-align: center;
 }
 
 .th-actions-services {
@@ -246,18 +247,24 @@ th {
         white-space: nowrap;
     }
 
+    /* Price Column */
+    th:nth-child(3) {
+        width: 10%;
+        white-space: nowrap;
+    }
+
     /* Expand Description Column (4th column) */
     th:nth-child(4) {
-        width: 60%;
+        width: 50%;
     }
 
     /* Content Right Aligned, Header Left Aligned */
     td:last-child {
-        text-align: right;
+        text-align: center;
     }
 
     th:last-child {
-        text-align: left;
+        text-align: center;
     }
 }
 

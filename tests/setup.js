@@ -5,4 +5,4 @@
 // Since we use :memory:, mostly just creating tables is handled by app start (model init).
 
 // Suppress console logs during tests to keep output clean, optionally
-// console.log = jest.fn(); 
+

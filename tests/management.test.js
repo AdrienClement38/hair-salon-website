@@ -34,7 +34,7 @@ describe('Admin Management Tests', () => {
                 password: 'staffpassword',
                 displayName: 'Staff Member'
             });
-        if (res.statusCode !== 200) console.log('Create Worker Error:', res.body);
+
         expect(res.statusCode).toBe(200);
         expect(res.body.success).toBe(true);
     });

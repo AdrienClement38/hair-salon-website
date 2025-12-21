@@ -49,7 +49,7 @@ const { initPromise, deleteLeave, getAllLeaves, deleteAppointment, getAllAppoint
         const rootDir = path.resolve(__dirname, '..');
 
         fs.readdirSync(rootDir).forEach(file => {
-            if (file.startsWith('test_result') && file.endsWith('.log')) {
+            if ((file.startsWith('test_result') && file.endsWith('.log')) || file.startsWith('test_output')) {
                 const filePath = path.join(rootDir, file);
                 try {
                     fs.unlinkSync(filePath);

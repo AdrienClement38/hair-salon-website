@@ -33,7 +33,7 @@ describe('Admin UI & Profile Switching', () => {
         await new Promise(resolve => server.listen(0, resolve));
         const port = server.address().port;
         BASE_URL = `http://localhost:${port}`;
-        // console.log(`UI Test Server running on ${BASE_URL}`);
+
 
         // 1. Setup Data - Since DB is fresh/in-memory, we start from scratch.
         // Create first admin (Setup)
@@ -282,7 +282,7 @@ describe('Admin UI & Profile Switching', () => {
         try {
             await page.waitForSelector('#tab-content', { visible: true, timeout: 5000 });
         } catch (e) {
-            console.log("Retry clicking content tab...");
+            // Retry clicking content tab...
             await page.click('#tab-btn-content');
             await page.waitForSelector('#tab-content', { visible: true, timeout: 5000 });
         }

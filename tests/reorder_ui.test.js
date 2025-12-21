@@ -35,8 +35,7 @@ describe('Admin - Reorder Services & Products', () => {
     beforeEach(async () => {
         browser = await puppeteer.launch({ headless: 'new' });
         page = await browser.newPage();
-        page.on('console', msg => console.log('PAGE LOG:', msg.text()));
-        page.on('pageerror', err => console.log('PAGE ERROR:', err));
+
         await page.setViewport({ width: 1280, height: 800 });
     });
 

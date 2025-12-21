@@ -25,7 +25,7 @@ describe('Input Validation Security (TDD)', () => {
                     displayname: '<script>alert(1)</script>'
                 });
             if (res.status !== 400 || !res.body.error) {
-                console.log('DEBUG FAILURE:', res.status, res.body, res.text);
+
             }
             expect(res.status).toBe(400); // Expect Validation Error
             expect(res.body.error).toMatch(/Validation Error/);

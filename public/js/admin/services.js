@@ -93,7 +93,7 @@ export function renderServicesList() {
                 <div style="display:flex; justify-content:center; align-items:center; height:100%;">${svgs[service.icon] || svgs.star}</div>
             </td>
             <td>${service.name}</td>
-            <td>${service.price}</td>
+            <td>${service.price} €</td>
              <td style="font-size:0.9em; color:#666;">${service.description || ''}</td>
             <td>
                     ${renderActionButtons(`editService(${index})`, `removeService(${index})`, {

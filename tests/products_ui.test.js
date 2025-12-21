@@ -46,7 +46,7 @@ describe('Product Management UI', () => {
     beforeEach(async () => {
         browser = await puppeteer.launch({ headless: 'new' });
         page = await browser.newPage();
-        page.on('console', msg => console.log('PAGE:', msg.text()));
+
         await page.setViewport({ width: 1280, height: 800 });
     });
 
@@ -85,7 +85,7 @@ describe('Product Management UI', () => {
         try {
             await page.waitForSelector('#tab-content', { visible: true, timeout: 5000 });
         } catch (e) {
-            console.log("Retry clicking content tab in products test...");
+            // Retry clicking content tab in products test...
             await page.click('#tab-btn-content');
             await page.waitForSelector('#tab-content', { visible: true, timeout: 60000 });
         }

@@ -42,7 +42,7 @@ test('Portfolio: Should load items and respect limit', async () => {
     // Count ALL items
     const totalCount = await page.$$eval('#public-portfolio-grid .masonry-item', items => items.length);
 
-    console.log(`Total items loaded: ${totalCount}`);
+
 
     // Expect items to be loaded (at least 1, we know 18 exist)
     expect(totalCount).toBeGreaterThan(0);

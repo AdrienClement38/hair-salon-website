@@ -99,7 +99,7 @@ test('Admin Portfolio: Layout should be 5 columns and square items', async () =>
         const width = box.width;
         const height = box.height;
 
-        console.log(`Item dims: ${width} x ${height}`);
+
 
         // Verifying Squareness (within 1px)
         expect(Math.abs(width - height)).toBeLessThan(2);

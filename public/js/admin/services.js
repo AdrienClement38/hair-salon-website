@@ -5,7 +5,18 @@ import { renderActionButtons } from './ui-components.js';
 let currentServices = [];
 
 export function setServicesData(services) {
-    currentServices = services;
+    let needsSave = false;
+    currentServices = services.map(s => {
+        if (!s.id) {
+            s.id = 'svc-' + Date.now() + '-' + Math.floor(Math.random() * 1000);
+            needsSave = true;
+        }
+        return s;
+    });
+
+    if (needsSave) {
+        saveServicesSettings(true);
+    }
 }
 
 export function renderServicesList() {
@@ -141,7 +152,13 @@ export function addService() {
         currentServices[editingServiceIndex] = { name, price, icon, description };
         resetServiceForm();
     } else {
-        currentServices.push({ name, price, icon, description });
+        currentServices.push({
+            id: 'svc-' + Date.now(),
+            name,
+            price,
+            icon,
+            description
+        });
         resetServiceForm();
     }
 

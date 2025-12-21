@@ -9,7 +9,16 @@ const createBookingSchema = z.object({
         date: z.string().regex(dateRegex, "Format de date invalide (YYYY-MM-DD)"),
         time: z.string().regex(timeRegex, "Format d'heure invalide (HH:MM)"),
         service: z.string().min(1, "Le service est requis"),
-        phone: z.string().optional().nullable(),
+        phone: z.string().optional().nullable().refine((val) => {
+            if (!val) return true;
+            // Remove spaces, dots, dashes
+            const clean = val.replace(/[\s.-]/g, '');
+            // Check format: 
+            // ^(?:(?:\+|00)33|0) -> Starts with +33, 0033 or 0
+            // [1-9] -> Next char is 1-9 (excludes 0)
+            // \d{8}$ -> 8 digits after
+            return /^(?:(?:\+|00)33|0)[1-9]\d{8}$/.test(clean);
+        }, "Numéro invalide (doit contenir 10 chiffres, ex: 0612345678)"),
         adminId: z.preprocess(
             (val) => {
                 if (val === "" || val === null || val === undefined) return null;

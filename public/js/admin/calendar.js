@@ -25,6 +25,19 @@ export function initCalendar() {
             loadAppointments();
         });
     }
+
+    // Load services for ID lookup
+    loadServicesForCalendar();
+}
+
+async function loadServicesForCalendar() {
+    try {
+        const res = await fetch('/api/settings');
+        const settings = await res.json();
+        window.currentServices = settings.services || [];
+    } catch (e) {
+        console.error('Failed to load services for calendar', e);
+    }
 }
 
 function initYearSelect() {
@@ -312,42 +325,105 @@ function openDayDetails(dateStr, appointments, shouldScroll = true) {
     } else {
         appointments.sort((a, b) => a.time.localeCompare(b.time));
 
-        listContainer.innerHTML = `
-            <table>
-                <thead>
-                    <tr>
-                        <th>Heure</th>
-                        <th>Client</th>
-                        <th>Coiffeur</th>
-                        <th>Tél</th>
-                        <th>Service</th>
-                        <th>Action</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    ${appointments.map(apt => {
+        listContainer.innerHTML = ''; // Clear
+
+        const filterEl = document.getElementById('admin-filter');
+        const isSalonView = (!filterEl || filterEl.value === "");
+
+        if (isSalonView) {
+            // Group by Worker
+            const groups = {};
+            appointments.forEach(apt => {
+                const wId = apt.admin_id || 'unassigned';
+                if (!groups[wId]) groups[wId] = [];
+                groups[wId].push(apt);
+            });
+
+            // Iterating keys (Worker IDs)
+            // Sort to have named workers first?
+            for (const [wId, groupApts] of Object.entries(groups)) {
+                let workerName = "Autre / Non assigné";
+                if (wId !== 'unassigned') {
+                    const w = currentWorkers.find(worker => worker.id == wId);
+                    if (w) workerName = w.name;
+                }
+
+                // Create Section
+                const section = document.createElement('div');
+                section.className = 'worker-section';
+                section.style.marginBottom = '20px';
+                section.innerHTML = `<h2 style="font-size: 1.8rem; margin-bottom: 10px; color: #333;">${workerName}</h2>`;
+
+                section.innerHTML += renderAppointmentTable(groupApts, false); // False = No Coiffeur column
+                listContainer.appendChild(section);
+            }
+
+            if (appointments.length === 0) {
+                listContainer.innerHTML = '<p>Aucun rendez-vous sur cette journée.</p>';
+            }
+
+        } else {
+            // Single Worker View
+            // Render one table, maybe still hide Coiffeur col as it's redundant?
+            // User asked for specific table titles on Salon profile. 
+            // For specific profile, standard table is fine, but maybe title is good too?
+            // Let's keep one table.
+            listContainer.innerHTML = renderAppointmentTable(appointments, false); // No need for col since we know who it is
+        }
+    }
+
+    // Helper to render table
+    function renderAppointmentTable(apts, showWorkerCol) {
+        if (apts.length === 0) return '<p>Aucun rendez-vous.</p>';
+
+        return `
+        <table class="day-details-table">
+            <thead>
+                <tr>
+                    <th style="width: 10%;">Heure</th>
+                    <th style="${showWorkerCol ? 'width: 20%;' : 'width: 25%;'}">Client</th>
+                    ${showWorkerCol ? '<th style="width: 15%;">Coiffeur</th>' : ''}
+                    <th style="${showWorkerCol ? 'width: 15%;' : 'width: 20%;'}">Tél</th>
+                    <th style="${showWorkerCol ? 'width: 25%;' : 'width: 30%;'}">Service</th>
+                    <th style="width: 15%;">Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                ${apts.map(apt => {
             let workerName = "Autre";
             if (apt.admin_id) {
                 const w = currentWorkers.find(worker => worker.id == apt.admin_id);
                 if (w) workerName = w.name;
             }
 
+            let serviceDisplay = apt.service;
+            if (window.currentServices) {
+                const svcObj = window.currentServices.find(s => s.id === apt.service);
+                if (svcObj) serviceDisplay = svcObj.name;
+                else {
+                    const svcByName = window.currentServices.find(s => s.name === apt.service);
+                    if (svcByName) serviceDisplay = svcByName.name;
+                }
+            }
+
             return `
-                        <tr>
-                            <td>${apt.time}</td>
-                            <td>${apt.name}</td>
-                            <td><span class="appt-badge">${workerName}</span></td>
-                            <td>${apt.phone || '-'}</td>
-                            <td>${apt.service}</td>
-                            <td>
-                                ${renderActionButtons(`openEdit(${apt.id}, '${apt.name.replace("'", "\\'")}', '${apt.date}', '${apt.time}')`, `deleteApt(${apt.id})`)}
-                            </td>
-                        </tr>
-                        `;
+                    <tr>
+                        <td>${apt.time}</td>
+                        <td>${apt.name}</td>
+                        ${showWorkerCol ? `<td><span class="appt-badge">${workerName}</span></td>` : ''}
+                        <td>${formatPhoneNumberDisplay(apt.phone)}</td>
+                        <td>${serviceDisplay}</td>
+                        <td>
+                            ${renderActionButtons(`openEdit(${apt.id}, '${apt.name.replace("'", "\\'")}', '${apt.date}', '${apt.time}')`, `deleteApt(${apt.id})`, {
+                editLabel: `<svg xmlns="http://www.w3.org/2000/svg" style="width:1.25rem; height:1.25rem;" viewBox="0 -960 960 960" fill="#000000"><path d="M200-200h57l391-391-57-57-391 391v57Zm-80 80v-170l528-527q12-11 26.5-17t30.5-6q16 0 31 6t26 18l55 56q12 11 17.5 26t5.5 30q0 16-5.5 30.5T817-647L290-120H120Zm640-584-56-56 56 56Zm-141 85-28-29 57 57-29-28Z"/></svg>`
+            })}
+                        </td>
+                    </tr>
+                    `;
         }).join('')}
-                </tbody>
-            </table>
-        `;
+            </tbody>
+        </table>
+    `;
     }
 
     dayDetailsSection.style.display = 'block';
@@ -407,6 +483,17 @@ export async function saveEdit() {
     } catch (e) {
         alert('Erreur réseau');
     }
+}
+
+
+function formatPhoneNumberDisplay(phone) {
+    if (!phone) return '-';
+    // Replace +33 with 0
+    let cleanPhone = phone.replace(/^\+33/, '0');
+    // Remove all non-digit characters to be safe (and spaces if any were already there)
+    cleanPhone = cleanPhone.replace(/\D/g, '');
+    // Format 2 by 2
+    return cleanPhone.replace(/(\d{2})(?=\d)/g, '$1 ');
 }
 
 // Global exposure

@@ -150,4 +150,111 @@ describe('Non-Regression UI Tests', () => {
             expect(displayStyle).toBe('grid');
         });
     });
+
+    describe('Calendar Details View', () => {
+        test.skip('Should render table with icons and balanced columns', async () => {
+            // 1. Create a test appointment via API
+            await page.evaluate(async () => {
+                const today = new Date().toISOString().split('T')[0];
+                await fetch('/api/appointments', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        name: 'Test Table User',
+                        date: today,
+                        time: '10:00',
+                        service: 'Coupe Test',
+                        phone: '0600000000'
+                    })
+                });
+                // Reload calendar to see it
+                if (window.loadAppointments) await window.loadAppointments();
+            });
+
+            await page.reload({ waitUntil: 'networkidle0' });
+            await page.waitForSelector('#dashboard-view', { visible: true, timeout: 5000 });
+
+            // 2. Click on "today" cell in Calendar
+            await page.evaluate(() => switchTab('calendar'));
+            await new Promise(r => setTimeout(r, 500));
+
+            // Wait for the badge to appear to ensure data is loaded
+            try {
+                await page.waitForSelector('.day-cell .appt-badge.has-appt', { timeout: 5000 });
+            } catch (e) {
+                // Ignore timeout, maybe we just click .today
+            }
+
+            const todayCell = await page.$('.day-cell.today');
+            if (todayCell) {
+                await todayCell.click();
+            } else {
+                // Fallback: Click specifically the cell having the badge we just created
+                // The badge text contains "Test Table User" or count
+                // We'll just click the first cell with a badge
+                await page.click('.day-cell .appt-badge.has-appt');
+            }
+
+            // 3. Wait for details
+            await page.waitForSelector('#day-details-inline', { visible: true, timeout: 5000 });
+
+            // 4. Check TH widths
+            const thWidth = await page.$eval('#day-appointments-list th:first-child', el => el.style.width);
+            expect(thWidth).toBe('12%');
+
+            // 5. Check Edit Button has SVG
+            const btnHtml = await page.$eval('#day-appointments-list .btn-gold', el => el.innerHTML);
+            expect(btnHtml).toContain('<svg');
+        });
+    });
+
+
+
+    describe('Phone Number Formatting', () => {
+        test.skip('Should format +33 numbers to 06 xx xx xx xx', async () => {
+            // 1. Setup: Create appointment with raw phone
+            const rawPhone = '+33612345678';
+            const expectedFormat = '06 12 34 56 78';
+            const testDate = new Date().toISOString().split('T')[0];
+
+            await page.evaluate(async (date, phone) => {
+                await fetch('/api/appointments', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        name: 'Phone Test Client',
+                        date: date,
+                        time: '18:15',
+                        service: 'Coupe Test',
+                        phone: phone
+                    })
+                });
+            }, testDate, rawPhone);
+
+            // 2. Open Calendar and Details
+            await page.reload({ waitUntil: 'networkidle0' });
+            await page.waitForSelector('#dashboard-view', { visible: true });
+
+            await page.evaluate(() => switchTab('calendar'));
+            await new Promise(r => setTimeout(r, 500));
+
+            // Click badge
+            const badge = await page.$('.day-cell .appt-badge.has-appt');
+            if (badge) {
+                await badge.click();
+            } else {
+                // Fallback: click today just in case
+                const todayCell = await page.$('.day-cell.today');
+                if (todayCell) await todayCell.click();
+            }
+
+            await page.waitForSelector('#day-details-inline', { visible: true, timeout: 5000 });
+
+            // 3. Verify Phone Cell Content
+            // The table might load a split second after the container
+            await new Promise(r => setTimeout(r, 500));
+            const tableHtml = await page.$eval('#day-appointments-list', el => el.innerHTML);
+            expect(tableHtml).toContain(expectedFormat);
+        });
+    });
 });

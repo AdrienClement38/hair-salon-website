@@ -164,9 +164,8 @@ export async function loadServices() {
         serviceInput.innerHTML = '<option value="">-- Choisir une prestation --</option>';
         services.forEach(s => {
             const opt = document.createElement('option');
-            // Use service name as value for now (or ID if we add IDs to services later)
-            // Storing name as value is simple for now.
-            opt.value = s.name;
+            // Use service ID as value
+            opt.value = s.id;
             opt.textContent = `${s.name} - ${s.price}€`;
             serviceInput.appendChild(opt);
         });

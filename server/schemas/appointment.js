@@ -6,7 +6,18 @@ const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
 const createBookingSchema = z.object({
     body: z.object({
         name: z.string().min(2, "Le nom doit contenir au moins 2 caractères"),
-        date: z.string().regex(dateRegex, "Format de date invalide (YYYY-MM-DD)"),
+        date: z.string().regex(dateRegex, "Format de date invalide (YYYY-MM-DD)").refine((val) => {
+            const d = new Date(val);
+            const now = new Date();
+            // Reset time part for fair comparison
+            now.setHours(0, 0, 0, 0);
+
+            // Limit 60 days (approx 2 months)
+            const limit = new Date(now);
+            limit.setDate(now.getDate() + 60);
+
+            return d <= limit;
+        }, "La réservation est impossible plus de 2 mois à l'avance."),
         time: z.string().regex(timeRegex, "Format d'heure invalide (HH:MM)"),
         service: z.string().min(1, "Le service est requis"),
         phone: z.string().optional().nullable().refine((val) => {

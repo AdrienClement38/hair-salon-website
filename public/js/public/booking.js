@@ -69,6 +69,22 @@ export function initBooking() {
 
 function updateSlots() {
     const date = dateInput.value;
+
+    if (date) {
+        const selected = new Date(date);
+        const now = new Date();
+        now.setHours(0, 0, 0, 0);
+        const limit = new Date(now);
+        limit.setDate(now.getDate() + 60);
+
+        if (selected > limit) {
+            showMessage("La réservation est impossible plus de 2 mois à l'avance.", "error");
+            dateInput.value = "";
+            slotsContainer.innerHTML = '<p class="text-muted">Date invalide.</p>';
+            return;
+        }
+    }
+
     const workerId = workerInput.value;
 
     if (!date || !workerId) {

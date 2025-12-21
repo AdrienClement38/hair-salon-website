@@ -24,10 +24,11 @@ export function renderActionButtons(editOnClick, deleteOnClick, options = {}) {
     } = options;
 
     return `
-        <div style="display:flex; align-items:center; gap:12px;">
-            ${extraHtml ? `<div style="display:flex; align-items:center; gap:12px;">${extraHtml}</div>` : ''}
+        <div style="display:flex; align-items:center; gap:0.75rem;">
+            ${extraHtml ? `<div style="display:contents;">${extraHtml}</div>` : ''}
             ${extraHtml ? '<span class="vertical-sep"></span>' : ''}
             ${editOnClick ? `<button class="btn-gold" onclick="${editOnClick}" title="${editTitle}">${editLabel}</button>` : ''}
+            ${(editOnClick && deleteOnClick) ? '<span class="vertical-sep"></span>' : ''}
             ${deleteOnClick ? `<button class="btn-x" onclick="${deleteOnClick}" title="${deleteTitle}">${deleteLabel}</button>` : ''}
         </div>
     `;

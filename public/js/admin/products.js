@@ -46,21 +46,20 @@ export function renderProductsList() {
             <td style="font-size:0.9em; color:#666;">${prod.description || ''}</td>
             <td>
                 ${renderActionButtons(`editProduct(${index})`, `removeProduct(${index})`, {
-            editLabel: `<svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill="#000000"><path d="M200-200h57l391-391-57-57-391 391v57Zm-80 80v-170l528-527q12-11 26.5-17t30.5-6q16 0 31 6t26 18l55 56q12 11 17.5 26t5.5 30q0 16-5.5 30.5T817-647L290-120H120Zm640-584-56-56 56 56Zm-141 85-28-29 57 57-29-28Z"/></svg>`,
+            editLabel: `<svg xmlns="http://www.w3.org/2000/svg" style="width:1.25rem; height:1.25rem;" viewBox="0 -960 960 960" fill="#000000"><path d="M200-200h57l391-391-57-57-391 391v57Zm-80 80v-170l528-527q12-11 26.5-17t30.5-6q16 0 31 6t26 18l55 56q12 11 17.5 26t5.5 30q0 16-5.5 30.5T817-647L290-120H120Zm640-584-56-56 56 56Zm-141 85-28-29 57 57-29-28Z"/></svg>`,
             extraHtml: `
-                     <div style="display:flex; flex-direction:column; gap:2px; align-items:center;">
+                     <div style="display:flex; flex-direction:column; gap:0.15rem; align-items:center;">
                          <img src="/images/arrow-up.svg" 
                               onclick="moveProductUp(${index})" 
-                              style="width:24px; height:24px; cursor:pointer; ${isFirst ? 'opacity:0.3; cursor:default;' : ''}"
+                              style="width:1.25rem; height:1.25rem; cursor:pointer; ${isFirst ? 'opacity:0.3; cursor:default;' : ''}"
                               title="Monter">
                          <img src="/images/arrow-down.svg" 
                               onclick="moveProductDown(${index})" 
-                              style="width:24px; height:24px; cursor:pointer; ${isLast ? 'opacity:0.3; cursor:default;' : ''}"
+                              style="width:1.25rem; height:1.25rem; cursor:pointer; ${isLast ? 'opacity:0.3; cursor:default;' : ''}"
                               title="Descendre">
                      </div>
-                    ${prod.image ? `<span class="vertical-sep"></span><button onclick="openProductPositioning(${index})" title="Positionner la photo"
-                        style="width: 36px; height: 36px; padding: 0; background-color: var(--primary); color: var(--dark); display: inline-flex; align-items: center; justify-content: center; border: none; border-radius: 4px; cursor: pointer;">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    ${prod.image ? `<span class="vertical-sep"></span><button class="btn-copper" onclick="openProductPositioning(${index})" title="Positionner la photo">
+                        <svg xmlns="http://www.w3.org/2000/svg" style="width:1.25rem; height:1.25rem;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                             <circle cx="12" cy="12" r="10"></circle>
                             <line x1="22" y1="12" x2="18" y2="12"></line>
                             <line x1="6" y1="12" x2="2" y2="12"></line>

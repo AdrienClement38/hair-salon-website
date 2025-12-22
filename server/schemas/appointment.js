@@ -29,7 +29,10 @@ const createBookingSchema = z.object({
             // [1-9] -> Next char is 1-9 (excludes 0)
             // \d{8}$ -> 8 digits after
             return /^(?:(?:\+|00)33|0)[1-9]\d{8}$/.test(clean);
-        }, "Numéro invalide (doit contenir 10 chiffres, ex: 0612345678)"),
+        }, "Numéro invalide (doit contenir 10 chiffres, ex: 0612345678)").transform((val) => {
+            if (!val) return val;
+            return val.replace(/[\s.-]/g, '');
+        }),
         adminId: z.preprocess(
             (val) => {
                 if (val === "" || val === null || val === undefined) return null;

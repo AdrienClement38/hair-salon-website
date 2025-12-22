@@ -38,12 +38,16 @@ describe('Synchronization Logic (Polling)', () => {
         const initial = await getTimestamps();
         const lastApptTS = initial.apptTimestamp;
 
-        // 2. Make Booking
+        // Calculate a valid date (tomorrow)
+        const tomorrow = new Date();
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        const dateStr = tomorrow.toISOString().split('T')[0];
+
         const bookingData = {
             name: 'Sync Client',
             phone: '0600000000',
             service: 'Sync Cut',
-            date: '2099-12-31',
+            date: dateStr,
             time: '12:00',
             adminId: null
         };

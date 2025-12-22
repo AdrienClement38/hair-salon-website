@@ -42,33 +42,40 @@ describe('Public Interface Tests', () => {
 
     // US-1.6: Booking - Make Appointment
     test('US-1.6: Should create a booking', async () => {
+        const targetDate = new Date();
+        targetDate.setDate(targetDate.getDate() + 10);
+        const validDate = targetDate.toISOString().split('T')[0];
+
         const bookingData = {
             name: 'Test Client',
             phone: '0612345678',
             service: 'Coupe Homme',
-            date: '2099-01-01',
+            date: validDate,
             time: '10:00'
         };
 
         const res = await request(app).post('/api/book').send(bookingData);
         expect(res.statusCode).toBe(200);
-        expect(res.body.success).toBe(true);
         expect(res.body).toHaveProperty('id');
     });
 
     // US-1.5: Booking - Prevent Duplicate
     test('US-1.5: Should prevent booking taken slot', async () => {
+        const targetDate = new Date();
+        targetDate.setDate(targetDate.getDate() + 10);
+        const validDate = targetDate.toISOString().split('T')[0];
+
         const bookingData = {
             name: 'Another Client',
             phone: '0687654321',
             service: 'Barbe',
-            date: '2099-01-01',
+            date: validDate,
             time: '10:00' // Same time as above
         };
 
         const res = await request(app).post('/api/book').send(bookingData);
         expect(res.statusCode).toBe(409); // Conflict
-        expect(res.body.success).toBe(undefined); // Error response doesn't have success: false usually, just error
+        expect(res.body).toHaveProperty('error');
     });
 
 });

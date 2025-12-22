@@ -14,6 +14,11 @@ const validate = (schema) => (req, res, next) => {
         // Zod's parse strips unknown keys by default only if configured.
         // Here we just validate.
 
+        // Apply transformed values
+        if (parsed.body) req.body = parsed.body;
+        if (parsed.query) req.query = parsed.query;
+        if (parsed.params) req.params = parsed.params;
+
         next();
     } catch (err) {
         if (err instanceof z.ZodError) {

@@ -381,10 +381,10 @@ function openDayDetails(dateStr, appointments, shouldScroll = true) {
             <thead>
                 <tr>
                     <th style="width: 10%;">Heure</th>
+                    <th style="${showWorkerCol ? 'width: 25%;' : 'width: 30%;'}">Service</th>
                     <th style="${showWorkerCol ? 'width: 20%;' : 'width: 25%;'}">Client</th>
                     ${showWorkerCol ? '<th style="width: 15%;">Coiffeur</th>' : ''}
                     <th style="${showWorkerCol ? 'width: 15%;' : 'width: 20%;'}">Tél</th>
-                    <th style="${showWorkerCol ? 'width: 25%;' : 'width: 30%;'}">Service</th>
                     <th style="width: 15%;">Action</th>
                 </tr>
             </thead>
@@ -399,20 +399,23 @@ function openDayDetails(dateStr, appointments, shouldScroll = true) {
             let serviceDisplay = apt.service;
             if (window.currentServices) {
                 const svcObj = window.currentServices.find(s => s.id === apt.service);
-                if (svcObj) serviceDisplay = svcObj.name;
-                else {
+                if (svcObj) {
+                    serviceDisplay = `${svcObj.name} (${svcObj.duration || 30} min)`;
+                } else {
                     const svcByName = window.currentServices.find(s => s.name === apt.service);
-                    if (svcByName) serviceDisplay = svcByName.name;
+                    if (svcByName) {
+                        serviceDisplay = `${svcByName.name} (${svcByName.duration || 30} min)`;
+                    }
                 }
             }
 
             return `
                     <tr>
                         <td>${apt.time}</td>
+                         <td>${serviceDisplay}</td>
                         <td>${apt.name}</td>
                         ${showWorkerCol ? `<td><span class="appt-badge">${workerName}</span></td>` : ''}
                         <td>${formatPhoneNumberDisplay(apt.phone)}</td>
-                        <td>${serviceDisplay}</td>
                         <td>
                             ${renderActionButtons(`openEdit(${apt.id}, '${apt.name.replace("'", "\\'")}', '${apt.date}', '${apt.time}')`, `deleteApt(${apt.id})`, {
                 editLabel: `<svg xmlns="http://www.w3.org/2000/svg" style="width:1.25rem; height:1.25rem;" viewBox="0 -960 960 960" fill="#000000"><path d="M200-200h57l391-391-57-57-391 391v57Zm-80 80v-170l528-527q12-11 26.5-17t30.5-6q16 0 31 6t26 18l55 56q12 11 17.5 26t5.5 30q0 16-5.5 30.5T817-647L290-120H120Zm640-584-56-56 56 56Zm-141 85-28-29 57 57-29-28Z"/></svg>`

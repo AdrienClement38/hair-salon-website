@@ -17,6 +17,7 @@ export function initBooking() {
     // Listeners
     dateInput.addEventListener('change', updateSlots);
     workerInput.addEventListener('change', updateSlots);
+    serviceInput.addEventListener('change', updateSlots);
 
     // Form Submit
     bookingForm.addEventListener('submit', async (e) => {
@@ -24,7 +25,8 @@ export function initBooking() {
 
         const name = document.getElementById('name').value;
         const phone = document.getElementById('phone').value;
-        const service = serviceInput.value;
+        const serviceOption = serviceInput.options[serviceInput.selectedIndex];
+        const service = serviceOption.dataset.name || serviceInput.value; // Send Name!
         const adminId = workerInput.value;
         const date = dateInput.value;
         const time = selectedTimeInput.value;
@@ -46,15 +48,22 @@ export function initBooking() {
             const result = await res.json();
 
             if (res.ok) {
-                if (dateInput.value) updateSlots();
+
 
                 const serviceName = serviceInput.options[serviceInput.selectedIndex].text;
                 const workerName = workerInput.options[workerInput.selectedIndex].text;
 
                 showMessage(`Rendez-vous confirmé pour <strong>${serviceName}</strong> avec <strong>${workerName}</strong><br>Le ${formatDateDisplay(date)} à ${time}`, 'success');
+
+                // Immediate Reset
                 bookingForm.reset();
-                slotsContainer.innerHTML = '<p class="text-muted">Sélectionnez une date pour voir les créneaux.</p>';
+                slotsContainer.innerHTML = '';
                 selectedTimeInput.value = '';
+
+                // Auto-hide message after 20 seconds
+                setTimeout(() => {
+                    showMessage('', '');
+                }, 20000);
             } else {
                 showMessage(result.error || 'Erreur lors de la réservation.', 'error');
             }
@@ -86,20 +95,21 @@ function updateSlots() {
     }
 
     const workerId = workerInput.value;
+    const serviceId = serviceInput.value;
 
-    if (!date || !workerId) {
-        slotsContainer.innerHTML = '<p class="text-muted">Sélectionnez une date et un coiffeur.</p>';
+    if (!date || !workerId || !serviceId) {
+        slotsContainer.innerHTML = '<p class="text-muted">Sélectionnez un service, une date et un coiffeur.</p>';
         return;
     }
-    loadSlots(date, workerId);
+    loadSlots(date, workerId, serviceId);
 }
 
-async function loadSlots(date, adminId) {
+async function loadSlots(date, adminId, serviceId) {
     slotsContainer.innerHTML = '<p class="text-muted">Chargement...</p>';
     selectedTimeInput.value = '';
 
     try {
-        const res = await fetch(`/api/slots?date=${date}&adminId=${adminId}`);
+        const res = await fetch(`/api/slots?date=${date}&adminId=${adminId}&serviceId=${serviceId}`);
         const data = await res.json();
         renderSlots(data.slots || [], data.reason);
     } catch (err) {
@@ -126,14 +136,12 @@ function renderSlots(slots, reason) {
         return;
     }
 
-    slots.forEach(slot => {
+    slots.forEach(time => {
         const btn = document.createElement('div');
-        btn.className = `slot-btn ${slot.isAvailable ? '' : 'disabled'}`;
-        btn.textContent = slot.time;
+        btn.className = 'slot-btn';
+        btn.textContent = time;
 
-        if (slot.isAvailable) {
-            btn.onclick = () => selectSlot(btn, slot.time);
-        }
+        btn.onclick = () => selectSlot(btn, time);
 
         slotsContainer.appendChild(btn);
     });
@@ -180,9 +188,10 @@ export async function loadServices() {
         serviceInput.innerHTML = '<option value="">-- Choisir une prestation --</option>';
         services.forEach(s => {
             const opt = document.createElement('option');
-            // Use service ID as value
+            // Use service ID as value for slots, but store Name for booking
             opt.value = s.id;
-            opt.textContent = `${s.name} - ${s.price}€`;
+            opt.dataset.name = s.name;
+            opt.textContent = `${s.name} - ${s.price}€ (${s.duration || 30} min)`;
             serviceInput.appendChild(opt);
         });
     } catch (e) {

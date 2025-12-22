@@ -53,11 +53,11 @@ exports.createBooking = async (req, res) => {
 };
 
 exports.getSlots = async (req, res) => {
-    const { date, adminId } = req.query;
+    const { date, adminId, serviceId } = req.query;
     if (!date) return res.status(400).json({ error: 'Date required' });
 
     try {
-        const slots = await appointmentService.getAvailableSlots(date, adminId);
+        const slots = await appointmentService.getAvailableSlots(date, adminId, serviceId);
         res.json(slots);
     } catch (err) {
         res.status(500).json({ error: err.message });

@@ -35,7 +35,8 @@ export function renderServicesList() {
             <tr>
                 <th style="width: 50px;">Icône</th>
                 <th>Nom</th>
-                <th>Prix</th>
+                <th style="width: 80px;">Prix</th>
+                <th style="width: 90px;">Durée</th>
                 <th>Description</th>
                 <th class="th-actions-services">Actions</th>
             </tr>
@@ -105,6 +106,7 @@ export function renderServicesList() {
             </td>
             <td>${service.name}</td>
             <td>${service.price} €</td>
+            <td>${service.duration || 30} min</td>
              <td style="font-size:0.9em; color:#666;">${service.description || ''}</td>
             <td>
                     ${renderActionButtons(`editService(${index})`, `removeService(${index})`, {
@@ -137,11 +139,13 @@ let editingServiceIndex = -1;
 export function addService() {
     const nameInput = document.getElementById('new-service-name');
     const priceInput = document.getElementById('new-service-price');
+    const durationInput = document.getElementById('new-service-duration');
     const iconInput = document.getElementById('new-service-icon');
     const descInput = document.getElementById('new-service-desc');
 
     const name = nameInput.value;
     const price = priceInput.value;
+    const duration = parseInt(durationInput.value) || 30;
     const icon = iconInput.value;
     const description = descInput.value;
 
@@ -149,13 +153,14 @@ export function addService() {
     if (!price) return alert('Le prix est invalide (chiffres uniquement)');
 
     if (editingServiceIndex >= 0) {
-        currentServices[editingServiceIndex] = { name, price, icon, description };
+        currentServices[editingServiceIndex] = { name, price, duration, icon, description };
         resetServiceForm();
     } else {
         currentServices.push({
             id: 'svc-' + Date.now(),
             name,
             price,
+            duration,
             icon,
             description
         });
@@ -170,6 +175,7 @@ function resetServiceForm() {
     editingServiceIndex = -1;
     document.getElementById('new-service-name').value = '';
     document.getElementById('new-service-price').value = '';
+    document.getElementById('new-service-duration').value = '30';
     document.getElementById('new-service-desc').value = '';
     document.getElementById('new-service-icon').value = 'cut';
 
@@ -188,6 +194,7 @@ export function editService(index) {
     const svc = currentServices[index];
     document.getElementById('new-service-name').value = svc.name;
     document.getElementById('new-service-price').value = svc.price;
+    document.getElementById('new-service-duration').value = svc.duration || 30;
     document.getElementById('new-service-desc').value = svc.description || '';
     let iconVal = svc.icon || 'barber';
     if (iconVal === 'star') iconVal = 'barber';

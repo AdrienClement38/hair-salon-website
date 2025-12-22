@@ -291,8 +291,8 @@ const initDB = async () => {
 
 const getBookingsForDate = async (date, adminId) => {
   if (adminId) {
-    if (type === 'pg') return await query('SELECT time FROM appointments WHERE date = $1 AND admin_id = $2', [date, adminId]);
-    return await query('SELECT time FROM appointments WHERE date = ? AND admin_id = ?', [date, adminId]);
+    if (type === 'pg') return await query('SELECT time, service FROM appointments WHERE date = $1 AND admin_id = $2', [date, adminId]);
+    return await query('SELECT time, service FROM appointments WHERE date = ? AND admin_id = ?', [date, adminId]);
   }
   return await query('SELECT time FROM appointments WHERE date = ?', [date]);
 };
@@ -495,5 +495,8 @@ module.exports = {
   deleteLeave,
   deleteAdmin,
   type,
-  initPromise
+  initPromise,
+  // For testing
+  init: () => initPromise,
+  run: query
 };

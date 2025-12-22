@@ -380,6 +380,10 @@
                                     onkeydown="return ['Backspace','Delete','ArrowLeft','ArrowRight','Tab'].includes(event.key) || (!isNaN(Number(event.key)) || event.key === '.' || event.key === ',')">
                             </div>
                             <div class="form-group" style="flex:1">
+                                <label>Durée (min)</label>
+                                <input type="number" id="new-service-duration" step="5" min="5" value="30">
+                            </div>
+                            <div class="form-group" style="flex:1">
                                 <label>Icône</label>
                                 <select id="new-service-icon" style="width:100%; padding:8px;">
                                     <option value="cut">Ciseaux</option>

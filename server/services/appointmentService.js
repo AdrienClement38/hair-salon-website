@@ -101,6 +101,21 @@ class AppointmentService {
             occupiedIntervals.push({ start: bStart, end: bStart + bDuration });
         }
 
+        // Add "Lunch Break" if defined for this day
+        if (daySettings.breakStart && daySettings.breakEnd) {
+            const [bStartH, bStartM] = daySettings.breakStart.split(':').map(Number);
+            const [bEndH, bEndM] = daySettings.breakEnd.split(':').map(Number);
+
+            if (!isNaN(bStartH) && !isNaN(bEndH)) {
+                const breakStartMin = bStartH * 60 + bStartM;
+                const breakEndMin = bEndH * 60 + bEndM;
+
+                if (breakEndMin > breakStartMin) {
+                    occupiedIntervals.push({ start: breakStartMin, end: breakEndMin });
+                }
+            }
+        }
+
         // Add "Lunch Break" or other fixed blocks if any? (Not implemented yet, assuming continuous day)
         console.log('DEBUG: Occupied Intervals:', JSON.stringify(occupiedIntervals));
 

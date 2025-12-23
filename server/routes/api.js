@@ -63,6 +63,7 @@ router.put('/admin/profile', checkAuth, authController.updateProfile);
 router.get('/admin/workers', checkAuth, adminsController.listWorkers);
 router.post('/admin/workers', checkAuth, validate(workerSchema), adminsController.createWorker);
 router.put('/admin/workers/:id', checkAuth, validate(updateWorkerSchema), adminsController.updateWorker);
+router.delete('/admin/workers/:id', checkAuth, adminsController.deleteWorker);
 
 // --- Appointments (Admin) ---
 router.get('/admin/appointments', checkAuth, appointmentsController.list);

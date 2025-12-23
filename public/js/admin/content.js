@@ -1,6 +1,7 @@
 // public/js/admin/content.js
 import { API_URL, getHeaders } from './config.js';
 import { currentHomeContent } from './state.js'; // Import current content
+import { loadWorkersForFilter } from './calendar.js';
 
 let currentPositioningImage = null; // 'hero' or 'philosophy'
 let currentX = 50;
@@ -65,12 +66,13 @@ export function initContentForms() {
             const res = await fetch(`${API_URL}/workers`, {
                 method: 'POST',
                 headers: getHeaders(),
-                body: JSON.stringify({ username, displayname, password })
+                body: JSON.stringify({ username, displayName: displayname, password })
             });
 
             if (res.ok) {
                 alert('Membre ajouté !');
                 e.target.reset();
+                loadWorkersForFilter();
             } else {
                 const errData = await res.json();
                 alert('Erreur: ' + (errData.error || "Erreur lors de l'ajout"));

@@ -155,7 +155,7 @@ function selectSlot(btn, time) {
 
 async function loadWorkers() {
     try {
-        const res = await fetch('/api/workers');
+        const res = await fetch(`/api/workers?t=${Date.now()}`);
         const workers = await res.json();
 
         workerInput.innerHTML = '<option value="">-- Choisir --</option>';
@@ -176,7 +176,7 @@ export const refreshBookingWorkers = loadWorkers;
 export async function loadServices() {
     serviceInput.innerHTML = '<option value="">Chargement...</option>';
     try {
-        const res = await fetch('/api/settings');
+        const res = await fetch(`/api/settings?t=${Date.now()}`);
         const settings = await res.json();
         const services = settings.services || [];
 

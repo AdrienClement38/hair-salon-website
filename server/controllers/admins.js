@@ -17,6 +17,10 @@ exports.createWorker = async (req, res) => {
     try {
         const hash = await bcrypt.hash(password, 10);
         await db.createAdmin(username, hash, displayName);
+        // Trigger update for public clients
+        const polling = require('../config/polling');
+        polling.triggerUpdate('settings');
+
         res.json({ success: true });
     } catch (e) {
         res.status(500).json({ error: e.message });
@@ -25,6 +29,7 @@ exports.createWorker = async (req, res) => {
 
 exports.listPublicWorkers = async (req, res) => {
     try {
+        // console.log("Public Workers Request");
         const workers = await db.getAllAdmins();
         const safeWorkers = workers.map(w => ({ id: w.id, name: w.display_name || w.username }));
         res.json(safeWorkers);
@@ -57,6 +62,29 @@ exports.updateWorker = async (req, res) => {
         res.json({ success: true });
     } catch (e) {
         console.error("Update Worker Error:", e);
+        res.status(500).json({ error: e.message });
+    }
+};
+
+exports.deleteWorker = async (req, res) => {
+    const { id } = req.params;
+    try {
+        const admin = await db.getAdminById(id);
+        if (!admin) return res.status(404).json({ error: 'Worker not found' });
+
+        // Prevent self-deletion if that was somehow requested via ID (though UI protects it)
+        // Ideally we check if it's the main admin, but checking if req.user.id === id is good practice
+        if (req.user && req.user.id == id) {
+            return res.status(403).json({ error: 'Cannot delete yourself' });
+        }
+
+        await db.deleteAdmin(admin.username);
+
+        polling.triggerUpdate('settings');
+
+        res.json({ success: true });
+    } catch (e) {
+        console.error("Delete Worker Error:", e);
         res.status(500).json({ error: e.message });
     }
 };

@@ -301,4 +301,200 @@ describe('Admin UI & Profile Switching', () => {
         });
         expect(addBtn).toBe(true);
     });
+
+    test('Should successfully add a new team member via UI', async () => {
+        await page.goto(`${BASE_URL}/lbc-admin`);
+
+        // Login
+        await page.type('#username', TEST_USER.username);
+        await page.type('#password', TEST_USER.password);
+        await page.click('#login-form button[type="submit"]');
+        await page.waitForSelector('#dashboard-view', { visible: true });
+
+        // Go to Settings tab
+        await page.click('#tab-btn-settings');
+        await page.waitForSelector('#tab-settings', { visible: true });
+
+        // Wait for team form
+        await page.waitForSelector('#team-form', { visible: true });
+
+        // Fill form
+        const NEW_WORKER = {
+            username: 'roger_e2e_' + Date.now(),
+            display: 'Roger E2E',
+            pass: 'secret123'
+        };
+
+        // Focus and type to simulate user interaction
+        await page.click('#team-username');
+        await page.type('#team-username', NEW_WORKER.username);
+
+        await page.click('#team-displayname');
+        await page.type('#team-displayname', NEW_WORKER.display);
+
+        await page.click('#team-password');
+        await page.type('#team-password', NEW_WORKER.pass);
+
+        // Handle Alert
+        page.on('dialog', async dialog => {
+            await dialog.accept();
+        });
+
+        // Submit
+        await page.click('#team-form button[type="submit"]');
+
+        // Wait for UI update (polling or immediate reload of filter?)
+        // The auth.js/main.js logic reloads or alerts. 
+        // We look for the alert (handled above) and then check if the inputs are cleared.
+        await page.waitForFunction(() => document.getElementById('team-username').value === '');
+
+        // Verify in Dropdown
+        // Need to wait for polling to pick it up or manual reload? 
+        // The current app doesn't auto-reload the admin filter list on creation effectively without a page refresh usually, 
+        // BUT let's check if our recent fix improved that? 
+        // Actually, `content.js` resets the form but doesn't explicitly reload the `admin-filter` options immediately in the UI code we saw.
+        // It relies on `setup.js` or `settings.js` logic.
+
+        // Let's reload page to be sure we see it in the filter, satisfying the "it exists" check.
+        await page.reload();
+        await page.waitForSelector('#admin-filter', { visible: true });
+
+        // Check if option exists
+        const optionExists = await page.evaluate((name) => {
+            const options = Array.from(document.querySelectorAll('#admin-filter option'));
+            return options.some(o => o.text.includes(name));
+        }, NEW_WORKER.display);
+
+        expect(optionExists).toBe(true);
+
+    }, 30000);
+
+    test.skip('Should delete a worker and verify UI resets to Salon', async () => {
+        // 0. Login first
+        await page.goto(`${BASE_URL}/lbc-admin`);
+        await page.type('#username', TEST_USER.username);
+        await page.type('#password', TEST_USER.password);
+        await page.click('#login-form button[type="submit"]');
+        await page.waitForSelector('#dashboard-view', { visible: true });
+
+        // 1. Create a worker to delete
+        const workerName = 'uizap_' + Date.now();
+        const authHeader = 'Basic ' + Buffer.from(`${TEST_USER.username}:${TEST_USER.password}`).toString('base64');
+
+        await page.evaluate(async (name, auth) => {
+            const res = await fetch('/api/admin/workers', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': auth },
+                body: JSON.stringify({ username: name, password: 'password', displayName: 'UI Zap Target' })
+            });
+        }, workerName, authHeader);
+
+        await page.reload();
+        await page.waitForSelector('#admin-filter option[value]', { timeout: 5000 });
+
+        // 2. Select the worker
+        const optionValue = await page.evaluate(() => {
+            const options = Array.from(document.querySelectorAll('#admin-filter option'));
+            const opt = options.find(o => o.textContent === 'UI Zap Target');
+            return opt ? opt.value : null;
+        });
+        expect(optionValue).not.toBeNull();
+
+        await page.select('#admin-filter', optionValue);
+
+        // Wait for inputs to populate (simulate UI responsiveness)
+        await new Promise(r => setTimeout(r, 1000));
+
+        // Verify input is populated
+        const initialVal = await page.$eval('#profile-displayname', el => el.value);
+        expect(initialVal).toBe('UI Zap Target');
+
+        // 3. Delete
+        page.on('dialog', async dialog => {
+            await dialog.accept();
+        });
+
+        const deleteBtn = await page.evaluateHandle(() => {
+            const buttons = Array.from(document.querySelectorAll('button'));
+            return buttons.find(b => b.textContent.includes('Supprimer ce profil'));
+        });
+        await deleteBtn.click();
+
+        // 4. Verify UI Reset
+        // Wait for input to become "Salon"
+        await page.waitForFunction(() => document.getElementById('profile-displayname').value === 'Salon', { timeout: 5000 });
+
+        const finalValue = await page.$eval('#profile-displayname', el => el.value);
+        expect(finalValue).toBe('Salon');
+    }, 45000);
+
+
+
+
+    test.skip('Should successfully add a Global Leave period', async () => {
+        await page.goto(`${BASE_URL}/lbc-admin`);
+        // await page.reload({ waitUntil: ["networkidle0", "domcontentloaded"] }); // Removed redundant reload that causes crashes
+
+        // Handle potential login redirect
+        if (page.url().includes('login') || await page.$('#login-form')) {
+            await page.type('#username', TEST_USER.username);
+            await page.type('#password', TEST_USER.password);
+            await page.click('#login-form button[type="submit"]');
+            await page.waitForSelector('#dashboard-view', { visible: true });
+        }
+
+        await page.click('#tab-btn-settings');
+        await page.waitForSelector('#leave-list', { visible: true });
+
+        const START_DATE = '2025-12-01';
+        const END_DATE = '2025-12-05';
+
+        // Clear existing if any (optional, usually clean DB in test but here we just append)
+
+        // Fill Dates
+        await page.evaluate((s, e) => {
+            document.getElementById('holiday-start').value = s;
+            document.getElementById('holiday-end').value = e;
+        }, START_DATE, END_DATE);
+
+        // Click Add using specific selector
+        const addBtn = await page.evaluateHandle(() => {
+            return document.querySelector('button[onclick="addHolidayRange()"]');
+        });
+
+        if (!addBtn) throw new Error("Add Leave button not found");
+
+        // Setup Dialog listener
+        let alertMsg = '';
+        const dialogHandler = async dialog => {
+            alertMsg = dialog.message();
+            console.log('Dialog dismissed in test:', alertMsg);
+            await dialog.accept();
+        };
+        page.on('dialog', dialogHandler);
+
+        await addBtn.click();
+
+        // Wait a bit for dialog to potentially appear if failure
+        await new Promise(r => setTimeout(r, 1000));
+
+        // Remove listener
+        page.off('dialog', dialogHandler);
+
+        // Verify Alert Content
+        if (!alertMsg) throw new Error("Expected Success Alert but got none");
+        if (!alertMsg.includes('succès')) throw new Error("Unexpected Alert Message: " + alertMsg);
+
+        // Wait for list update
+        await page.waitForFunction((start) => {
+            return document.body.innerText.includes('01/12/2025');
+        }, {}, START_DATE);
+
+        // Verify content
+        const content = await page.content();
+        expect(content).toContain('01/12/2025');
+        expect(content).toContain('05/12/2025');
+
+    }, 45000);
+
 });

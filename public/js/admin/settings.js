@@ -2,7 +2,7 @@
 import { API_URL, getHeaders, formatDateDisplay } from './config.js';
 import { renderServicesList, setServicesData } from './services.js';
 import { renderProductsList } from './products.js';
-import { loadAppointments } from './calendar.js';
+import { loadAppointments, loadWorkersForFilter } from './calendar.js';
 import { setSchedule, setHolidayRanges, setHomeContent, setSalonClosingTime, currentHolidayRanges, currentHomeContent, setProducts } from './state.js';
 import { renderActionButtons } from './ui-components.js';
 
@@ -138,6 +138,119 @@ function initProfileForm() {
 
     // Initial call
     updateProfileView();
+
+    // ----------------------------------------------------
+    // START: Delete Worker Button Logic
+    // ----------------------------------------------------
+    const deleteBtn = document.createElement('button');
+    deleteBtn.className = 'btn'; // removed btn-danger to avoid BS conflict if any, custom style below
+    deleteBtn.style.backgroundColor = '#d32f2f'; // Red
+    deleteBtn.style.color = '#ffffff';
+    deleteBtn.style.border = 'none';
+    deleteBtn.style.padding = '10px 20px';
+    deleteBtn.style.cursor = 'pointer';
+    deleteBtn.style.marginTop = '0px'; // Align with submit
+    deleteBtn.textContent = 'Supprimer ce profil';
+    deleteBtn.style.display = 'none';
+
+    // Ensure it sits next to Update
+    // Ensure it sits next to Update
+    deleteBtn.style.verticalAlign = 'middle';
+    deleteBtn.style.width = 'auto'; // Force auto width "taille normale"
+
+    // Insert logic: Wrap in .form-actions if not already
+    const submitBtn = profileForm.querySelector('button[type="submit"]');
+    if (submitBtn) {
+        let container = submitBtn.parentNode;
+
+        // Check if already in a wrapper
+        if (!container.classList.contains('form-actions')) {
+            const wrapper = document.createElement('div');
+            wrapper.className = 'form-actions';
+            // Insert wrapper before button
+            container.insertBefore(wrapper, submitBtn);
+            // Move button into wrapper
+            wrapper.appendChild(submitBtn);
+            container = wrapper;
+        }
+
+        // Append delete button next to submit button
+        container.appendChild(deleteBtn);
+    }
+
+    deleteBtn.onclick = async (e) => {
+        e.preventDefault();
+        const adminId = filterEl.value;
+        if (!adminId) return; // Should not happen if button is shown
+
+        if (!confirm('Attention: La suppression est définitive.\n\nTous les rendez-vous et congés associés à ce coiffeur seront également supprimés.\n\nContinuer ?')) {
+            return;
+        }
+
+        try {
+            const res = await fetch(`${API_URL}/workers/${adminId}`, {
+                method: 'DELETE',
+                headers: getHeaders()
+            });
+
+            if (res.ok) {
+                alert('Profil supprimé avec succès.');
+
+                // 1. Immediate Visual Reset
+                filterEl.value = "";
+                filterEl.innerHTML = '<option value="">Salon</option>';
+
+                const displayInput = document.getElementById('profile-displayname');
+                if (displayInput) {
+                    displayInput.value = 'Salon';
+                    displayInput.disabled = true;
+                }
+                const sectionTitle = document.querySelector('#profile-form')?.closest('.settings-section')?.querySelector('h3');
+                if (sectionTitle) sectionTitle.textContent = 'Profil du Salon';
+                document.getElementById('profile-new-pass').value = '';
+                deleteBtn.style.display = 'none';
+
+                // 2. Refresh Data (Async)
+                await loadWorkersForFilter();
+
+                // Ensure value is still empty after reload
+                filterEl.value = "";
+
+                loadAppointments();
+
+                // REMOVED: dispatchEvent(change) to avoid race conditions.
+
+            } else {
+                const err = await res.json();
+                alert('Erreur: ' + (err.error || 'Impossible de supprimer'));
+            }
+        } catch (error) {
+            console.error(error);
+            alert('Erreur réseau');
+        }
+    };
+
+    // Update visibility in updateProfileView wrapper
+    const originalUpdateView = updateProfileView;
+    const wrappedUpdateView = async () => {
+        await originalUpdateView();
+        const adminId = filterEl.value;
+        if (adminId) {
+            deleteBtn.style.display = 'inline-block';
+        } else {
+            deleteBtn.style.display = 'none';
+        }
+    };
+
+    // Override the listener
+    filterEl.removeEventListener('change', updateProfileView);
+    filterEl.addEventListener('change', wrappedUpdateView);
+
+    // Call immediately
+    wrappedUpdateView();
+    // ----------------------------------------------------
+    // END: Delete Worker Button Logic
+    // ----------------------------------------------------
 
     // Handle Submit
     profileForm.addEventListener('submit', async (e) => {
@@ -282,7 +395,7 @@ export async function addHolidayRange() {
     if (start > end) return alert('La date de début doit être avant la fin');
 
     try {
-        await fetch(`${API_URL}/leaves`, {
+        const res = await fetch(`${API_URL}/leaves`, {
             method: 'POST',
             headers: getHeaders(),
             body: JSON.stringify({
@@ -292,6 +405,14 @@ export async function addHolidayRange() {
                 note: adminId ? 'Congés Coiffeur' : 'Fermeture'
             })
         });
+
+        if (!res.ok) {
+            const err = await res.json();
+            throw new Error(err.error || 'Erreur lors de la sauvegarde');
+        }
+
+        // Success Feedback
+        alert('Congés ajoutés avec succès');
 
         // Reload
         await loadLeaves();
@@ -303,8 +424,9 @@ export async function addHolidayRange() {
         loadAppointments();
 
     } catch (e) {
-        alert('Erreur lors de l\'ajout');
         console.error(e);
+        // Show specific error if available
+        alert('Erreur: ' + (e.message || 'Erreur lors de l\'ajout'));
     }
 }
 
@@ -340,6 +462,8 @@ function renderScheduleTable(schedule) {
             <td><input type="checkbox" class="sched-open" ${dayData.isOpen ? 'checked' : ''} onchange="toggleRow(this)"></td>
             <td><input type="time" class="sched-start" value="${dayData.open}" ${!dayData.isOpen ? 'disabled' : ''}></td>
             <td><input type="time" class="sched-end" value="${dayData.close}" ${!dayData.isOpen ? 'disabled' : ''}></td>
+            <td><input type="time" class="sched-break-start" value="${dayData.breakStart || ''}" ${!dayData.isOpen ? 'disabled' : ''}></td>
+            <td><input type="time" class="sched-break-end" value="${dayData.breakEnd || ''}" ${!dayData.isOpen ? 'disabled' : ''}></td>
         `;
         tbody.appendChild(tr);
     });
@@ -366,6 +490,8 @@ export function copyMondayToAll() {
         tr.querySelector('.sched-open').checked = isOpen;
         tr.querySelector('.sched-start').value = start;
         tr.querySelector('.sched-end').value = end;
+        tr.querySelector('.sched-break-start').value = monRow.querySelector('.sched-break-start').value;
+        tr.querySelector('.sched-break-end').value = monRow.querySelector('.sched-break-end').value;
         toggleRow(tr.querySelector('.sched-open'));
     });
 }
@@ -380,7 +506,9 @@ export async function saveSchedule() {
         const isOpen = tr.querySelector('.sched-open').checked;
         const open = tr.querySelector('.sched-start').value;
         const close = tr.querySelector('.sched-end').value;
-        schedule[idx] = { isOpen, open, close };
+        const breakStart = tr.querySelector('.sched-break-start').value;
+        const breakEnd = tr.querySelector('.sched-break-end').value;
+        schedule[idx] = { isOpen, open, close, breakStart, breakEnd };
     });
 
     const settings = { openingHours: schedule };

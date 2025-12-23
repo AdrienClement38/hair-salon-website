@@ -123,6 +123,61 @@ describe('Smart Scheduling Logic', () => {
         expect(res.body.error).toMatch(/overlap|booked/i);
     });
 
+    test('Should respect lunch breaks', async () => {
+        // Setup: Open 09:00 - 18:00, lunch 12:00 - 14:00
+        const openingHours = {
+            start: '09:00',
+            end: '18:00',
+            breakStart: '12:00',
+            breakEnd: '14:00',
+            closedDays: []
+        };
+        await db.setSetting('openingHours', openingHours);
+
+        // Need to recreate opening hours as Array if the new logic expects array for break times?
+        // Actually the code handles legacy object vs array.
+        // Let's stick to legacy object mock for simplicity OR assume we'll migrate to array access in business logic.
+        // Wait, the business logic:
+        /*
+            if (Array.isArray(openingHours)) {
+                daySettings = openingHours[dayOfWeek];
+            } else { ... }
+        */
+        // If I want to test the new feature properly, I should probably mock the Array format which allows per-day breaks,
+        // OR update the legacy handling to support global breaks. 
+        // Given the requirement is "every day", the array format is the target.
+
+        const schedule = [];
+        for (let i = 0; i < 7; i++) {
+            schedule.push({
+                isOpen: true,
+                open: '09:00',
+                close: '18:00',
+                breakStart: '12:00',
+                breakEnd: '14:00'
+            });
+        }
+        await db.setSetting('openingHours', schedule);
+
+        // Service 30 mins
+        const res = await request(app)
+            .get(`/api/slots?date=${TEST_DATE}&adminId=${ADMIN_ID}&serviceId=svc-30`)
+            .expect(200);
+
+        const slots = res.body.slots;
+
+        // Should have 11:30 (ends 12:00)
+        expect(slots).toContain('11:30');
+
+        // Should NOT have 12:00 (in break)
+        expect(slots).not.toContain('12:00');
+        expect(slots).not.toContain('12:30');
+        expect(slots).not.toContain('13:30');
+
+        // Should have 14:00 (break ends)
+        expect(slots).toContain('14:00');
+    });
+
     afterAll(async () => {
         // Cleanup
         await db.run('DELETE FROM appointments WHERE date = ?', [TEST_DATE]);

@@ -36,10 +36,10 @@ const updateWorkerSchema = z.object({
 
 const leaveSchema = z.object({
     body: z.object({
-        start_date: z.string().regex(dateRegex, "Format de date invalide (YYYY-MM-DD)"),
-        end_date: z.string().regex(dateRegex, "Format de date invalide (YYYY-MM-DD)"),
+        start: z.string().regex(dateRegex, "Format de date invalide (YYYY-MM-DD)"),
+        end: z.string().regex(dateRegex, "Format de date invalide (YYYY-MM-DD)"),
         note: safeString(0, 500).optional(), // Note can be empty
-        admin_id: z.number().optional()
+        adminId: z.number().or(z.string().nullable()).optional() // frontend sends "" or ID string
     })
 });
 

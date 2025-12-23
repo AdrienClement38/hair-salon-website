@@ -189,6 +189,7 @@
 #schedule-table {
     width: 100%;
     border-collapse: collapse;
+    table-layout: fixed;
 }
 
 #schedule-table th,
@@ -198,75 +199,174 @@
     vertical-align: middle;
 }
 
-#schedule-table th {
-    width: 25%;
-    /* Balanced columns */
-    text-align: center;
+/* Specific Column Widths */
+#schedule-table th:nth-child(1) {
+    width: 14%;
+}
+
+/* Jour */
+#schedule-table th:nth-child(2) {
+    width: 6%;
+}
+
+/* Checkbox */
+/* 4 Time Columns: 20% each = 80%. Total 100% */
+#schedule-table th:nth-child(3),
+#schedule-table th:nth-child(4),
+#schedule-table th:nth-child(5),
+#schedule-table th:nth-child(6) {
+    width: 20%;
 }
 
 #schedule-table input[type="time"] {
     width: 100%;
-    max-width: 150px;
-    /* Constrain input width */
+    box-sizing: border-box;
     padding: 0.5rem;
     border: 1px solid #ddd;
     border-radius: 4px;
+    text-align: center;
 }
 
 /* Mobile Settings Optimization */
 @media (max-width: 768px) {
+
+    /* Mobile Settings Optimization */
     .settings-section {
         padding: 5px;
-        width: 100%;
-        box-sizing: border-box;
         overflow-x: hidden;
     }
 
-    /* Force table to fit */
+    /* Stacked Layout */
     #schedule-table {
+        min-width: unset;
         width: 100%;
-        table-layout: fixed;
+        display: block;
         border: none;
     }
 
-    #schedule-table th,
+    #schedule-table thead {
+        display: none;
+    }
+
+    #schedule-table tbody {
+        display: block;
+        width: 100%;
+    }
+
+    #schedule-table tr {
+        display: grid;
+        grid-template-columns: 15% 10% 37% 37%;
+        /* Reduced day col, wider inputs */
+        grid-template-rows: auto auto;
+        /* 2 rows */
+        gap: 5px 2px;
+        padding: 10px 0;
+        border-bottom: 1px solid #eee;
+        align-items: center;
+        width: 100%;
+    }
+
     #schedule-table td {
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-        padding: 4px 2px;
-        font-size: 0.7rem;
+        padding: 0;
+        border: none;
     }
 
-    /* Column Widths */
-    #schedule-table th:nth-child(1) {
-        width: 20%;
+    /* Day Name */
+    #schedule-table td:nth-child(1) {
+        grid-row: 1 / span 2;
+        grid-column: 1;
+        font-weight: bold;
+        font-size: 0.85rem;
+        text-align: left;
+        line-height: 1.2;
+        display: flex;
+        align-items: center;
     }
 
-    /* Jour */
-    #schedule-table th:nth-child(2) {
-        width: 10%;
-        font-size: 0.6rem;
+    /* Checkbox */
+    #schedule-table td:nth-child(2) {
+        grid-row: 1 / span 2;
+        grid-column: 2;
+        text-align: center;
+        display: flex;
+        align-items: center;
+        justify-content: center;
     }
 
-    /* Ouvert (small) */
-    #schedule-table th:nth-child(3) {
-        width: 35%;
+    /* Helper for labels */
+    #schedule-table td:nth-child(3),
+    #schedule-table td:nth-child(4),
+    #schedule-table td:nth-child(5),
+    #schedule-table td:nth-child(6) {
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-end;
     }
 
     /* Open */
-    #schedule-table th:nth-child(4) {
-        width: 35%;
+    #schedule-table td:nth-child(3) {
+        grid-row: 1;
+        grid-column: 3;
+    }
+
+    #schedule-table td:nth-child(3)::before {
+        content: "Ouverture";
+        font-size: 0.65rem;
+        color: #888;
+        margin-bottom: 2px;
+        display: block;
     }
 
     /* Close */
+    #schedule-table td:nth-child(4) {
+        grid-row: 1;
+        grid-column: 4;
+    }
+
+    #schedule-table td:nth-child(4)::before {
+        content: "Fermeture";
+        font-size: 0.65rem;
+        color: #888;
+        margin-bottom: 2px;
+        display: block;
+    }
+
+    /* Break Start */
+    #schedule-table td:nth-child(5) {
+        grid-row: 2;
+        grid-column: 3;
+    }
+
+    #schedule-table td:nth-child(5)::before {
+        content: "Pause Début";
+        font-size: 0.65rem;
+        color: #888;
+        margin-bottom: 2px;
+        display: block;
+    }
+
+    /* Break End */
+    #schedule-table td:nth-child(6) {
+        grid-row: 2;
+        grid-column: 4;
+    }
+
+    #schedule-table td:nth-child(6)::before {
+        content: "Pause Fin";
+        font-size: 0.65rem;
+        color: #888;
+        margin-bottom: 2px;
+        display: block;
+    }
 
     #schedule-table input[type="time"] {
-        width: 95%;
-        /* Slight buffer */
-        padding: 0;
-        font-size: 0.7rem;
+        width: 98%;
+        padding: 4px 1px;
+        font-size: 0.8rem;
         border: 1px solid #ddd;
+        border-radius: 4px;
+        height: 28px;
+        text-align: center;
     }
 
     /* Services Table Optimization */
@@ -366,110 +466,6 @@
 
     /* Actions (td5) */
     #services-list td:nth-child(5) {
-        grid-row: 1 / span 3;
-        grid-column: 3;
-        display: flex;
-        align-items: center;
-        justify-content: flex-end;
-        border: none !important;
-        padding: 0 !important;
-        height: 100%;
-    }
-
-    /* Reset button styles for better fit if needed */
-    #services-list .btn-gold {
-        padding: 4px;
-        /* Reduced padding for icon button */
-    }
-
-    /* Products Table Optimization */
-    #products-list table {
-        width: 100%;
-        display: block;
-    }
-
-    #products-list thead {
-        display: none;
-    }
-
-    #products-list tbody {
-        display: block;
-        width: 100%;
-        max-height: 400px;
-        overflow-y: auto;
-        padding-right: 5px;
-    }
-
-    #products-list tr {
-        display: grid;
-        grid-template-columns: 50px 1fr auto;
-        /* Photo | Name+Price+Desc | Actions */
-        grid-template-rows: auto auto auto;
-        gap: 2px;
-        padding: 10px;
-        border-bottom: 1px solid #eee;
-        align-items: center;
-        width: 100%;
-        box-sizing: border-box;
-        margin-bottom: 5px;
-        background: #fff;
-        border-radius: 8px;
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-    }
-
-    /* Photo (td1) */
-    #products-list td:nth-child(1) {
-        grid-row: 1 / span 3;
-        grid-column: 1;
-        display: flex;
-        justify-content: center;
-        align-items: flex-start;
-        padding-top: 8px;
-        border: none !important;
-        height: 100%;
-    }
-
-    /* Name (td2) */
-    #products-list td:nth-child(2) {
-        grid-row: 1;
-        grid-column: 2;
-        font-weight: bold;
-        font-size: 1rem;
-        padding: 0 !important;
-        border: none !important;
-        white-space: normal;
-        overflow: visible;
-    }
-
-    /* Price (td3) */
-    #products-list td:nth-child(3) {
-        grid-row: 2;
-        grid-column: 2;
-        font-weight: bold;
-        color: #d4af37;
-        padding: 0 !important;
-        border: none !important;
-        font-size: 0.9rem;
-    }
-
-    /* Description (td4) */
-    #products-list td:nth-child(4) {
-        grid-row: 3;
-        grid-column: 2;
-        font-size: 0.8rem;
-        color: #666;
-        font-style: italic;
-        padding: 0 !important;
-        border: none !important;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        max-width: 200px;
-        display: block;
-    }
-
-    /* Actions (td5) */
-    #products-list td:nth-child(5) {
         grid-row: 1 / span 3;
         grid-column: 3;
         display: flex;

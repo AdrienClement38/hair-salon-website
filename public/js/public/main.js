@@ -45,7 +45,7 @@ async function pollUpdates() {
 async function loadSettings() {
     try {
         console.log("Fetching settings...");
-        const res = await fetch(`/api/settings`);
+        const res = await fetch(`/api/settings?t=${Date.now()}`);
         const { openingHours, holidayRanges, home_content, services, contact_info, products } = await res.json();
 
         renderOpeningHours(openingHours);

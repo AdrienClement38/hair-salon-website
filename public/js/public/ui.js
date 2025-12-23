@@ -80,7 +80,16 @@ export function renderOpeningHours(openingHours) {
         const dayData = schedule[dayIdx] || { isOpen: false };
         const dayLabel = dayNames[dayIdx];
 
-        let timeStr = dayData.isOpen ? `${dayData.open}-${dayData.close}` : 'Fermé';
+        let timeStr = 'Fermé';
+        if (dayData.isOpen) {
+            if (dayData.breakStart && dayData.breakEnd) {
+                // Formatting helper
+                const cleanTime = (t) => t; // Or trim seconds if needed
+                timeStr = `${cleanTime(dayData.open)} - ${cleanTime(dayData.breakStart)} / ${cleanTime(dayData.breakEnd)} - ${cleanTime(dayData.close)}`;
+            } else {
+                timeStr = `${dayData.open} - ${dayData.close}`;
+            }
+        }
 
         if (currentGroup && currentGroup.time === timeStr) {
             currentGroup.endDay = dayLabel;
@@ -96,8 +105,10 @@ export function renderOpeningHours(openingHours) {
     groups.forEach(g => {
         let label = g.startDay;
         if (g.count > 1) {
-            if (g.count > 2) label += ` - ${g.endDay}`;
-            else if (g.count === 2) label += `, ${g.endDay}`;
+            if (g.count > 2) label += ` - ${g.endDay}`; // e.g. Lun - Mer
+            else if (g.count === 2) label += ` & ${g.endDay}`; // e.g. Jeu & Ven (Wait, standard is usually comma or just range if contiguous)
+            // Let's stick to simple logic: Contiguous days usually use " - ".
+            // But here we rely on the loop order, so if they are contiguous in uiOrder, they are contiguous days.
         }
         html += `<div><strong>${label} :</strong> ${g.time}</div>`;
     });

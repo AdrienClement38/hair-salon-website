@@ -93,4 +93,37 @@ describe('Admin Management Tests', () => {
         expect(getRes.body.services[0].name).toBe('Test Cut');
     });
 
+    // US-Delete: Worker Deletion (TDD Verification)
+    test('Should delete a worker and clean up data', async () => {
+        // 1. Create Worker
+        const workerData = {
+            username: 'todelete_' + Date.now(),
+            password: 'password',
+            displayName: 'To Delete'
+        };
+
+        await request(app)
+            .post('/api/admin/workers')
+            .set('Authorization', authHeader)
+            .send(workerData);
+
+        // Get ID
+        const listRes = await request(app).get('/api/admin/workers').set('Authorization', authHeader);
+        const worker = listRes.body.find(w => w.username === workerData.username);
+        expect(worker).toBeDefined();
+
+        // 2. Delete Worker
+        const delRes = await request(app)
+            .delete(`/api/admin/workers/${worker.id}`)
+            .set('Authorization', authHeader);
+
+        expect(delRes.statusCode).toBe(200);
+        expect(delRes.body.success).toBe(true);
+
+        // 3. Verify Gone
+        const verifyRes = await request(app).get('/api/admin/workers').set('Authorization', authHeader);
+        const exists = verifyRes.body.some(w => w.username === workerData.username);
+        expect(exists).toBe(false);
+    });
+
 });

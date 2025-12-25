@@ -20,16 +20,16 @@ describe('Portfolio UX', () => {
         const port = server.address().port;
         BASE_URL = `http://localhost:${port}`;
 
-        // Seed Data
-        // Create an admin to own the item (optional if schema doesn't strictly enforce generic portfolio presence, but good practice)
-        // Actually createPortfolioItem takes adminId.
-        // Let's just pass 1, or create one.
-        // Since it's in-memory DB, tables are empty.
-        await createAdmin('admin', 'password', 'Admin');
+        // Seed Data for Portfolio Test on Clone DB
+        const testAdminUser = 'portfolio_' + Date.now();
+        const hash = await require('bcryptjs').hash('password', 10);
+        // createAdmin returns { lastInsertRowid: id } with sql.js or pg logic
+        const adminRes = await createAdmin(testAdminUser, hash, 'Portfolio Admin');
+        const adminId = adminRes.lastInsertRowid || adminRes.id || 1; // Fallback if necessary
 
-        // Seed Portfolio Items (One is enough to pass > 0)
-        await createPortfolioItem('test_image_1.jpg', 'Test Description 1', 1);
-        await createPortfolioItem('test_image_2.jpg', 'Test Description 2', 1);
+        // Seed Portfolio Items
+        await createPortfolioItem('test_image_1.jpg', 'Test Description 1', adminId);
+        await createPortfolioItem('test_image_2.jpg', 'Test Description 2', adminId);
     });
 
     afterAll(async () => {

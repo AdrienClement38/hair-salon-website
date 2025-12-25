@@ -21,8 +21,12 @@ describe('Lightbox UX', () => {
         BASE_URL = `http://localhost:${port}`;
 
         // Seed Data
-        await createAdmin('admin', 'password', 'Admin');
-        await createPortfolioItem('test_image_1.jpg', 'Test Description 1', 1);
+        const testAdminUser = 'lightbox_' + Date.now();
+        const hash = await require('bcryptjs').hash('password', 10);
+        const adminRes = await createAdmin(testAdminUser, hash, 'Lightbox Admin');
+        const adminId = adminRes.lastInsertRowid || adminRes.id || 1;
+
+        await createPortfolioItem('test_image_1.jpg', 'Test Description 1', adminId);
     });
 
     afterAll(async () => {

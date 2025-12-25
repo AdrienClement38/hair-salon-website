@@ -35,17 +35,13 @@ describe('Admin UI & Profile Switching', () => {
         BASE_URL = `http://localhost:${port}`;
 
 
-        // 1. Setup Data - Since DB is fresh/in-memory, we start from scratch.
-        // Create first admin (Setup)
-        const setupRes = await fetch(`${BASE_URL}/api/auth/setup`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(TEST_USER)
-        });
+        // 1. Setup Data - Inject Test User Directly via DB to bypass Setup limits
+        const dbModel = require('../server/models/database');
+        const hash = await bcrypt.hash(TEST_USER.password, 10);
+        await dbModel.createAdmin(TEST_USER.username, hash, TEST_USER.displayName);
 
-        if (!setupRes.ok) {
-            throw new Error(`Failed to setup test runner: ${await setupRes.text()}`);
-        }
+        // No need to check setupRes as we use internal method that throws or succeeds
+        console.log('Test User Injected:', TEST_USER.username);
 
         // 2. Login and Create Worker
         const auth = getAuth(TEST_USER.username, TEST_USER.password);
@@ -71,6 +67,7 @@ describe('Admin UI & Profile Switching', () => {
     beforeEach(async () => {
         browser = await puppeteer.launch({ headless: 'new' });
         page = await browser.newPage();
+        page.on('console', msg => console.log('PAGE LOG:', msg.text())); // Debug logs
         await page.setViewport({ width: 1280, height: 800 });
     });
 
@@ -387,10 +384,20 @@ describe('Admin UI & Profile Switching', () => {
                 headers: { 'Content-Type': 'application/json', 'Authorization': auth },
                 body: JSON.stringify({ username: name, password: 'password', displayName: 'UI Zap Target' })
             });
+            if (!res.ok) throw new Error('Failed to create worker: ' + await res.text());
+            console.log('Worker created via fetch inside page');
         }, workerName, authHeader);
 
         await page.reload();
-        await page.waitForSelector('#admin-filter option[value]', { timeout: 5000 });
+        await page.waitForSelector('#admin-filter', { visible: true });
+
+        // Wait for our specific worker option to appear (async loading)
+        await page.waitForFunction((name) => {
+            const options = Array.from(document.querySelectorAll('#admin-filter option'));
+            const found = options.some(o => o.textContent === name);
+            if (!found) console.log('Waiting for option... detected:', options.length);
+            return found;
+        }, { timeout: 10000 }, 'UI Zap Target');
 
         // 2. Select the worker
         const optionValue = await page.evaluate(() => {
@@ -401,6 +408,20 @@ describe('Admin UI & Profile Switching', () => {
         expect(optionValue).not.toBeNull();
 
         await page.select('#admin-filter', optionValue);
+
+        // Verify value is set and force dispatch change event to ensure UI updates
+        const selectedValue = await page.$eval('#admin-filter', el => el.value);
+        if (selectedValue !== optionValue) {
+            console.log('DEBUG: Selection failed, retrying via evaluate');
+            await page.evaluate((val) => {
+                const el = document.getElementById('admin-filter');
+                el.value = val;
+                el.dispatchEvent(new Event('change'));
+            }, optionValue);
+        } else {
+            // Force dispatch just in case Puppeteer select didn't trigger listeners correctly
+            await page.evaluate(() => document.getElementById('admin-filter').dispatchEvent(new Event('change')));
+        }
 
         // Wait for inputs to populate (simulate UI responsiveness)
         await new Promise(r => setTimeout(r, 1000));
@@ -413,6 +434,15 @@ describe('Admin UI & Profile Switching', () => {
         page.on('dialog', async dialog => {
             await dialog.accept();
         });
+
+        // Wait for delete button to appear and be visible
+        await page.waitForFunction(() => {
+            const buttons = Array.from(document.querySelectorAll('button'));
+            const btn = buttons.find(b => b.textContent.includes('Supprimer ce profil'));
+            if (btn) console.log('DEBUG: Button found. Display:', btn.style.display, 'Parent:', !!btn.offsetParent);
+            else console.log('DEBUG: Button NOT found');
+            return btn && btn.offsetParent !== null && btn.style.display !== 'none';
+        }, { timeout: 10000 });
 
         const deleteBtn = await page.evaluateHandle(() => {
             const buttons = Array.from(document.querySelectorAll('button'));

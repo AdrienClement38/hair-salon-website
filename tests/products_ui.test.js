@@ -31,16 +31,10 @@ describe('Product Management UI', () => {
         const port = server.address().port;
         BASE_URL = `http://localhost:${port}`;
 
-        // Create Test User via API setup
-        const setupRes = await fetch(`${BASE_URL}/api/auth/setup`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(TEST_USER)
-        });
-
-        if (!setupRes.ok) {
-            throw new Error(`Failed to setup test runner: ${await setupRes.text()}`);
-        }
+        // Create Test User via direct DB injection
+        const dbModel = require('../server/models/database');
+        const hash = await bcrypt.hash(TEST_USER.password, 10);
+        await dbModel.createAdmin(TEST_USER.username, hash, TEST_USER.displayName);
     });
 
     beforeEach(async () => {

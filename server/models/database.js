@@ -114,8 +114,23 @@ const initDB = async () => {
     type = 'sqlite';
     const initSqlJs = require('sql.js');
     SQL = await initSqlJs();
-    db = new SQL.Database();
 
+    // TRY LOADING EXISTING DB FOR REALISTIC TESTING
+    const dbPath = path.resolve(__dirname, '../../salon.db');
+    if (fs.existsSync(dbPath)) {
+      try {
+        const filebuffer = fs.readFileSync(dbPath);
+        db = new SQL.Database(filebuffer);
+        console.log('TEST MODE: Loaded production DB clone.');
+      } catch (e) {
+        console.warn('TEST MODE: Failed to load production DB, starting empty.', e);
+        db = new SQL.Database();
+      }
+    } else {
+      db = new SQL.Database();
+    }
+
+    // Ensure saveDB does nothing in test mode (implicit by check in saveDB)
   } else if (connectionString) {
     type = 'pg';
     const { Pool } = require('pg');

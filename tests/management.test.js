@@ -6,21 +6,21 @@ const bcrypt = require('bcryptjs');
 describe('Admin Management Tests', () => {
 
     let authHeader;
+    const dbModel = require('../server/models/database'); // Access internal DB methods
 
     beforeAll(async () => {
-        await db.initPromise;
+        await dbModel.initPromise;
 
-        // Setup initial admin for testing management features directly in DB
-        // This avoids API limitations (cannot setup if admin exists) and guarantees user exists
-        try {
-            const hash = await bcrypt.hash('password123', 10);
-            await db.createAdmin('manager', hash, 'Manager');
-        } catch (e) {
-            // Ignore if already exists (shared DB case)
-        }
+        // Setup test admin directly via DB to bypass "admin exists" check
+        const testUser = 'manager_' + Date.now();
+        const hash = await bcrypt.hash('password123', 10);
+
+        // We use the exposed internal run/query or just createAdmin if available
+        // createAdmin handles SQL injection based on type
+        await dbModel.createAdmin(testUser, hash, 'Manager Test');
 
         // Basic Auth Header
-        const token = Buffer.from('manager:password123').toString('base64');
+        const token = Buffer.from(`${testUser}:password123`).toString('base64');
         authHeader = `Basic ${token}`;
     });
 

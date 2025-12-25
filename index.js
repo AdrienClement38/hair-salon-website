@@ -9,7 +9,16 @@ if (require.main === module) {
     const server = http.createServer(app);
     const port = process.env.PORT || 3000;
 
+    const db = require('./server/models/database');
+
     server.listen(port, () => {
         console.log(`Server running at http://localhost:${port}`);
+
+        // Trigger Database Cleanup on Start
+        db.initPromise.then(() => {
+            db.purgeOldAppointments()
+                .then(res => console.log('Cleaned up old appointments:', res.changes ? res.changes : 'Done'))
+                .catch(err => console.error('Cleanup failed:', err));
+        });
     });
 }

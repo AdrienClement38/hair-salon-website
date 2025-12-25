@@ -12,7 +12,26 @@ exports.update = async (req, res) => {
         if (home_content) await db.setSetting('home_content', home_content);
         if (services) await db.setSetting('services', services);
         if (contact_info) await db.setSetting('contact_info', contact_info);
-        if (products) await db.setSetting('products', products);
+        if (products) {
+            // Check for orphan images before saving new list
+            const oldProducts = (await db.getSetting('products')) || [];
+            const oldImages = oldProducts.filter(p => p.image).map(p => p.image);
+
+            // New images
+            const newImages = products.filter(p => p.image).map(p => p.image);
+
+            // Find images that were in OLD but NOT in NEW
+            const orphans = oldImages.filter(img => !newImages.includes(img));
+
+
+
+            if (orphans.length > 0) {
+                console.log('Cleaning up orphan product images:', orphans);
+                await Promise.all(orphans.map(img => db.deleteImage(img)));
+            }
+
+            await db.setSetting('products', products);
+        }
 
         triggerUpdate('settings');
         res.json({ success: true });

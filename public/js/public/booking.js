@@ -83,14 +83,32 @@ function updateSlots() {
         const selected = new Date(date);
         const now = new Date();
         now.setHours(0, 0, 0, 0);
+
+        // Calculate limit: 2 months (approx 60 days or exactly 2 months?)
+        // User said "2 mois". Date calculation is better with months.
         const limit = new Date(now);
-        limit.setDate(now.getDate() + 60);
+        limit.setMonth(limit.getMonth() + 2); // Exactly 2 months
 
         if (selected > limit) {
             showMessage("La réservation est impossible plus de 2 mois à l'avance.", "error");
+
+            // Auto hide error message after 10 seconds
+            setTimeout(() => {
+                const msgEl = document.getElementById('form-message');
+                if (msgEl && msgEl.textContent.includes('impossible plus de 2 mois')) {
+                    showMessage('', '');
+                }
+            }, 10000);
+
             dateInput.value = "";
             slotsContainer.innerHTML = '<p class="text-muted">Date invalide.</p>';
             return;
+        }
+
+        // Clear message if date is valid
+        const msgEl = document.getElementById('form-message');
+        if (msgEl && msgEl.textContent.includes('impossible plus de 2 mois')) {
+            showMessage('', '');
         }
     }
 

@@ -343,6 +343,27 @@ const anonymizePastAppointments = async () => {
   return await query("UPDATE appointments SET phone = NULL WHERE date < ? AND phone IS NOT NULL", [today]);
 };
 
+const purgeOldAppointments = async (daysToKeep = 7) => {
+  // Calculate cutoff date in JS to be DB-agnostic
+  const cutoffDate = new Date();
+  cutoffDate.setDate(cutoffDate.getDate() - daysToKeep);
+  const cutoffStr = cutoffDate.toISOString().split('T')[0];
+
+  if (type === 'pg') {
+    return await query('DELETE FROM appointments WHERE date < $1', [cutoffStr]);
+  } else {
+    return await query('DELETE FROM appointments WHERE date < ?', [cutoffStr]);
+  }
+};
+
+const deleteImage = async (filename) => {
+  if (type === 'pg') {
+    return await query('DELETE FROM images WHERE filename = $1', [filename]);
+  } else {
+    return await query('DELETE FROM images WHERE filename = ?', [filename]);
+  }
+};
+
 const createPortfolioItem = async (filename, description, adminId) => {
   if (type === 'pg') {
     const sql = 'INSERT INTO portfolio (filename, description, admin_id) VALUES ($1, $2, $3) RETURNING id';
@@ -488,6 +509,7 @@ module.exports = {
   updateAppointment,
   anonymizePastAppointments,
   anonymizePastAppointments,
+  purgeOldAppointments,
   createPortfolioItem,
   getPortfolioItems,
   getPortfolioItemIds,
@@ -497,6 +519,7 @@ module.exports = {
   setSetting,
   saveImage,
   getImage,
+  deleteImage,
   checkAdminExists,
   createAdmin,
   getAdmin,

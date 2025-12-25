@@ -11,6 +11,20 @@ class AppointmentService {
     async getAvailableSlots(date, adminId, serviceId) {
         if (!date) throw new Error('Date required');
 
+        // 0. Check Date Limit (2 Months)
+        const checkDate = new Date(date);
+        const now = new Date();
+        now.setHours(0, 0, 0, 0); // Normalize today
+        const limitDate = new Date(now);
+        limitDate.setMonth(limitDate.getMonth() + 2);
+
+        if (checkDate > limitDate) {
+            // Return empty slots silently or throw? Frontend expects slots array.
+            // If date is too far, it's effectively "closed" or "invalid".
+            // Let's return empty with a reason if possible, or just empty.
+            return { slots: [], reason: 'date_limit_exceeded' };
+        }
+
         // 1. Check Global Holidays (Dates)
         const holidays = (await db.getSetting('holidays')) || [];
         if (holidays.includes(date)) {
@@ -198,6 +212,17 @@ class AppointmentService {
 
     async createBooking(data) {
         const { name, date, time, service, phone, adminId } = data;
+
+        // 0. Check Date Limit (2 Months) Security
+        const checkDate = new Date(date);
+        const now = new Date();
+        now.setHours(0, 0, 0, 0);
+        const limitDate = new Date(now);
+        limitDate.setMonth(limitDate.getMonth() + 2);
+
+        if (checkDate > limitDate) {
+            throw new Error('La réservation est impossible plus de 2 mois à l\'avance.');
+        }
 
         // Double check availability (Race condition protection)
         // Reuse getAvailableSlots checking logic or just simpler overlap check

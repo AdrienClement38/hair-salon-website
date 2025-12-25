@@ -114,7 +114,18 @@ function initProfileForm() {
                 const workers = await res.json();
                 const worker = workers.find(w => w.id == adminId);
                 if (worker) {
-                    displayInput.value = worker.display_name || worker.username;
+                    displayInput.value = worker.displayName || worker.username;
+
+                    // Update Days Off Checkboxes
+                    const daysOff = worker.daysOff || []; // API returns [0,1,...]
+                    const container = document.getElementById('days-off-container');
+                    if (container) {
+                        const boxes = container.querySelectorAll('input[type="checkbox"]');
+                        boxes.forEach(box => {
+                            box.checked = daysOff.includes(parseInt(box.value));
+                        });
+                        container.style.display = 'block';
+                    }
                 }
             } catch (e) {
                 console.error('Failed to load worker details', e);
@@ -126,10 +137,44 @@ function initProfileForm() {
             displayInput.value = 'Salon';
             displayInput.disabled = true; // Enforce "Salon" cannot be changed
 
+            // Hide Days Off for Salon (implies open every day per schedule)
+            const container = document.getElementById('days-off-container');
+            if (container) container.style.display = 'none';
+
             // We do not fetch /me name here to avoid overwriting "Salon" with "Roger".
             // The user wants "Salon" to be displayed automatically.
         }
     };
+
+    // Inject Days Off UI
+    const passInput = document.getElementById('profile-new-pass');
+    if (passInput) {
+        const wrapper = document.createElement('div');
+        wrapper.id = 'days-off-container';
+        wrapper.style.marginTop = '15px';
+        wrapper.style.display = 'none'; // Hidden by default (until worker selected)
+
+        wrapper.innerHTML = `
+            <label style="display:block; margin-bottom:5px;">Jours de repos hebdomadaires :</label>
+            <div style="display:flex; gap:10px; flex-wrap:wrap;">
+                ${['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'].map((d, index) => {
+            // Map visual index (0=Lun) to DB index (1=Lun ... 6=Sam, 0=Dim)
+            // Visual: 0(Lun), 1(Mar), 2(Mer), 3(Jeu), 4(Ven), 5(Sam), 6(Dim)
+            // DB:     1,      2,      3,      4,      5,      6,      0
+            let dbValue = index + 1;
+            if (dbValue === 7) dbValue = 0; // Sunday
+
+            return `
+                    <label style="display:flex; align-items:center; gap:5px; cursor:pointer;">
+                        <input type="checkbox" value="${dbValue}" name="daysOff">
+                        ${d}
+                    </label>
+                `}).join('')}
+            </div>
+        `;
+        // Insert after password input parent (usually a div)
+        passInput.closest('div').after(wrapper);
+    }
 
     // Attach listener to filter
     if (filterEl) {
@@ -262,14 +307,25 @@ function initProfileForm() {
         try {
             let res;
             if (adminId) {
+                // Collect Days Off
+                const daysOff = [];
+                const container = document.getElementById('days-off-container');
+                if (container) {
+                    container.querySelectorAll('input[name="daysOff"]:checked').forEach(cb => {
+                        daysOff.push(parseInt(cb.value));
+                    });
+                }
+
+
                 // Update Worker
                 res = await fetch(`${API_URL}/workers/${adminId}`, {
                     method: 'PUT',
                     headers: getHeaders(),
-                    body: JSON.stringify({ displayName: displayname, password: newpass })
+                    body: JSON.stringify({ displayName: displayname, password: newpass, daysOff: daysOff })
                 });
             } else {
                 // Update Self
+                // Self-update of daysOff not implemented/exposed for Salon "me"
                 res = await fetch(`${API_URL}/me`, {
                     method: 'PUT',
                     headers: getHeaders(),
@@ -282,9 +338,8 @@ function initProfileForm() {
                 alert('Profil mis à jour');
                 document.getElementById('profile-new-pass').value = '';
 
-                // Reload Admin Filter and Dashboard Title immediately
-                // Reload Admin Filter and Dashboard Title immediately
-                // await loadWorkersForFilter(); // Reverted to fix circular/load issue
+                // Reload Admin Filter to update cache (Worker Names, Days Off)
+                await loadWorkersForFilter();
 
                 // If we edited a specific worker, re-select them in the filter to keep context
                 if (adminId) {

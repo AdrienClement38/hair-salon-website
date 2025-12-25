@@ -31,6 +31,23 @@ class AppointmentService {
             return { slots: [], reason: 'holiday' };
         }
 
+        // 1.5 Check Worker Weekly Days Off
+        // Need to fetch admin profile for this.
+        let admin = null;
+        if (adminId) {
+            admin = await db.getAdminById(adminId);
+            if (admin && admin.days_off) {
+                const daysOff = JSON.parse(admin.days_off); // Stored as JSON string in DB
+                const dateDay = new Date(date).getDay(); // 0 = Sunday
+
+                // daysOff is array of ints [0..6]
+                if (Array.isArray(daysOff) && daysOff.includes(dateDay)) {
+                    // Worker is OFF this day of week
+                    return { slots: [], reason: 'worker_off_day' };
+                }
+            }
+        }
+
         // 2. Check Leaves (Global + Admin Specific)
         const leaves = await db.getLeaves(adminId);
         const isLeave = leaves.some(leave => {

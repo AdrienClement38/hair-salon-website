@@ -20,7 +20,8 @@ const workerSchema = z.object({
     body: z.object({
         username: safeString(3, 50),
         displayName: safeString(2, 50),
-        password: z.string().min(6, "Le mot de passe doit faire au moins 6 caractères")
+        password: z.string().min(6, "Le mot de passe doit faire au moins 6 caractères"),
+        daysOff: z.array(z.number().min(0).max(6)).optional()
     })
 });
 
@@ -30,7 +31,8 @@ const updateWorkerSchema = z.object({
     }),
     body: z.object({
         displayName: safeString(2, 50).optional(),
-        password: z.string().min(6).optional().or(z.literal(''))
+        password: z.string().min(6).optional().or(z.literal('')),
+        daysOff: z.array(z.number().min(0).max(6)).optional()
     })
 });
 

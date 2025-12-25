@@ -184,12 +184,27 @@ const initDB = async () => {
     `);
     db.run(`
       CREATE TABLE IF NOT EXISTS admins (
-          id INTEGER PRIMARY KEY AUTOINCREMENT,
-          username TEXT UNIQUE NOT NULL,
-          password_hash TEXT NOT NULL,
-          display_name TEXT
-      );
+         id INTEGER PRIMARY KEY AUTOINCREMENT,
+         username TEXT UNIQUE NOT NULL,
+         password_hash TEXT NOT NULL,
+         display_name TEXT,
+         days_off TEXT
+       );
     `);
+
+    // Migration: Add days_off logic
+    try {
+      db.run("ALTER TABLE admins ADD COLUMN days_off TEXT", (err) => {
+        if (err && !err.message.includes('duplicate column')) {
+          console.error("Migration Error (ignored if duplicate):", err.message);
+        }
+      });
+    } catch (e) {
+      // sql.js might throw synchronously
+      if (!e.message.includes('duplicate column')) {
+        console.error("Migration Exception (ignored if duplicate):", e.message);
+      }
+    }
     db.run(`
       CREATE TABLE IF NOT EXISTS leaves (
           id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -423,14 +438,15 @@ const checkAdminExists = async () => {
   return parseInt(count) > 0;
 };
 
-const createAdmin = async (username, passwordHash, displayName) => {
+const createAdmin = async (username, passwordHash, displayName, daysOff = []) => {
   const dName = displayName || username;
+  const dOff = JSON.stringify(daysOff);
   if (type === 'pg') {
-    const sql = 'INSERT INTO admins (username, password_hash, display_name) VALUES ($1, $2, $3) RETURNING id';
-    const res = await db.query(sql, [username, passwordHash, dName]);
+    const sql = 'INSERT INTO admins (username, password_hash, display_name, days_off) VALUES ($1, $2, $3, $4) RETURNING id';
+    const res = await db.query(sql, [username, passwordHash, dName, dOff]);
     return { lastInsertRowid: res.rows[0].id };
   } else {
-    return await query('INSERT INTO admins (username, password_hash, display_name) VALUES (?, ?, ?)', [username, passwordHash, dName]);
+    return await query('INSERT INTO admins (username, password_hash, display_name, days_off) VALUES (?, ?, ?, ?)', [username, passwordHash, dName, dOff]);
   }
 };
 
@@ -445,7 +461,14 @@ const getAdminById = async (id) => {
 }
 
 const getAllAdmins = async () => {
-  return await query('SELECT id, username, display_name FROM admins');
+  const rows = await query('SELECT id, username, display_name, days_off FROM admins');
+  return rows.map(r => ({ ...r, days_off: r.days_off ? JSON.parse(r.days_off) : [] }));
+};
+
+const updateAdminDaysOff = async (id, daysOff) => {
+  const val = JSON.stringify(daysOff);
+  if (type === 'pg') return await query('UPDATE admins SET days_off = $1 WHERE id = $2', [val, id]);
+  return await query('UPDATE admins SET days_off = ? WHERE id = ?', [val, id]);
 };
 
 const updateAdminPassword = async (id, newHash) => {
@@ -532,6 +555,7 @@ module.exports = {
   getAllLeaves,
   deleteLeave,
   deleteAdmin,
+  updateAdminDaysOff,
   type,
   initPromise,
   // For testing

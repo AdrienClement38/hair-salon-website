@@ -176,21 +176,21 @@ function renderCalendar() {
     const todayMonth = String(now.getMonth() + 1).padStart(2, '0');
     const todayDay = String(now.getDate()).padStart(2, '0');
     const todayStr = `${todayYear}-${todayMonth}-${todayDay}`;
-    // const todayStr = new Date().toISOString().split('T')[0];
     const activeFilter = document.getElementById('admin-filter') ? document.getElementById('admin-filter').value : '';
 
     for (let day = 1; day <= daysInMonth; day++) {
         const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
         const dayDate = new Date(dateStr);
-        const dayOfWeekIndex = dayDate.getDay();
+        const dayOfWeekIndex = dayDate.getDay(); // 0=Sun, 1=Mon
 
         const dayAppts = appointmentsCache.filter(a => a.date === dateStr);
 
-        // Check Holidays
-        let holidayType = null; // 'global' or 'personal'
+        // Determine Status
+        let status = 'open'; // open, closed-regular, closed-exception, leave, weekly-off
+        // Status hierarchy: closed-exception > closed-regular > leave > weekly-off > open
 
+        // 1. Global Exception (Red) - Takes precedence
         if (currentLeaves && currentLeaves.length > 0) {
-            // Prioritize Global to block everything
             const globalLeaves = currentLeaves.filter(l => l.admin_id === null);
             for (const leave of globalLeaves) {
                 const start = new Date(leave.start_date);
@@ -198,66 +198,93 @@ function renderCalendar() {
                 const end = new Date(leave.end_date);
                 end.setHours(23, 59, 59, 999);
                 if (dayDate >= start && dayDate <= end) {
-                    holidayType = 'global';
+                    status = 'closed-exception';
+                    break;
+                }
+            }
+        }
+
+        // 2. Regular Closure (Grey) - If not exception
+        if (status === 'open') {
+            const dayConfig = currentSchedule[dayOfWeekIndex]; // currentSchedule uses 0=Sun, 1=Mon matches dayOfWeekIndex
+            if (dayConfig && !dayConfig.isOpen) {
+                status = 'closed-regular';
+            }
+        }
+
+        // 3. Personal Status (Leave or Weekly Off) - Only if specific worker selected
+        if (status === 'open' && activeFilter && activeFilter !== "") {
+            // Check Personal Leave (Orange)
+            const personalLeaves = currentLeaves ? currentLeaves.filter(l => l.admin_id == activeFilter) : [];
+            for (const leave of personalLeaves) {
+                const start = new Date(leave.start_date);
+                start.setHours(0, 0, 0, 0);
+                const end = new Date(leave.end_date);
+                end.setHours(23, 59, 59, 999);
+                if (dayDate >= start && dayDate <= end) {
+                    status = 'leave';
                     break;
                 }
             }
 
-            // If not global, check personal matches (if filter is active)
-            if (!holidayType && activeFilter) {
-                const personalLeaves = currentLeaves.filter(l => l.admin_id == activeFilter);
-                for (const leave of personalLeaves) {
-                    const start = new Date(leave.start_date);
-                    start.setHours(0, 0, 0, 0);
-                    const end = new Date(leave.end_date);
-                    end.setHours(23, 59, 59, 999);
-                    if (dayDate >= start && dayDate <= end) {
-                        holidayType = 'personal';
-                        break;
+            // Check Weekly Off (Blue) - If not on leave
+            if (status === 'open') {
+                const worker = currentWorkers ? currentWorkers.find(w => w.id == activeFilter) : null;
+                if (worker) {
+                    // Check if daysOff is defined and includes today
+                    // daysOff API return: [0, 1] etc.
+                    const daysOff = worker.daysOff || [];
+                    if (Array.isArray(daysOff) && daysOff.includes(dayOfWeekIndex)) {
+                        status = 'weekly-off';
                     }
                 }
             }
         }
 
-        const dayConfig = currentSchedule[dayOfWeekIndex];
-        const isClosedDay = dayConfig && !dayConfig.isOpen;
-
         const cell = document.createElement('div');
         cell.className = 'day-cell';
         if (dateStr === todayStr) cell.classList.add('today');
 
-        if (holidayType === 'global') {
-            cell.style.background = '#ffebee';
-            cell.style.borderColor = '#ef9a9a';
-        } else if (holidayType === 'personal') {
-            cell.style.background = '#fff3e0'; // Orange light
-            cell.style.borderColor = '#ffcc80';
-        } else if (isClosedDay) {
-            cell.style.background = '#f5f5f5';
-        }
+        // Apply Classes
+        if (status === 'closed-exception') cell.classList.add('status-holiday');
+        else if (status === 'closed-regular') cell.classList.add('status-closed-regular');
+        else if (status === 'leave') cell.classList.add('status-leave');
+        else if (status === 'weekly-off') cell.classList.add('status-weekly-off');
 
         cell.onclick = () => openDayDetails(dateStr, dayAppts);
 
         let html = `<div class="day-number">${day}</div>`;
 
-        if (holidayType === 'global') {
-            html += `<span class="appt-badge" style="background:#e57373; color:white"><span class="text-desktop">Fermeture Salon</span><span class="text-mobile">Congé Salon</span></span>`;
-        } else if (holidayType === 'personal') {
+        // Render Badges
+        if (status === 'closed-regular') {
+            // Grey (#f5f5f5 is BG, so Badge should be visible, or use standard grey)
+            // User requested: "Gris (#f5f5f5) : Jours de fermeture habituelle... -> Badge 'Fermé'."
+            // Since BG is light grey, a darker grey badge is better for contrast, or just a generic 'secondary' style.
+            html += `<span class="appt-badge" style="background:#757575; color:white">Fermé</span>`;
+        } else if (status === 'closed-exception') {
+            // Red (#e57373)
+            html += `<span class="appt-badge" style="background:#e57373; color:white">Fermeture Salon</span>`;
+        } else if (status === 'leave') {
+            // Orange (#ffa726)
             html += `<span class="appt-badge" style="background:#ffa726; color:white">Congés</span>`;
-        } else if (isClosedDay) {
-            html += `<span class="appt-badge" style="background:#bdbdbd; color:white">Fermé</span>`;
+        } else if (status === 'weekly-off') {
+            // Blue
+            // User requested: "Bleu (#e3f2fd) : Jour de Repos Hebdo... -> Badge 'Repos'."
+            // #e3f2fd is very light. Using a darker blue for badge.
+            html += `<span class="appt-badge" style="background:#2196f3; color:white">Repos</span>`;
         } else {
+            // Open Day - Show Appointments
             if (activeFilter) {
-                // ... (Existing Active Filter Logic) ...
+                // Specific Worker View
                 if (dayAppts.length > 0) {
                     html += `<span class="appt-badge has-appt" style="display:block; margin-top:2px;">${dayAppts.length} RDV</span>`;
                 } else {
                     html += `<span class="appt-badge" style="background:#eee; color:#999; display:block; margin-top:2px;">0 RDV</span>`;
                 }
             } else {
-                // Salon View (No Filter)
+                // Salon View - Show consolidated info
 
-                // 1. Show Personal Leaves as Badges
+                // 1. Show Personal Leaves for ALL workers as badges
                 if (currentLeaves && currentLeaves.length > 0) {
                     const personalLeaves = currentLeaves.filter(l => l.admin_id !== null);
                     const leavesToday = personalLeaves.filter(l => {
@@ -267,13 +294,34 @@ function renderCalendar() {
                     });
 
                     leavesToday.forEach(l => {
-                        const worker = currentWorkers.find(w => w.id == l.admin_id);
+                        const worker = currentWorkers ? currentWorkers.find(w => w.id == l.admin_id) : null;
                         const name = worker ? worker.name : 'Inconnu';
                         html += `<span class="appt-badge" style="background:#fff3e0; color:#e65100; border:1px solid #ffcc80; display:block; margin-top:2px;">Congés: ${name}</span>`;
                     });
                 }
 
-                // 2. Show Appointments
+                // 2. Show Weekly Days Off for ALL workers
+                if (currentWorkers) {
+                    currentWorkers.forEach(w => {
+                        const daysOff = w.daysOff || [];
+                        if (Array.isArray(daysOff) && daysOff.includes(dayOfWeekIndex)) {
+                            // Check if already on leave (priority to leave badge) - actually showing both is fine or we filter
+                            // Let's Check if this worker is already in leavesToday list?
+                            const isOnLeave = currentLeaves && currentLeaves.some(l => {
+                                if (l.admin_id != w.id) return false;
+                                const start = new Date(l.start_date); start.setHours(0, 0, 0, 0);
+                                const end = new Date(l.end_date); end.setHours(23, 59, 59, 999);
+                                return dayDate >= start && dayDate <= end;
+                            });
+
+                            if (!isOnLeave) {
+                                html += `<span class="appt-badge" style="background:#2196f3; color:white; display:block; margin-top:2px;">Repos: ${w.name}</span>`;
+                            }
+                        }
+                    });
+                }
+
+                // 3. Show Appointments Count per Worker (Grouped)
                 if (dayAppts.length === 0) {
                     html += `<span class="appt-badge" style="background:#eee; color:#999; display:block; margin-top:2px;">0 RDV</span>`;
                 } else {
@@ -287,7 +335,7 @@ function renderCalendar() {
                         const count = counts[adminId];
                         let name = "Autre";
                         if (adminId !== 'null') {
-                            const worker = currentWorkers.find(w => w.id == adminId);
+                            const worker = currentWorkers ? currentWorkers.find(w => w.id == adminId) : null;
                             name = worker ? worker.name : 'Inconnu';
                         }
                         html += `<span class="appt-badge has-appt" style="display:block; margin-top:2px;">${name}<span class="text-desktop"> : </span><span class="mobile-break"></span>${count}</span>`;
@@ -295,7 +343,6 @@ function renderCalendar() {
                 }
             }
         }
-
 
         cell.innerHTML = html;
         grid.appendChild(cell);

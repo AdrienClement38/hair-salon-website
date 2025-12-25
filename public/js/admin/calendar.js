@@ -21,7 +21,8 @@ export function initCalendar() {
     // Listen to filter change
     const filterEl = document.getElementById('admin-filter');
     if (filterEl) {
-        filterEl.addEventListener('change', () => {
+        filterEl.addEventListener('change', (e) => {
+            localStorage.setItem('adminFilter', e.target.value);
             loadAppointments();
         });
     }
@@ -74,6 +75,16 @@ export async function loadWorkersForFilter() {
 
         if (currentValue) {
             select.value = currentValue;
+        } else {
+            const saved = localStorage.getItem('adminFilter');
+            if (saved) {
+                // Verify if option exists
+                if (select.querySelector(`option[value="${saved}"]`)) {
+                    select.value = saved;
+                    // Trigger load because default load might have run with empty filter
+                    loadAppointments();
+                }
+            }
         }
     } catch (e) {
         console.error('Failed to load workers', e);

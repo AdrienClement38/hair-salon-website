@@ -22,7 +22,7 @@ export function initUI() {
     }
 
     // Restore active tab
-    const savedTab = sessionStorage.getItem('adminActiveTab') || 'appointments';
+    const savedTab = localStorage.getItem('adminActiveTab') || 'appointments';
     switchTab(savedTab);
 }
 
@@ -40,7 +40,7 @@ export function switchTab(tab) {
     if (tabBtn) tabBtn.classList.add('active');
 
     // Save state
-    sessionStorage.setItem('adminActiveTab', tab);
+    localStorage.setItem('adminActiveTab', tab);
 }
 
 export function togglePassword(btn) {

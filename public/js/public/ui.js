@@ -12,16 +12,43 @@ export function renderServices(services) {
         return;
     }
 
-    container.innerHTML = services.map(svc => `
-        <div class="card">
-            <div class="card-icon" style="color:var(--gold); display:flex; justify-content:center; align-items:center; height:50px; margin-bottom: 15px;">${svgs[svc.icon] || svgs.star}</div>
-            <h3 style="margin:0 0 15px 0; text-align:center; line-height:1.2; min-height: 3rem; display: flex; align-items: center; justify-content: center;">${svc.name}</h3>
-            <p style="font-size:0.9em; color:#ddd; margin:0; height: 50px; overflow: hidden; display: flex; align-items: flex-start; justify-content: center;">${svc.description || ''}</p>
-            <div style="margin-top:auto;">
-                 <span style="font-weight:bold; color:var(--gold); font-size:1.2em;">${svc.price}€</span>
+    container.innerHTML = services.map(svc => createItemCard(svc, 'service')).join('');
+}
+
+function createItemCard(item, type) {
+    let mediaHtml = '';
+
+    if (type === 'service') {
+        mediaHtml = `
+            <div class="card-media icon">
+                ${svgs[item.icon] || svgs.star}
+            </div>`;
+    } else if (type === 'product') {
+        const safeName = item.name.replace(/'/g, "\\'");
+        const safeDesc = (item.description || '').replace(/'/g, "\\'");
+
+        if (item.image) {
+            mediaHtml = `
+                <div class="card-media image" 
+                     onclick="openLightbox('/images/${item.image}', '${safeName}', '${item.price}', '${safeDesc}')">
+                    <img src="/images/${item.image}" alt="${item.name}" 
+                         style="${item.imagePosition ? `object-position: ${item.imagePosition.x}% ${item.imagePosition.y}%;` : ''}">
+                </div>`;
+        } else {
+            mediaHtml = `<div class="card-media image" style="background:#333; cursor:default;"><span style="color:#666;">Pas d'image</span></div>`;
+        }
+    }
+
+    return `
+        <div class="item-card">
+            ${mediaHtml}
+            <div class="card-header">
+                <h3>${item.name}</h3>
+                <span class="price">${item.price}€</span>
             </div>
+            <p class="card-body">${item.description || ''}</p>
         </div>
-    `).join('');
+    `;
 }
 
 export function renderHolidays(ranges) {
@@ -175,27 +202,7 @@ export function renderProducts(products) {
         return;
     }
 
-    container.innerHTML = products.map(prod => {
-        const safeName = prod.name.replace(/'/g, "\\'");
-        const safeDesc = (prod.description || '').replace(/'/g, "\\'");
-
-        return `
-        <div class="card product-card" style="background: var(--dark); border: 1px solid var(--primary); box-shadow: none;">
-            ${prod.image ?
-                `<div style="width: 170px; height: 170px; margin: 0 auto 15px auto; border-radius: 8px; overflow: hidden; background:#f0f0f0; cursor: pointer;" 
-                  onclick="openLightbox('/images/${prod.image}', '${safeName}', '${prod.price}', '${safeDesc}')">
-                    <img src="/images/${prod.image}" alt="${prod.name}" style="width:100%; height:100%; object-fit:cover; ${prod.imagePosition ? `object-position: ${prod.imagePosition.x}% ${prod.imagePosition.y}%;` : ''}">
-                 </div>`
-                : `<div style="width: 170px; height: 170px; margin: 0 auto 15px auto; border-radius: 8px; background:#333; display:flex; align-items:center; justify-content:center;"><span style="color:#666;">Pas d'image</span></div>`}
-            
-            <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:10px; gap:15px;">
-                 <h3 style="margin:0; text-align:left; line-height:1.2; color: var(--primary);">${prod.name}</h3>
-                 <span style="font-weight:bold; color:#fff; flex-shrink:0; white-space:nowrap;">${prod.price}€</span>
-            </div>
-            
-            <p style="font-size:0.9em; color:#ddd; margin-top:5px;">${prod.description || ''}</p>
-        </div>
-    `}).join('');
+    container.innerHTML = products.map(prod => createItemCard(prod, 'product')).join('');
 
     // Update UI state after render
     setTimeout(updateCarouselUI, 0);

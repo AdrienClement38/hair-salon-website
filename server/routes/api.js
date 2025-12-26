@@ -73,7 +73,7 @@ router.put('/admin/appointments/:id', checkAuth, validate(updateBookingSchema), 
 // --- Settings (Admin) ---
 router.post('/admin/settings', checkAuth, settingsController.update);
 router.get('/admin/settings', checkAuth, settingsController.get);
-router.post('/admin/upload', checkAuth, upload.fields([{ name: 'hero-bg' }, { name: 'philosophy-bg' }]), settingsController.uploadImages);
+router.post('/admin/upload', checkAuth, upload.any(), settingsController.uploadImages);
 
 // --- Leaves (Admin) ---
 router.get('/admin/leaves', checkAuth, leavesController.list);

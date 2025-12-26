@@ -24,6 +24,7 @@ describe('Admin - Reorder Services & Products', () => {
         const dbModel = require('../server/models/database');
         const hash = await require('bcryptjs').hash(TEST_USER.password, 10);
         await dbModel.createAdmin(TEST_USER.username, hash, TEST_USER.displayName);
+        await dbModel.setSetting('products', []);
         console.log('Reorder Test User Injected');
     });
 

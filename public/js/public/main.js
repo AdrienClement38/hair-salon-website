@@ -88,7 +88,7 @@ document.addEventListener('DOMContentLoaded', () => {
         import('./portfolio.js').then(m => m.stopPortfolioPolling());
 
         document.querySelectorAll('section.hero, section.section').forEach(el => {
-            if (el.id !== 'portfolio-section') el.style.display = 'block';
+            if (el.id !== 'portfolio-section') el.style.display = '';
         });
         // Remove hash or set to home? Better remove to look clean or set to #
         if (window.location.hash === '#portfolio') {
@@ -101,7 +101,22 @@ document.addEventListener('DOMContentLoaded', () => {
         link.addEventListener('click', (e) => {
             const href = link.getAttribute('href');
             // If it's a specific section anchor (not just # or portfolio trigger), assume "Home" context
-            if (href && href.startsWith('#') && href !== '#' && !link.onclick) {
+            if (href && href.startsWith('#')) {
+                // Ignore if it's the portfolio trigger
+                if (link.getAttribute('onclick') && link.getAttribute('onclick').includes('showPortfolio')) return;
+
+                // Handle Home Link (#) specifically for smooth/no-jump
+                if (href === '#') {
+                    e.preventDefault();
+                    window.showHome();
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                    // Clean URL if it has # (optional, keeps it clean like image 1)
+                    if (window.location.hash) {
+                        history.pushState(null, null, ' ');
+                    }
+                    return;
+                }
+
                 window.showHome();
                 // Allow default behavior for smooth scroll
             }

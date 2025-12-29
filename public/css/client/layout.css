@@ -91,6 +91,11 @@
         max-width: 90%;
     }
 
+    /* Remove nav from flex flow on mobile to let justify-content work for logo/burger */
+    .nav {
+        position: absolute;
+    }
+
     .hamburger-menu {
         display: flex;
     }

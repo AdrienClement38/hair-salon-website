@@ -1,12 +1,13 @@
 /* Hero Section */
 .hero {
-    height: 80vh;
+    height: 100vh;
     background: linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.5)), url('/images/hero-bg');
     background-color: #333;
     background-size: cover;
     background-position: center;
     display: flex;
-    align-items: center;
+    align-items: flex-start;
+    padding-top: 2rem;
     justify-content: center;
     text-align: center;
     color: var(--white);
@@ -43,7 +44,7 @@
 @media (max-width: 768px) {
     .hero {
         align-items: flex-start;
-        padding-top: 80px;
+        padding-top: 2rem;
         height: auto;
         min-height: auto;
         padding-bottom: 3rem;

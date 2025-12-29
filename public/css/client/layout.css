@@ -91,6 +91,14 @@
         max-width: 90%;
     }
 
+    .section {
+        scroll-margin-top: 60px;
+    }
+
+    #booking {
+        scroll-margin-top: 40px;
+    }
+
     /* Remove nav from flex flow on mobile to let justify-content work for logo/burger */
     .nav {
         position: absolute;
@@ -110,7 +118,8 @@
         height: 100vh;
         background: var(--white);
         flex-direction: column;
-        justify-content: center;
+        justify-content: flex-start;
+        padding-top: 8rem;
         align-items: center;
         box-shadow: -2px 0 10px rgba(0, 0, 0, 0.1);
         transition: right 0.3s ease-in-out;
@@ -122,7 +131,7 @@
     }
 
     .nav-list li {
-        margin: 1.5rem 0;
+        margin: 0.8rem 0;
     }
 
     .grid-2 {

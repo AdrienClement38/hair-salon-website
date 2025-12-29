@@ -214,6 +214,16 @@
 
 @media (max-width: 600px) {
     .masonry-grid {
-        column-count: 1;
+        column-count: 3;
     }
+}
+
+/* Booking Message Styles */
+#form-message {
+    margin-top: 1rem;
+}
+
+.booking-time-details {
+    margin-top: 0.5rem;
+    display: block;
 }

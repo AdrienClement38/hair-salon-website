@@ -95,7 +95,18 @@ document.addEventListener('DOMContentLoaded', () => {
             history.pushState(null, null, ' '); // Clear hash
         }
     };
-    // Navigation Logic
+    // Close menu when clicking outside
+    document.addEventListener('click', (e) => {
+        const navList = document.getElementById('nav-list');
+        const hamburger = document.querySelector('.hamburger-menu');
+
+        if (navList.classList.contains('active') &&
+            !navList.contains(e.target) &&
+            !hamburger.contains(e.target)) {
+            navList.classList.remove('active');
+        }
+    });
+
     // Navigation Logic
     document.querySelectorAll('.nav-list a, .logo, .btn[href^="#"]').forEach(link => {
         link.addEventListener('click', (e) => {

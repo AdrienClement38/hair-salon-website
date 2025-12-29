@@ -53,7 +53,10 @@ export function initBooking() {
                 const serviceName = serviceInput.options[serviceInput.selectedIndex].text;
                 const workerName = workerInput.options[workerInput.selectedIndex].text;
 
-                showMessage(`Rendez-vous confirmé pour <strong>${serviceName}</strong> avec <strong>${workerName}</strong><br>Le ${formatDateDisplay(date)} à ${time}`, 'success');
+                showMessage(`
+                    <div>Rendez-vous confirmé pour <strong>${serviceName}</strong> avec <strong>${workerName}</strong></div>
+                    <div class="booking-time-details">Le ${formatDateDisplay(date)} à ${time}</div>
+                `, 'success');
 
                 // Immediate Reset
                 bookingForm.reset();

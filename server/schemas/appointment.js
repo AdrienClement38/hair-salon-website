@@ -40,7 +40,8 @@ const createBookingSchema = z.object({
                 return isNaN(n) ? null : n;
             },
             z.number().optional().nullable()
-        )
+        ),
+        email: z.string().email("Email invalide").optional().or(z.literal(''))
     })
 });
 

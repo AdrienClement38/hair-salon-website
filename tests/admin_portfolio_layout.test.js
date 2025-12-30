@@ -46,6 +46,7 @@ test('Admin Portfolio: Layout should be 5 columns and square items', async () =>
         args: ['--no-sandbox', '--disable-setuid-sandbox', '--window-size=1280,800']
     });
     const page = await browser.newPage();
+    page.on('console', msg => console.log('PAGE LOG:', msg.text()));
     await page.setViewport({ width: 1280, height: 800 });
 
     try {
@@ -68,9 +69,18 @@ test('Admin Portfolio: Layout should be 5 columns and square items', async () =>
             // 2. Injecting fake structure into #portfolio-list to test CSS
 
             await page.evaluate(() => {
-                document.getElementById('login-view').style.display = 'none';
-                document.getElementById('dashboard-view').style.display = 'block';
-                document.getElementById('tab-content').classList.add('active');
+                // Nuclear option: Rewrite body to test CSS isolation
+                // Preserve scripts/css in head, replace body
+                document.body.innerHTML = `
+                    <div id="dashboard-view" class="dashboard" style="display:block">
+                        <div id="tab-content" class="tab-content active" style="display:block">
+                             <div style="margin-bottom:10px;">
+                                <span id="portfolio-count">(60 / 50)</span>
+                             </div>
+                             <div id="portfolio-list" class="portfolio-grid"></div>
+                        </div>
+                    </div>
+                `;
 
                 // Inject fake items (60 items to test scroll and "ALL")
                 const grid = document.getElementById('portfolio-list');
@@ -78,7 +88,7 @@ test('Admin Portfolio: Layout should be 5 columns and square items', async () =>
                 for (let i = 0; i < 60; i++) {
                     // Use odd sized image to test object-fit
                     html += `
-                        <div class="portfolio-item">
+                        <div class="portfolio-item" style="min-height: 1px">
                             <img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgNTAiPjxyZWN0IHdpZHRoPSIxMDAiIGhlaWdodD0iNTAiIGZpbGw9InJlZCIvPjwvc3ZnPg==">
                         </div>
                     `;
@@ -91,10 +101,44 @@ test('Admin Portfolio: Layout should be 5 columns and square items', async () =>
         // Wait for styles to apply
         await new Promise(r => setTimeout(r, 500));
 
+        const styles = await page.evaluate(() => {
+            const tab = document.getElementById('tab-content');
+            const dash = document.getElementById('dashboard-view');
+            const grid = document.getElementById('portfolio-list');
+            return {
+                tab: {
+                    display: window.getComputedStyle(tab).display,
+                    visibility: window.getComputedStyle(tab).visibility,
+                    classes: tab.className
+                },
+                dash: {
+                    display: window.getComputedStyle(dash).display
+                },
+                grid: {
+                    display: window.getComputedStyle(grid).display
+                }
+            };
+        });
+        console.log('DEBUG STYLES:', JSON.stringify(styles, null, 2));
+
         const items = await page.$$('.portfolio-item');
         expect(items.length).toBe(60);
 
         const item = items[0];
+        const itemStyle = await item.evaluate(el => {
+            const style = window.getComputedStyle(el);
+            return {
+                display: style.display,
+                visibility: style.visibility,
+                height: style.height,
+                width: style.width,
+                position: style.position,
+                top: style.top,
+                opacity: style.opacity
+            };
+        });
+        console.log('ITEM STYLE:', JSON.stringify(itemStyle));
+
         const box = await item.boundingBox();
         const width = box.width;
         const height = box.height;

@@ -13,7 +13,13 @@ let allLeaves = [];
 export async function loadSettings() {
     try {
         const res = await fetch(`${API_URL}/settings`, { headers: getHeaders() });
-        const { openingHours, holidays, home_content, services, contact_info, products } = await res.json();
+        const { openingHours, holidays, home_content, services, contact_info, products, email_config } = await res.json();
+
+        // Populate Email Config
+        if (email_config && document.getElementById('email-config-user')) {
+            document.getElementById('email-config-user').value = email_config.user || '';
+            document.getElementById('email-config-pass').value = email_config.pass || '';
+        }
 
         // Update State (holidayRanges is legacy, we load leaves separately)
         setHomeContent(home_content || {});
@@ -587,4 +593,23 @@ window.copyMondayToAll = copyMondayToAll;
 window.addHolidayRange = addHolidayRange;
 window.removeHolidayRange = removeHolidayRange;
 window.saveSchedule = saveSchedule;
+
+export async function saveEmailConfig() {
+    const user = document.getElementById('email-config-user').value;
+    const pass = document.getElementById('email-config-pass').value;
+
+    const config = (user && pass) ? { user, pass } : null;
+
+    try {
+        await fetch(`${API_URL}/settings`, {
+            method: 'POST',
+            headers: getHeaders(),
+            body: JSON.stringify({ email_config: config })
+        });
+        alert('Configuration Email enregistrée !');
+    } catch (e) {
+        alert('Erreur lors de la sauvegarde');
+    }
+}
+window.saveEmailConfig = saveEmailConfig;
 

@@ -25,6 +25,7 @@ export function initBooking() {
 
         const name = document.getElementById('name').value;
         const phone = document.getElementById('phone').value;
+        const email = document.getElementById('email').value;
         const serviceOption = serviceInput.options[serviceInput.selectedIndex];
         const service = serviceOption.dataset.name || serviceInput.value; // Send Name!
         const adminId = workerInput.value;
@@ -36,7 +37,7 @@ export function initBooking() {
             return;
         }
 
-        const data = { name, phone, service, date, time, adminId };
+        const data = { name, phone, email, service, date, time, adminId };
 
         try {
             const res = await fetch('/api/book', {

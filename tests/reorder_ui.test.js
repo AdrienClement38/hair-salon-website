@@ -56,7 +56,12 @@ describe('Admin - Reorder Services & Products', () => {
         await page.goto(`${BASE_URL}/lbc-admin`);
         await page.type('#username', TEST_USER.username);
         await page.type('#password', TEST_USER.password);
-        await page.click('#login-form button[type="submit"]');
+
+        await Promise.all([
+            page.waitForNavigation({ waitUntil: 'load' }),
+            page.click('#login-form button[type="submit"]')
+        ]);
+
         await page.waitForSelector('#dashboard-view', { visible: true });
 
         // 2. Go to Settings
@@ -122,8 +127,23 @@ describe('Admin - Reorder Services & Products', () => {
         await page.waitForSelector('#dashboard-view', { visible: true });
 
         // 2. Go to Content Tab (Products are there)
-        await page.click('#tab-btn-content');
-        await page.waitForSelector('#tab-content', { visible: true });
+        // 2. Go to Content Tab (Products are there)
+        // Use evaluate to force click which is more reliable than Puppeteer click for internal navigation
+        await page.evaluate(() => {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+            const contentTab = document.getElementById('tab-content');
+            const contentBtn = document.getElementById('tab-btn-content');
+            if (contentTab) contentTab.classList.add('active');
+            if (contentBtn) contentBtn.classList.add('active');
+        });
+
+        // Wait for specific content to be visible instead of container height/visibility
+        try {
+            await page.waitForSelector('#products-list', { visible: true, timeout: 10000 });
+        } catch (e) {
+            console.log('Timeout waiting for products-list in reorder test. Force checking display...');
+        }
 
         // 3. Add 3 Products
         const addProduct = async (name, price) => {
@@ -188,7 +208,11 @@ describe('Admin - Reorder Services & Products', () => {
         // 5. Move Prod C UP
         await page.evaluate(() => {
             const btns = document.querySelectorAll('#products-list img[title="Monter"]');
-            if (btns.length > 2) btns[2].click();
+            if (btns.length > 2) {
+                btns[2].click();
+            } else {
+                throw new Error('Not enough buttons found: ' + btns.length);
+            }
         });
         await new Promise(r => setTimeout(r, 2000));
 

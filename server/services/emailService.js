@@ -1,0 +1,122 @@
+const nodemailer = require('nodemailer');
+const db = require('../models/database');
+
+class EmailService {
+
+    /**
+     * Send booking confirmation email with ICS attachment
+     * @param {Object} data - { to, name, date, time, service, workerName, phone? }
+     */
+    async sendConfirmation(data) {
+        if (!data.to) return; // No client email, skip
+
+        const config = await db.getSetting('email_config');
+
+        let settings;
+        try {
+            settings = typeof config === 'string' ? JSON.parse(config) : config;
+        } catch (e) {
+            settings = null;
+        }
+
+        if (!settings || !settings.user || !settings.pass) {
+            console.warn('EmailService: No email configuration found. Skipping email.');
+            return;
+        }
+
+        const transporter = nodemailer.createTransport({
+            service: 'gmail',
+            auth: {
+                user: settings.user,
+                pass: settings.pass
+            }
+        });
+
+        const { name, date, time, service, workerName } = data;
+
+        // Generate ICS content
+        const icsContent = this.generateICS(data);
+
+        const mailOptions = {
+            from: `"La Base Coiffure" <${settings.user}>`,
+            to: data.to,
+            subject: 'Confirmation de votre Rendez-vous - La Base Coiffure',
+            html: `
+                <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                    <h2 style="color: #333;">Bonjour ${name},</h2>
+                    <p>Votre rendez-vous est confirmé !</p>
+                    
+                    <div style="background-color: #f9f9f9; padding: 15px; border-radius: 5px; margin: 20px 0;">
+                        <p style="margin: 5px 0;"><strong>Prestation :</strong> ${service}</p>
+                        <p style="margin: 5px 0;"><strong>Coiffeur :</strong> ${workerName}</p>
+                        <p style="margin: 5px 0;"><strong>Date :</strong> ${date}</p>
+                        <p style="margin: 5px 0;"><strong>Heure :</strong> ${time}</p>
+                    </div>
+
+                    <p>Vous pouvez ajouter ce rendez-vous à votre calendrier en utilisant le fichier joint ou le bouton ci-dessous (si supporté par votre messagerie).</p>
+                    
+                    <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;">
+                    <p style="font-size: 12px; color: #777;">La Base Coiffure<br>Ceci est un message automatique, merci de ne pas répondre.</p>
+                </div>
+            `,
+            attachments: [
+                {
+                    filename: 'invite.ics',
+                    content: icsContent,
+                    contentType: 'text/calendar'
+                }
+            ]
+        };
+
+        try {
+            await transporter.sendMail(mailOptions);
+            console.log(`Email sent to ${data.to}`);
+        } catch (error) {
+            console.error('EmailService Error:', error);
+            // Don't throw, we don't want to break the booking flow if email fails
+        }
+    }
+
+    generateICS(data) {
+        const { date, time, service, workerName } = data;
+
+        // Calculate Start/End Date objects
+        // Assumption: Service takes 30 mins default if not specified (or passed in data).
+        // Ideally data should contain duration.
+        const [year, month, day] = date.split('-').map(Number);
+        const [hour, minute] = time.split(':').map(Number);
+
+        const startDate = new Date(year, month - 1, day, hour, minute);
+        const endDate = new Date(startDate);
+        endDate.setMinutes(startDate.getMinutes() + 30); // Default duration
+
+        // Format Date for ICS: YYYYMMDDTHHMMSS
+        const formatICSDate = (d) => {
+            return d.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
+        };
+
+        const now = new Date();
+        const stamp = formatICSDate(now);
+        const start = formatICSDate(startDate);
+        const end = formatICSDate(endDate);
+
+        return `BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//LaBaseCoiffure//Booking//FR
+CALSCALE:GREGORIAN
+METHOD:REQUEST
+BEGIN:VEVENT
+UID:${Date.now()}@labasecoiffure.com
+DTSTAMP:${stamp}
+DTSTART:${start}
+DTEND:${end}
+SUMMARY:Rendez-vous Coiffeur - ${service} avec ${workerName}
+DESCRIPTION:Rendez-vous confirmé pour ${service} avec ${workerName}.
+LOCATION:La Base Coiffure
+STATUS:CONFIRMED
+END:VEVENT
+END:VCALENDAR`.replace(/\n/g, '\r\n');
+    }
+}
+
+module.exports = new EmailService();

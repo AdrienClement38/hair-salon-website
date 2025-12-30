@@ -1,7 +1,7 @@
 /* Hero Section */
 .hero {
     height: 100vh;
-    background: linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.5)), url('/images/hero-bg');
+    background: linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.5)), url('/images/hero-bg.jpg');
     background-color: #333;
     background-size: cover;
     background-position: center;
@@ -112,6 +112,43 @@
         width: 100%;
         flex: 1 1 auto;
         min-width: unset;
+        flex-direction: row;
+        flex-wrap: wrap;
+        align-items: center;
+        padding: 1rem;
+        min-height: auto;
+    }
+
+    #services-grid .item-card .card-media {
+        width: 60px;
+        height: 60px;
+        margin: 0 15px 0 0;
+        flex-shrink: 0;
+    }
+
+    #services-grid .item-card .card-header {
+        flex: 1;
+        margin-bottom: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        text-align: left;
+    }
+
+    #services-grid .item-card .card-header h3 {
+        font-size: 1.1rem;
+        margin-bottom: 2px;
+    }
+
+    #services-grid .item-card .card-header .price {
+        font-size: 1rem;
+    }
+
+    #services-grid .item-card .card-body {
+        flex-basis: 100%;
+        text-align: left;
+        margin-top: 5px;
+        font-size: 0.9rem;
     }
 }
 

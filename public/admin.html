@@ -265,9 +265,36 @@
                             </div>
                         </div>
                         <button type="submit" class="btn" style="width:auto">Ajouter le membre</button>
+
                     </form>
                 </div>
 
+                <!-- Email Configuration -->
+                <div class="settings-section">
+                    <h3>Connexion Email (Gmail)</h3>
+                    <p>Connectez un compte Gmail <strong>existant</strong> pour que le site puisse envoyer les
+                        confirmations de RDV.</p>
+                    <div class="admin-form-card">
+                        <div class="form-group">
+                            <label>Adresse Gmail du compte émetteur</label>
+                            <input type="email" id="email-config-user" placeholder="ex : la-base-coiffure@gmail.com"
+                                autocomplete="off" name="gmail_user_config">
+                        </div>
+                        <div class="form-group">
+                            <label>Mot de passe d'application</label>
+                            <input type="password" id="email-config-pass" placeholder="xxxx xxxx xxxx xxxx"
+                                autocomplete="new-password" name="gmail_pass_config">
+                            <small class="text-muted" style="color: #888;">
+                                Important : Ceci est le mot de passe de l'adresse Gmail, pas votre mot de passe de
+                                connexion à l'interface admin.
+                            </small>
+                        </div>
+                        <div class="form-actions">
+                            <button class="btn" onclick="saveEmailConfig()" style="width:auto;">Enregistrer la
+                                connexion</button>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -493,7 +520,8 @@
             <div style="display:flex; justify-content:space-between; align-items:flex-start;">
                 <div>
                     <h3 style="margin-top:0; color:var(--primary);">Positionner l'image</h3>
-                    <p style="color:#ccc; margin-bottom:0;">Cliquez sur le point d'intérêt principal (visage, objet).
+                    <p style="color:#ccc; margin-bottom:0;">Cliquez sur le point d'intérêt principal (visage,
+                        objet).
                     </p>
                 </div>
                 <button onclick="closePositionModal()"
@@ -511,7 +539,8 @@
                 <div id="position-coords">X: 50% Y: 50%</div>
                 <div style="display:flex; gap:10px;">
                     <button class="btn" onclick="savePosition()"
-                        style="background:var(--primary); color:#000; font-weight:bold;">Valider la position</button>
+                        style="background:var(--primary); color:#000; font-weight:bold;">Valider la
+                        position</button>
                     <button class="btn btn-outline" onclick="closePositionModal()"
                         style="border-color:#666; color:#ccc;">Annuler</button>
                 </div>

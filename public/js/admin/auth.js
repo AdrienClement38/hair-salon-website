@@ -78,7 +78,8 @@ export function initAuth() {
                 document.getElementById('username').value = '';
                 document.getElementById('password').value = '';
 
-                verifyAuth();
+                // Reload to initialize everything (settings, etc.) with new auth
+                window.location.reload();
             } else {
                 let errorMsg = 'Identifiants incorrects';
                 try {

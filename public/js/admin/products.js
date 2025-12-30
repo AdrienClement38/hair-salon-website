@@ -233,11 +233,15 @@ export async function removeProduct(index) {
 }
 
 async function saveProducts(products) {
-    await fetch(`${API_URL}/settings`, {
-        method: 'POST',
-        headers: getHeaders(),
-        body: JSON.stringify({ products })
-    });
+    try {
+        await fetch(`${API_URL}/settings`, {
+            method: 'POST',
+            headers: getHeaders(),
+            body: JSON.stringify({ products })
+        });
+    } catch (e) {
+        console.error(e);
+    }
 
     setProducts(products);
     renderProductsList();

@@ -3,7 +3,7 @@ const { triggerUpdate } = require('../config/polling');
 const path = require('path');
 
 exports.update = async (req, res) => {
-    const { openingHours, holidays, holidayRanges, home_content, services, contact_info, products } = req.body;
+    const { openingHours, holidays, holidayRanges, home_content, services, contact_info, products, email_config } = req.body;
 
     try {
         if (openingHours) await db.setSetting('openingHours', openingHours);
@@ -12,6 +12,7 @@ exports.update = async (req, res) => {
         if (home_content) await db.setSetting('home_content', home_content);
         if (services) await db.setSetting('services', services);
         if (contact_info) await db.setSetting('contact_info', contact_info);
+        if (email_config) await db.setSetting('email_config', email_config);
         if (products) {
             // Check for orphan images before saving new list
             const oldProducts = (await db.getSetting('products')) || [];
@@ -51,10 +52,11 @@ exports.get = async (req, res) => {
         const services = (await db.getSetting('services')) || [];
         const contact_info = (await db.getSetting('contact_info')) || { address: '', phone: '' };
         const products = (await db.getSetting('products')) || [];
+        const email_config = (await db.getSetting('email_config')); // Not default to null/empty so frontend knows if set
 
         // console.log('Serving settings. Products count:', products.length);
 
-        res.json({ openingHours, holidays, holidayRanges, home_content, services, contact_info, products });
+        res.json({ openingHours, holidays, holidayRanges, home_content, services, contact_info, products, email_config });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }

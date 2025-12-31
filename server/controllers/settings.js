@@ -42,6 +42,18 @@ exports.update = async (req, res) => {
     }
 };
 
+exports.testEmail = async (req, res) => {
+    const { user, pass, host, port } = req.body;
+    try {
+        const emailService = require('../services/emailService');
+        await emailService.testConnection({ user, pass, host, port });
+        res.json({ success: true });
+    } catch (err) {
+        console.error("Email Test Failed:", err);
+        res.status(500).json({ error: err.message });
+    }
+};
+
 exports.get = async (req, res) => {
     try {
         const openingHours = (await db.getSetting('openingHours')) || { start: '09:00', end: '18:00', closedDays: [] };

@@ -78,13 +78,19 @@
     <section id="services" class="section bg-dark">
         <div class="container">
             <h2 class="text-center text-gold">Nos Prestations</h2>
-            <div class="grid-3" id="services-grid">
-                <!-- Dynamic Services loaded via JS -->
-                <div class="card">
-                    <div class="card-icon">✂️</div>
-                    <h3>Coupe & Styling</h3>
-                    <p>Chargement des services...</p>
+            <div class="carousel-wrapper" style="position: relative; max-width: 100%; margin: 0 auto;">
+                <button class="carousel-btn prev-btn" aria-label="Précédent"
+                    onclick="scrollCarousel('services-grid', -1)">&#10094;</button>
+                <div class="grid-3" id="services-grid">
+                    <!-- Dynamic Services loaded via JS -->
+                    <div class="card">
+                        <div class="card-icon">✂️</div>
+                        <h3>Coupe & Styling</h3>
+                        <p>Chargement des services...</p>
+                    </div>
                 </div>
+                <button class="carousel-btn next-btn" aria-label="Suivant"
+                    onclick="scrollCarousel('services-grid', 1)">&#10095;</button>
             </div>
         </div>
     </section>
@@ -124,13 +130,14 @@
                     </div>
 
                     <div class="form-group">
-                    <label for="email">Email (Optionnel)</label>
-                    <input type="email" id="email" class="form-control" placeholder="exemple@mail.com">
-                    <small class="text-muted" style="font-size: 0.8rem; color: #6c757d;">Renseignez votre email pour recevoir une confirmation de rendez-vous.</small>
-                </div>
+                        <label for="email">Email (Optionnel)</label>
+                        <input type="email" id="email" class="form-control" placeholder="exemple@mail.com">
+                        <small class="text-muted" style="font-size: 0.8rem; color: #6c757d;">Renseignez votre email pour
+                            recevoir une confirmation de rendez-vous.</small>
+                    </div>
 
-                <div class="form-group">
-                    <label for="service">Service</label>
+                    <div class="form-group">
+                        <label for="service">Service</label>
                         <select id="service" required>
                             <option value="">Chargement des services...</option>
                         </select>

@@ -85,70 +85,114 @@
 
 #services-grid {
     display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
+    flex-wrap: nowrap;
+    justify-content: flex-start;
     align-items: stretch;
     gap: 2rem;
     margin-top: 2rem;
+    overflow-x: auto;
+    padding-bottom: 20px;
+    scroll-behavior: smooth;
+    -ms-overflow-style: none;
+    /* IE and Edge */
+    scrollbar-width: none;
+    /* Firefox */
+}
+
+#services-grid::-webkit-scrollbar {
+    display: none;
 }
 
 #services-grid .item-card {
-    flex: 0 1 220px;
-    min-width: 200px;
+    flex: 0 0 230px;
+    width: 230px;
+    min-width: 230px;
     height: auto;
-    min-height: 300px;
+    min-height: 350px;
+    /* Ensure uniform height */
     display: flex;
     flex-direction: column;
     justify-content: flex-start;
 }
 
+#services-grid .item-card .card-media.icon svg {
+    width: 100%;
+    height: 100%;
+}
+
+/* Specific sizing for Razor and Barber */
+#services-grid .item-card .card-media.icon.razor svg,
+#services-grid .item-card .card-media.icon.barber svg {
+    width: 60%;
+    height: 60%;
+}
+
 @media (max-width: 768px) {
     #services-grid {
-        flex-direction: column;
-        align-items: center;
+        display: block;
+        /* Stack vertically */
+        max-height: 50vh;
+        /* Approx 5 items */
+        overflow-y: auto;
+        /* Scrollable */
+        padding-right: 5px;
+        /* Space for scrollbar */
     }
 
     #services-grid .item-card {
         width: 100%;
-        flex: 1 1 auto;
-        min-width: unset;
+        margin-bottom: 10px;
         flex-direction: row;
         flex-wrap: wrap;
         align-items: center;
-        padding: 1rem;
+        padding: 0.75rem;
+        /* Tighter padding */
         min-height: auto;
     }
 
     #services-grid .item-card .card-media {
-        width: 60px;
-        height: 60px;
-        margin: 0 15px 0 0;
+        width: 70px;
+        /* Base container larger */
+        height: 70px;
+        margin: 0 10px 0 0;
         flex-shrink: 0;
+    }
+
+    /* Override component.css specific to mobile sections.css */
+    #services-grid .item-card .card-media.icon svg {
+        width: 80%;
+        /* Significantly larger icon inside circle */
+        height: 80%;
     }
 
     #services-grid .item-card .card-header {
         flex: 1;
         margin-bottom: 0;
         display: flex;
-        flex-direction: column;
-        align-items: flex-start;
+        flex-direction: row;
+        align-items: center;
+        justify-content: space-between;
         text-align: left;
     }
 
     #services-grid .item-card .card-header h3 {
         font-size: 1.1rem;
-        margin-bottom: 2px;
+        margin-bottom: 0;
     }
 
     #services-grid .item-card .card-header .price {
-        font-size: 1rem;
+        font-size: 1.1rem;
+        font-weight: bold;
     }
 
     #services-grid .item-card .card-body {
         flex-basis: 100%;
-        text-align: left;
+        text-align: center;
+        /* Centered description */
         margin-top: 5px;
         font-size: 0.9rem;
+        padding-left: 0;
+        color: #aaa;
     }
 }
 

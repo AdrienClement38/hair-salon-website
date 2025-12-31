@@ -64,6 +64,7 @@ exports.createBooking = async (req, res) => {
 
         emailService.sendConfirmation({
             ...req.body,
+            to: req.body.email,
             workerName
         }).catch(err => console.error("Email send failed", err));
 

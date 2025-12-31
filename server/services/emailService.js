@@ -4,11 +4,46 @@ const db = require('../models/database');
 class EmailService {
 
     /**
+     * Test email configuration
+     * @param {Object} config - { user, pass }
+     */
+    async testConnection(config) {
+        if (!config || !config.user || !config.pass) {
+            throw new Error('Configuration manquante');
+        }
+
+        const transportConfig = {
+            host: config.host || 'smtp.gmail.com',
+            port: config.port || 465,
+            secure: config.port == 465,
+            auth: {
+                user: config.user,
+                pass: config.pass
+            }
+        };
+
+        const transporter = nodemailer.createTransport(transportConfig);
+
+        const mailOptions = {
+            from: `"Test La Base" <${config.user}>`,
+            to: config.user, // Send to self
+            subject: 'Test de Configuration Email - La Base Coiffure',
+            text: 'Ceci est un email de test pour confirmer que la configuration SMTP fonctionne correctement.'
+        };
+
+        await transporter.sendMail(mailOptions);
+        return true;
+    }
+
+    /**
      * Send booking confirmation email with ICS attachment
      * @param {Object} data - { to, name, date, time, service, workerName, phone? }
      */
     async sendConfirmation(data) {
-        if (!data.to) return; // No client email, skip
+        if (!data.to) {
+            console.warn('EmailService: No "to" address provided in data:', data);
+            return;
+        }
 
         const config = await db.getSetting('email_config');
 
@@ -20,17 +55,22 @@ class EmailService {
         }
 
         if (!settings || !settings.user || !settings.pass) {
-            console.warn('EmailService: No email configuration found. Skipping email.');
+            console.warn('EmailService: No email configuration found/valid. Config:', config);
             return;
         }
 
-        const transporter = nodemailer.createTransport({
-            service: 'gmail',
+        // Generic SMTP Transport
+        const transportConfig = {
+            host: settings.host || 'smtp.gmail.com', // Fallback for legacy
+            port: settings.port || 465,
+            secure: settings.port == 465, // true for 465, false for other ports
             auth: {
                 user: settings.user,
                 pass: settings.pass
             }
-        });
+        };
+
+        const transporter = nodemailer.createTransport(transportConfig);
 
         const { name, date, time, service, workerName } = data;
 

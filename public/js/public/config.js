@@ -8,7 +8,7 @@ export function formatDateDisplay(dateStr) {
 }
 
 export const svgs = {
-  cut: '<img src="/images/scissors.png" style="width:60px; height:auto;">',
+  cut: '<img src="/images/scissors.png" alt="Ciseaux">',
   razor: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1100 800" width="60" height="44">
   <defs>
     <linearGradient id="lg1" inkscape:collect="always"><stop style="stop-color:#4d4d4d" offset="0"/><stop style="stop-color:#4d4d4d;stop-opacity:0" offset="1"/></linearGradient>

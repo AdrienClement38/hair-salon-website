@@ -16,9 +16,51 @@ export async function loadSettings() {
         const { openingHours, holidays, home_content, services, contact_info, products, email_config } = await res.json();
 
         // Populate Email Config
-        if (email_config && document.getElementById('email-config-user')) {
+        // Populate Email Config
+        if (email_config) {
             document.getElementById('email-config-user').value = email_config.user || '';
             document.getElementById('email-config-pass').value = email_config.pass || '';
+            document.getElementById('email-config-host').value = email_config.host || '';
+            document.getElementById('email-config-port').value = email_config.port || '';
+        }
+
+        // Auto-Discovery Logic
+        const emailInput = document.getElementById('email-config-user');
+        if (emailInput) {
+            emailInput.addEventListener('change', () => {
+                const email = emailInput.value.toLowerCase();
+                const hostInput = document.getElementById('email-config-host');
+                const portInput = document.getElementById('email-config-port');
+
+                // Only auto-fill if host is empty to avoid overwriting manual config
+                if (hostInput.value) return;
+
+                const providers = {
+                    'gmail.com': { host: 'smtp.gmail.com', port: 465 },
+                    'orange.fr': { host: 'smtp.orange.fr', port: 465 },
+                    'wanadoo.fr': { host: 'smtp.orange.fr', port: 465 },
+                    'yahoo.fr': { host: 'smtp.mail.yahoo.com', port: 465 },
+                    'yahoo.com': { host: 'smtp.mail.yahoo.com', port: 465 },
+                    'outlook.com': { host: 'smtp.office365.com', port: 587 },
+                    'hotmail.com': { host: 'smtp.office365.com', port: 587 },
+                    'live.com': { host: 'smtp.office365.com', port: 587 },
+                    'sfr.fr': { host: 'smtp.sfr.fr', port: 465 },
+                    'neuf.fr': { host: 'smtp.sfr.fr', port: 465 },
+                    'free.fr': { host: 'smtp.free.fr', port: 465 },
+                    'laposte.net': { host: 'smtp.laposte.net', port: 465 },
+                    'icloud.com': { host: 'smtp.mail.me.com', port: 587 },
+                    'me.com': { host: 'smtp.mail.me.com', port: 587 }
+                };
+
+                for (const [domain, config] of Object.entries(providers)) {
+                    if (email.includes('@' + domain)) {
+                        hostInput.value = config.host;
+                        portInput.value = config.port;
+                        // Visual cue?
+                        break;
+                    }
+                }
+            });
         }
 
         // Update State (holidayRanges is legacy, we load leaves separately)
@@ -597,8 +639,10 @@ window.saveSchedule = saveSchedule;
 export async function saveEmailConfig() {
     const user = document.getElementById('email-config-user').value;
     const pass = document.getElementById('email-config-pass').value;
+    const host = document.getElementById('email-config-host').value;
+    const port = document.getElementById('email-config-port').value;
 
-    const config = (user && pass) ? { user, pass } : null;
+    const config = (user && pass) ? { user, pass, host, port } : null;
 
     try {
         await fetch(`${API_URL}/settings`, {
@@ -612,4 +656,51 @@ export async function saveEmailConfig() {
     }
 }
 window.saveEmailConfig = saveEmailConfig;
+
+export async function testEmailConfig() {
+    const user = document.getElementById('email-config-user').value;
+    const pass = document.getElementById('email-config-pass').value;
+    const host = document.getElementById('email-config-host').value;
+    const port = document.getElementById('email-config-port').value;
+
+    if (!user || !pass) {
+        alert('Veuillez entrer une adresse et un mot de passe.');
+        return;
+    }
+
+    const btn = document.querySelector('button[onclick="testEmailConfig()"]');
+    const originalText = btn ? btn.innerText : 'Tester';
+    if (btn) btn.innerText = 'Test en cours...';
+
+    try {
+        const res = await fetch(`${API_URL}/settings/email-test`, {
+            method: 'POST',
+            headers: getHeaders(),
+            body: JSON.stringify({ user, pass, host, port })
+        });
+
+        if (res.ok) {
+            alert('Connexion réussie ! Un email de test a été envoyé.');
+        } else {
+            if (res.status === 404) {
+                alert('Erreur: Le service de test est introuvable.\n\nAvez-vous redémarré le serveur (npm start) après la mise à jour ?');
+                return;
+            }
+            let errorMsg = 'Erreur inconnue';
+            try {
+                const err = await res.json();
+                errorMsg = err.error || errorMsg;
+            } catch (jsonErr) {
+                errorMsg = 'Réponse serveur invalide (Non-JSON)';
+            }
+            alert('Échec de la connexion : ' + errorMsg);
+        }
+    } catch (e) {
+        console.error(e);
+        alert('Erreur réseau lors du test (Le serveur est-il lancé ?).');
+    } finally {
+        if (btn) btn.innerText = originalText;
+    }
+}
+window.testEmailConfig = testEmailConfig;
 

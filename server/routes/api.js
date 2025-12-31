@@ -74,6 +74,7 @@ router.put('/admin/appointments/:id', checkAuth, validate(updateBookingSchema), 
 router.post('/admin/settings', checkAuth, settingsController.update);
 router.get('/admin/settings', checkAuth, settingsController.get);
 router.post('/admin/upload', checkAuth, upload.any(), settingsController.uploadImages);
+router.post('/admin/settings/email-test', checkAuth, settingsController.testEmail);
 
 // --- Leaves (Admin) ---
 router.get('/admin/leaves', checkAuth, leavesController.list);

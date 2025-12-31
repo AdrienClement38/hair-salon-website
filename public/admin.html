@@ -285,13 +285,29 @@
                             <input type="password" id="email-config-pass" placeholder="xxxx xxxx xxxx xxxx"
                                 autocomplete="new-password" name="gmail_pass_config">
                             <small class="text-muted" style="color: #888;">
-                                Important : Ceci est le mot de passe de l'adresse Gmail, pas votre mot de passe de
-                                connexion à l'interface admin.
+                                Important : Ceci est le mot de passe de l'adresse email. Pour Gmail, utilisez un "Mot de
+                                passe d'application".
                             </small>
                         </div>
-                        <div class="form-actions">
+
+                        <!-- Auto-Discovery Fields (Hidden by default) -->
+                        <details id="advanced-email-config">
+                            <summary style="cursor:pointer; color:#777; font-size:0.9rem; margin-bottom:10px;">
+                                Configuration Avancée (Serveur SMTP)</summary>
+                            <div class="form-group">
+                                <label>Serveur SMTP</label>
+                                <input type="text" id="email-config-host" placeholder="ex: smtp.orange.fr">
+                            </div>
+                            <div class="form-group">
+                                <label>Port SMTP</label>
+                                <input type="number" id="email-config-port" placeholder="465">
+                            </div>
+                        </details>
+                        <div class="form-actions" style="display:flex; gap:10px;">
                             <button class="btn" onclick="saveEmailConfig()" style="width:auto;">Enregistrer la
                                 connexion</button>
+                            <button class="btn btn-outline" onclick="testEmailConfig()"
+                                style="width:auto; border-color: #ccc; color: #333;">Tester la connexion</button>
                         </div>
                     </div>
                 </div>

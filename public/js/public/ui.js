@@ -13,6 +13,9 @@ export function renderServices(services) {
     }
 
     container.innerHTML = services.map(svc => createItemCard(svc, 'service')).join('');
+
+    // Update UI state after render
+    setTimeout(updateCarouselUI, 0);
 }
 
 function createItemCard(item, type) {
@@ -20,7 +23,7 @@ function createItemCard(item, type) {
 
     if (type === 'service') {
         mediaHtml = `
-            <div class="card-media icon">
+            <div class="card-media icon ${item.icon}">
                 ${svgs[item.icon] || svgs.star}
             </div>`;
     } else if (type === 'product') {
@@ -209,8 +212,8 @@ export function renderProducts(products) {
 }
 
 // Carousel Logic
-export function scrollProducts(direction) {
-    const container = document.getElementById('products-grid');
+export function scrollCarousel(gridId, direction) {
+    const container = document.getElementById(gridId);
     if (!container) return;
 
     // Scroll by card width + gap approx
@@ -221,29 +224,46 @@ export function scrollProducts(direction) {
     });
 }
 
+export function scrollProducts(direction) {
+    scrollCarousel('products-grid', direction);
+}
+
 // UI State Update for Carousel
 function updateCarouselUI() {
-    const container = document.getElementById('products-grid');
-    const wrapper = document.querySelector('.carousel-wrapper');
-    if (!container || !wrapper) return;
+    ['products-grid', 'services-grid'].forEach(gridId => {
+        const container = document.getElementById(gridId);
+        // Find closest wrapper
+        if (!container) return;
+        const wrapper = container.closest('.carousel-wrapper');
+        if (!wrapper) return;
 
-    const prevBtn = wrapper.querySelector('.prev-btn');
-    const nextBtn = wrapper.querySelector('.next-btn');
+        const prevBtn = wrapper.querySelector('.prev-btn');
+        const nextBtn = wrapper.querySelector('.next-btn');
 
-    // Check overflow
-    // Allow a small buffer (1px) for rounding errors
-    const isOverflowing = container.scrollWidth > container.clientWidth + 1;
+        // Check overflow
+        const isOverflowing = container.scrollWidth > container.clientWidth + 1;
 
-    if (isOverflowing) {
-        container.style.justifyContent = 'flex-start';
-        if (prevBtn) prevBtn.style.display = 'flex';
-        if (nextBtn) nextBtn.style.display = 'flex';
-    } else {
-        container.style.justifyContent = 'center';
-        if (prevBtn) prevBtn.style.display = 'none';
-        if (nextBtn) nextBtn.style.display = 'none';
-    }
+        if (isOverflowing) {
+            container.style.justifyContent = 'flex-start';
+            if (prevBtn) prevBtn.style.display = 'flex';
+            if (nextBtn) nextBtn.style.display = 'flex';
+        } else {
+            // Only center if NOT mobile? Mobile services are "display: block" vertical.
+            // On desktop: display flex.
+            // Check computed style?
+            if (window.innerWidth > 768) {
+                container.style.justifyContent = 'center';
+            }
+            if (prevBtn) prevBtn.style.display = 'none';
+            if (nextBtn) nextBtn.style.display = 'none';
+        }
+    });
 }
+
+// Ensure update is called when render finishes
+const originalRenderServices = renderServices; // We are in the same module, circular ref?
+// No, we export renderServices. We should call updateCarouselUI inside it.
+// I will just rely on the existing setTimeout call in renderProducts and ADD one in renderServices.
 
 // Lightbox Logic
 window.openLightbox = (src, title, price, desc) => {
@@ -282,5 +302,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // Expose to window for onclick
 window.scrollProducts = scrollProducts;
+window.scrollCarousel = scrollCarousel;
 // Listen for resize
 window.addEventListener('resize', updateCarouselUI);

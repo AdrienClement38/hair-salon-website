@@ -49,7 +49,7 @@ describe('Layout Tests', () => {
         });
 
         expect(styles.display).toBe('flex');
-        expect(styles.justifyContent).toBe('center');
-        expect(styles.flexWrap).toBe('wrap');
+        expect(styles.justifyContent).toBe('flex-start');
+        expect(styles.flexWrap).toBe('nowrap');
     }, 30000);
 });

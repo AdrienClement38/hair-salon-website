@@ -64,6 +64,7 @@ router.get('/admin/workers', checkAuth, adminsController.listWorkers);
 router.post('/admin/workers', checkAuth, validate(workerSchema), adminsController.createWorker);
 router.put('/admin/workers/:id', checkAuth, validate(updateWorkerSchema), adminsController.updateWorker);
 router.delete('/admin/workers/:id', checkAuth, adminsController.deleteWorker);
+router.post('/admin/workers/check-days-off', checkAuth, adminsController.checkDaysOff);
 
 // --- Appointments (Admin) ---
 router.get('/admin/appointments', checkAuth, appointmentsController.list);
@@ -78,6 +79,7 @@ router.post('/admin/settings/email-test', checkAuth, settingsController.testEmai
 
 // --- Leaves (Admin) ---
 router.get('/admin/leaves', checkAuth, leavesController.list);
+router.get('/admin/leaves/check', checkAuth, leavesController.check);
 router.post('/admin/leaves', checkAuth, validate(leaveSchema), leavesController.create);
 router.delete('/admin/leaves/:id', checkAuth, leavesController.delete);
 

@@ -364,6 +364,26 @@ function initProfileForm() {
                     });
                 }
 
+                // Check for Days Off Conflicts if adminId exists (Update)
+                if (adminId) {
+                    const checkRes = await fetch(`${API_URL}/workers/check-days-off`, {
+                        method: 'POST',
+                        headers: getHeaders(),
+                        body: JSON.stringify({ adminId, daysOff })
+                    });
+                    const conflicts = await checkRes.json();
+
+                    if (conflicts.length > 0) {
+                        const msg = `Attention: ${conflicts.length} rendez-vous existent sur ces nouveaux jours de repos :\n\n` +
+                            conflicts.map(c => `- ${formatDateDisplay(c.date)} ${c.time} : ${c.name} (${c.phone || 'Sans tél'})`).join('\n') +
+                            `\n\nVoulez-vous quand même appliquer ces jours de repos ? (Pensez à prévenir les clients)`;
+
+                        if (!confirm(msg)) {
+                            return; // Abort
+                        }
+                    }
+                }
+
 
                 // Update Worker
                 res = await fetch(`${API_URL}/workers/${adminId}`, {
@@ -498,6 +518,22 @@ export async function addHolidayRange() {
     if (start > end) return alert('La date de début doit être avant la fin');
 
     try {
+        // Check for conflicts first
+        const checkRes = await fetch(`${API_URL}/leaves/check?start=${start}&end=${end}&adminId=${adminId}`, {
+            headers: getHeaders()
+        });
+        const conflicts = await checkRes.json();
+
+        if (conflicts.length > 0) {
+            const msg = `Attention: ${conflicts.length} rendez-vous existent pendant cette période :\n\n` +
+                conflicts.map(c => `- ${formatDateDisplay(c.date)} ${c.time} : [${c.worker_name || c.worker_username || 'Salon'}] ${c.name} (${c.phone || 'Sans tél'})`).join('\n') +
+                `\n\nVoulez-vous quand même créer cette période d'absence ? (Pensez à prévenir les clients)`;
+
+            if (!confirm(msg)) {
+                return; // Abort
+            }
+        }
+
         const res = await fetch(`${API_URL}/leaves`, {
             method: 'POST',
             headers: getHeaders(),

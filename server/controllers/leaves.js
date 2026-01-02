@@ -42,3 +42,21 @@ exports.delete = async (req, res) => {
         res.status(500).json({ error: err.message });
     }
 };
+
+exports.check = async (req, res) => {
+    try {
+        const { start, end, adminId } = req.query;
+        if (!start || !end) {
+            return res.status(400).json({ error: 'Start and End dates are required' });
+        }
+
+        // adminId might be "null" string or empty
+        let targetAdminId = adminId;
+        if (targetAdminId === 'null' || targetAdminId === '') targetAdminId = null;
+
+        const conflicts = await db.checkAppointmentConflicts(start, end, targetAdminId);
+        res.json(conflicts);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+};

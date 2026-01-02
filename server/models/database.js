@@ -522,6 +522,90 @@ const deleteLeave = async (id) => {
   return await query('DELETE FROM leaves WHERE id = ?', [id]);
 };
 
+// Check for conflicts within a date range (for Leaves/Closures)
+// Check for conflicts within a date range (for Leaves/Closures)
+const checkAppointmentConflicts = async (start, end, adminId = null) => {
+  // If adminId is provided (specific worker), check only their appointments.
+  // If adminId is null (Global), check ALL appointments during that time.
+  // Note: Appts have date YYYY-MM-DD. Leaves have start_date/end_date YYYY-MM-DD.
+  // We assume full day blocking.
+
+  let sql;
+  const params = [start, end];
+
+  if (adminId) {
+    if (type === 'pg') {
+      sql = `
+        SELECT a.*, adm.display_name as worker_name, adm.username as worker_username 
+        FROM appointments a 
+        LEFT JOIN admins adm ON a.admin_id = adm.id 
+        WHERE a.date >= $1 AND a.date <= $2 AND a.admin_id = $3
+      `;
+    } else {
+      sql = `
+        SELECT a.*, adm.display_name as worker_name, adm.username as worker_username 
+        FROM appointments a 
+        LEFT JOIN admins adm ON a.admin_id = adm.id 
+        WHERE a.date >= ? AND a.date <= ? AND a.admin_id = ?
+      `;
+    }
+    params.push(adminId);
+  } else {
+    // Global closure blocks everyone
+    if (type === 'pg') {
+      sql = `
+        SELECT a.*, adm.display_name as worker_name, adm.username as worker_username 
+        FROM appointments a 
+        LEFT JOIN admins adm ON a.admin_id = adm.id 
+        WHERE a.date >= $1 AND a.date <= $2
+      `;
+    } else {
+      sql = `
+        SELECT a.*, adm.display_name as worker_name, adm.username as worker_username 
+        FROM appointments a 
+        LEFT JOIN admins adm ON a.admin_id = adm.id 
+        WHERE a.date >= ? AND a.date <= ?
+      `;
+    }
+  }
+
+  const rows = await query(sql, params);
+  return rows; // Returns array of conflicting appointments
+};
+
+// Check for conflicts with recurring days off
+const checkDaysOffConflicts = async (adminId, daysOff = []) => {
+  if (!adminId || !daysOff.length) return [];
+
+  // Get all future appointments for this admin
+  const today = new Date().toISOString().split('T')[0];
+  let sql;
+  if (type === 'pg') {
+    sql = 'SELECT * FROM appointments WHERE date >= $1 AND admin_id = $2';
+  } else {
+    sql = 'SELECT * FROM appointments WHERE date >= ? AND admin_id = ?';
+  }
+
+  const appointments = await query(sql, [today, adminId]);
+
+  // Filter in JS
+  // daysOff is array of integers (e.g. [1, 5] for Mon, Fri) matches getDay() logic?
+  // In this app/DB: 0=Sun, 1=Mon...6=Sat.
+  // Settings.js: "Visual: 0(Lun)... DB: 1(Lun)... 0(Sun)".
+  // Wait, let's verify standard JS getDay(): 0 is Sunday, 1 is Monday.
+  // In Settings.js:
+  // "Map visual index (0=Lun) to DB index... let dbValue = index + 1; if (dbValue === 7) dbValue = 0;"
+  // So DB stores standard JS getDay() values (0=Sun, 1=Mon...). Correct.
+
+  const conflicts = appointments.filter(appt => {
+    const d = new Date(appt.date);
+    const dayIndex = d.getDay(); // 0-6
+    return daysOff.includes(dayIndex);
+  });
+
+  return conflicts;
+};
+
 let initPromise = initDB().catch(e => console.error(e));
 
 module.exports = {
@@ -556,6 +640,8 @@ module.exports = {
   deleteLeave,
   deleteAdmin,
   updateAdminDaysOff,
+  checkAppointmentConflicts,
+  checkDaysOffConflicts,
   type,
   initPromise,
   // For testing

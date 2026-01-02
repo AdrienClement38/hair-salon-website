@@ -107,3 +107,22 @@ exports.deleteWorker = async (req, res) => {
         res.status(500).json({ error: e.message });
     }
 };
+
+exports.checkDaysOff = async (req, res) => {
+    try {
+        const { adminId, daysOff } = req.body;
+        // adminId might be null or string "null" if creating new worker? 
+        // If creating new worker, adminId may be undefined, but we can't check conflicts for a new worker easily unless we check "All" but that doesn't make sense.
+        // Actually, for NEW worker, they have no appointments yet, so no conflicts possible.
+        // This is only relevant for UPDATING existing worker.
+
+        if (!adminId) return res.json([]); // No existing appointments to conflict with
+
+        // daysOff is array of integers
+        const conflicts = await db.checkDaysOffConflicts(adminId, daysOff);
+        res.json(conflicts);
+    } catch (e) {
+        console.error("Check Days Off Error:", e);
+        res.status(500).json({ error: e.message });
+    }
+};

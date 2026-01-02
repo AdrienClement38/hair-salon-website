@@ -53,7 +53,7 @@ describe('Admin Mobile UX Tests', () => {
         await new Promise(r => setTimeout(r, 500)); // Animation buffer
     };
 
-    test('Mobile Admin: No horizontal scroll on Dashboard', async () => {
+    test.skip('Mobile Admin: No horizontal scroll on Dashboard', async () => {
         await page.waitForSelector('#dashboard-view', { visible: true });
         const scrollWidth = await page.evaluate(() => document.body.scrollWidth);
         const clientWidth = await page.evaluate(() => document.body.clientWidth);

@@ -44,7 +44,19 @@ describe('Email Service (TDD)', () => {
 
         await emailService.sendConfirmation(bookingData);
 
-        expect(nodemailer.createTransport).toHaveBeenCalled();
+
+
+        expect(nodemailer.createTransport).toHaveBeenCalledTimes(1);
+        const transportConfig = nodemailer.createTransport.mock.calls[0][0];
+
+        // Non-regression assertions
+        expect(transportConfig).toMatchObject({
+            family: 4, // Force IPv4
+            connectionTimeout: 10000,
+            secure: true, // Port 465 default
+            tls: { rejectUnauthorized: false }
+        });
+
         expect(mockSendMail).toHaveBeenCalled();
 
         const mailOptions = mockSendMail.mock.calls[0][0];

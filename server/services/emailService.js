@@ -12,14 +12,23 @@ class EmailService {
             throw new Error('Configuration manquante');
         }
 
+        const host = config.host || 'smtp.gmail.com';
+        const port = config.port || 465;
+        const secure = port == 465;
+
         const transportConfig = {
-            host: config.host || 'smtp.gmail.com',
-            port: config.port || 465,
-            secure: config.port == 465,
+            host,
+            port,
+            secure,
             auth: {
                 user: config.user,
                 pass: config.pass
-            }
+            },
+            tls: {
+                rejectUnauthorized: false
+            },
+            connectionTimeout: 10000,
+            family: 4 // Force IPv4 to avoid socket close issues
         };
 
         const transporter = nodemailer.createTransport(transportConfig);
@@ -60,14 +69,23 @@ class EmailService {
         }
 
         // Generic SMTP Transport
+        const host = settings.host || 'smtp.gmail.com';
+        const port = settings.port || 465;
+        const secure = port == 465;
+
         const transportConfig = {
-            host: settings.host || 'smtp.gmail.com', // Fallback for legacy
-            port: settings.port || 465,
-            secure: settings.port == 465, // true for 465, false for other ports
+            host,
+            port,
+            secure,
             auth: {
                 user: settings.user,
                 pass: settings.pass
-            }
+            },
+            tls: {
+                rejectUnauthorized: false
+            },
+            connectionTimeout: 10000,
+            family: 4 // Force IPv4
         };
 
         const transporter = nodemailer.createTransport(transportConfig);

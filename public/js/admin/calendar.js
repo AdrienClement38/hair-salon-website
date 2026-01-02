@@ -16,9 +16,34 @@ const editTimeInput = document.getElementById('edit-time');
 export function initCalendar() {
     initYearSelect();
     loadWorkersForFilter();
-    // Start polling or load initial
 
-    // Listen to filter change
+    // Initialize Filters from LocalStorage & Add Listeners
+    const filters = [
+        { id: 'cb-weekly-off', key: 'filter-weekly-off' },
+        { id: 'cb-leaves', key: 'filter-leaves' },
+        { id: 'cb-closures', key: 'filter-closures' }
+    ];
+
+    filters.forEach(f => {
+        const el = document.getElementById(f.id);
+        if (el) {
+            // Restore state (default to true if not set)
+            const saved = localStorage.getItem(f.key);
+            if (saved !== null) {
+                el.checked = saved === 'true';
+            } else {
+                el.checked = true; // Default to checked
+            }
+
+            // Save state on change
+            el.addEventListener('change', () => {
+                localStorage.setItem(f.key, el.checked);
+                loadAppointments();
+            });
+        }
+    });
+
+    // Listen to worker filter change (already persisted in loadWorkersForFilter logic partly, but let's confirm)
     const filterEl = document.getElementById('admin-filter');
     if (filterEl) {
         filterEl.addEventListener('change', (e) => {
@@ -200,6 +225,11 @@ function renderCalendar() {
         let status = 'open'; // open, closed-regular, closed-exception, leave, weekly-off
         // Status hierarchy: closed-exception > closed-regular > leave > weekly-off > open
 
+        // Check Filter Visibility
+        const showWeeklyOff = document.getElementById('cb-weekly-off') ? document.getElementById('cb-weekly-off').checked : true;
+        const showLeaves = document.getElementById('cb-leaves') ? document.getElementById('cb-leaves').checked : true;
+        const showClosures = document.getElementById('cb-closures') ? document.getElementById('cb-closures').checked : true;
+
         // 1. Global Exception (Red) - Takes precedence
         if (currentLeaves && currentLeaves.length > 0) {
             const globalLeaves = currentLeaves.filter(l => l.admin_id === null);
@@ -209,13 +239,18 @@ function renderCalendar() {
                 const end = new Date(leave.end_date);
                 end.setHours(23, 59, 59, 999);
                 if (dayDate >= start && dayDate <= end) {
-                    status = 'closed-exception';
+                    if (showClosures) {
+                        status = 'closed-exception';
+                    }
                     break;
                 }
             }
         }
 
         // 2. Regular Closure (Grey) - If not exception
+        // Note: Regular closures (Schedule) are usually not toggleable via these filters, 
+        // asking user implied "Fermeture Salon" which usually means exception, but maybe also regular? 
+        // The prompt said "fermeture salon", which maps to Exception. 
         if (status === 'open') {
             const dayConfig = currentSchedule[dayOfWeekIndex]; // currentSchedule uses 0=Sun, 1=Mon matches dayOfWeekIndex
             if (dayConfig && !dayConfig.isOpen) {
@@ -233,7 +268,9 @@ function renderCalendar() {
                 const end = new Date(leave.end_date);
                 end.setHours(23, 59, 59, 999);
                 if (dayDate >= start && dayDate <= end) {
-                    status = 'leave';
+                    if (showLeaves) {
+                        status = 'leave';
+                    }
                     break;
                 }
             }
@@ -242,11 +279,11 @@ function renderCalendar() {
             if (status === 'open') {
                 const worker = currentWorkers ? currentWorkers.find(w => w.id == activeFilter) : null;
                 if (worker) {
-                    // Check if daysOff is defined and includes today
-                    // daysOff API return: [0, 1] etc.
                     const daysOff = worker.daysOff || [];
                     if (Array.isArray(daysOff) && daysOff.includes(dayOfWeekIndex)) {
-                        status = 'weekly-off';
+                        if (showWeeklyOff) {
+                            status = 'weekly-off';
+                        }
                     }
                 }
             }
@@ -296,7 +333,7 @@ function renderCalendar() {
                 // Salon View - Show consolidated info
 
                 // 1. Show Personal Leaves for ALL workers as badges
-                if (currentLeaves && currentLeaves.length > 0) {
+                if (currentLeaves && currentLeaves.length > 0 && showLeaves) {
                     const personalLeaves = currentLeaves.filter(l => l.admin_id !== null);
                     const leavesToday = personalLeaves.filter(l => {
                         const start = new Date(l.start_date); start.setHours(0, 0, 0, 0);
@@ -312,7 +349,7 @@ function renderCalendar() {
                 }
 
                 // 2. Show Weekly Days Off for ALL workers
-                if (currentWorkers) {
+                if (currentWorkers && showWeeklyOff) {
                     currentWorkers.forEach(w => {
                         const daysOff = w.daysOff || [];
                         if (Array.isArray(daysOff) && daysOff.includes(dayOfWeekIndex)) {

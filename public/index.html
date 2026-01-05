@@ -11,6 +11,34 @@
     <link
         href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Lato:wght@300;400;700&display=swap"
         rel="stylesheet">
+    <link rel="stylesheet" href="css/client/variables.css">
+
+    <!-- Theme Loader -->
+    <script>
+        // Theme Loader with Real-time Polling
+        async function loadTheme() {
+            try {
+                const res = await fetch('/api/settings');
+                if (res.ok) {
+                    const settings = await res.json();
+                    if (settings.active_theme) {
+                        const currentTheme = document.documentElement.getAttribute('data-theme');
+                        if (currentTheme !== settings.active_theme) {
+                            document.documentElement.setAttribute('data-theme', settings.active_theme);
+                        }
+                    }
+                }
+            } catch (e) {
+                console.error('Failed to load theme', e);
+            }
+        }
+
+        // Load immediately
+        loadTheme();
+
+        // Poll every 3 seconds
+        setInterval(loadTheme, 3000);
+    </script>
     <link rel="stylesheet" href="css/client/style.css">
 </head>
 

@@ -1,6 +1,12 @@
+/* Import Core Theme Variables from Client to ensure Admin matches Client themes */
+@import '../client/variables.css';
+
+/* Admin Specific Overrides if needed, typically we want to use the same logic */
+/* But admin layout might need specific tweaks. For now, we trust client vars. */
+/* We might need to map some admin specific vars if they existed. */
 :root {
-    --primary: #D4AF37;
     --secondary: #5a5a5a;
-    --dark: #1A1A1A;
+    /* Admin specific? */
     --light: #f4f4f4;
+    /* Override default light? No, let theme decide. */
 }

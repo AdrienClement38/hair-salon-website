@@ -1,6 +1,6 @@
 /* Settings Styles */
 .settings-section {
-    background: #fff;
+    background: var(--white);
     padding: 20px;
     margin-bottom: 20px;
     border-radius: 8px;
@@ -38,7 +38,7 @@
 }
 
 .admin-form-card {
-    background: #fafafa;
+    background: var(--light);
     padding: 15px;
     border-radius: 4px;
     margin-top: 20px;
@@ -81,7 +81,7 @@
     max-height: 280px;
     overflow-y: auto;
     padding: 10px;
-    background: #fdfdfd;
+    background: var(--light);
     border: 1px solid #ddd;
     border-radius: 4px;
 }
@@ -94,7 +94,7 @@
     border-radius: 4px;
     overflow: hidden;
     border: 1px solid #ccc;
-    background: #eee;
+    background: var(--white);
 }
 
 .portfolio-item img {
@@ -148,7 +148,7 @@
 .z-over {
     z-index: 10;
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-    background: #fff;
+    background: var(--white);
     /* Ensure opacity doesn't show through */
 }
 
@@ -402,7 +402,7 @@
         width: 100%;
         box-sizing: border-box;
         margin-bottom: 5px;
-        background: #fff;
+        background: var(--light);
         border-radius: 8px;
         box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
     }

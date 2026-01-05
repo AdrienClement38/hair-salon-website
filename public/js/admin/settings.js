@@ -13,7 +13,12 @@ let allLeaves = [];
 export async function loadSettings() {
     try {
         const res = await fetch(`${API_URL}/settings`, { headers: getHeaders() });
-        const { openingHours, holidays, home_content, services, contact_info, products, email_config } = await res.json();
+        const { openingHours, holidays, home_content, services, contact_info, products, email_config, active_theme } = await res.json();
+
+        // Apply Theme to Admin immediately
+        if (active_theme) {
+            document.documentElement.setAttribute('data-theme', active_theme);
+        }
 
         // Populate Email Config
         // Populate Email Config
@@ -431,7 +436,33 @@ function initProfileForm() {
         }
     });
 
+
 }
+
+// Save Theme Settings
+window.saveThemeSettings = async function () {
+    const selected = document.querySelector('input[name="theme"]:checked');
+    const theme = selected ? selected.value : 'default';
+
+    try {
+        const res = await fetch(`${API_URL}/settings`, {
+            method: 'POST',
+            headers: getHeaders(),
+            body: JSON.stringify({ active_theme: theme })
+        });
+
+        if (res.ok) {
+            // Dynamically Apply to Admin
+            document.documentElement.setAttribute('data-theme', theme);
+            alert('Thème mis à jour ! Le thème est appliqué instantanément.');
+        } else {
+            alert('Erreur lors de la sauvegarde du thème');
+        }
+    } catch (e) {
+        console.error(e);
+        alert('Erreur de connexion');
+    }
+};
 
 // --- Leaves Management ---
 

@@ -1,6 +1,8 @@
-:root {
+/* Default Theme (Classique) */
+:root,
+[data-theme="default"] {
     --primary: #D4AF37;
-    /* Gold */
+    --primary-rgb: 212, 175, 55;
     --primary-hover: #b8962e;
     --dark: #1A1A1A;
     --light: #F9F9F9;
@@ -8,4 +10,54 @@
     --gray: #666666;
     --font-heading: 'Playfair Display', serif;
     --font-body: 'Lato', sans-serif;
+}
+
+/* Nuit Chic */
+[data-theme="dark"] {
+    --primary: #D4AF37;
+    --primary-rgb: 212, 175, 55;
+    --primary-hover: #F3E5AB;
+    --dark: #EFEEEF;
+    /* Text Color (Previously Light) */
+    --light: #2D2D2D;
+    /* Card Backgrounds */
+    --white: #121212;
+    /* Main Background */
+    --gray: #AAAAAA;
+}
+
+/* Forêt */
+[data-theme="nature"] {
+    --primary: #c0392b;
+    --primary-rgb: 192, 57, 43;
+    --primary-hover: #e74c3c;
+    --dark: #2d3436;
+    --light: #f4f9f4;
+    --white: #FFFFFF;
+    --gray: #636e72;
+}
+
+/* Océan */
+[data-theme="ocean"] {
+    --primary: #2980b9;
+    --primary-rgb: 41, 128, 185;
+    --primary-hover: #3498db;
+    --dark: #2c3e50;
+    --light: #ecf0f1;
+    --white: #FFFFFF;
+    --gray: #7f8c8d;
+}
+
+/* Rouge & Noir */
+[data-theme="red-black"] {
+    --primary: #e74c3c;
+    --primary-rgb: 231, 76, 60;
+    --primary-hover: #c0392b;
+    --dark: #ededed;
+    /* Text */
+    --light: #2c3e50;
+    /* Cards */
+    --white: #000000;
+    /* Main BG */
+    --gray: #95a5a6;
 }

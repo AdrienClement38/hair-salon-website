@@ -7,6 +7,7 @@
     <title>Admin - La Base Coiffure</title>
     <link href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/client/variables.css">
     <link rel="stylesheet" href="css/admin/admin.css">
 </head>
 
@@ -42,7 +43,7 @@
 
     <!-- Loader (Visible by default) -->
     <div id="loading-view"
-        style="display: flex; justify-content: center; align-items: center; height: 100vh; background-color: #f4f4f4;">
+        style="display: flex; justify-content: center; align-items: center; height: 100vh; background-color: var(--light);">
         <p style="font-family: 'Lato', sans-serif; color: #666;">Chargement...</p>
     </div>
 
@@ -79,7 +80,7 @@
             <h1>Tableau de Bord</h1>
             <div style="display:flex; gap:10px; align-items:center;">
                 <select id="admin-filter" onchange="loadAppointments()"
-                    style="padding: 8px; border-radius: 4px; border: 1px solid #ddd;">
+                    style="padding: 8px; border-radius: 4px; border: 1px solid var(--gray); background: var(--white); color: var(--dark);">
                     <option value="">Salon</option>
                 </select>
                 <button onclick="logout()" class="btn" style="width: auto;">Déconnexion</button>
@@ -358,6 +359,107 @@
         <!-- Content Tab (Replaces Photos) -->
         <div id="tab-content" class="tab-content">
             <div class="settings-form">
+
+                <!-- Appearance (Themes) -->
+                <div class="settings-section">
+                    <h3>Apparence</h3>
+                    <div class="admin-form-card">
+                        <div class="form-group">
+                            <label>Pack de Couleurs</label>
+                            <div id="theme-selector" style="display: flex; gap: 1rem; flex-wrap: wrap;">
+                                <!-- Will be populated by JS or hardcoded -->
+                                <label class="theme-card"
+                                    style="cursor: pointer; border: 1px solid #ddd; padding: 10px; border-radius: 8px; display: flex; flex-direction: column; align-items: center; width: 100px; background: #fff;">
+                                    <input type="radio" name="theme" value="default" checked>
+                                    <div style="display: flex; gap: 2px; margin: 5px 0;">
+                                        <div
+                                            style="width: 15px; height: 15px; background: #D4AF37; border-radius: 50%;">
+                                        </div>
+                                        <div
+                                            style="width: 15px; height: 15px; background: #f8f9fa; border: 1px solid #ccc; border-radius: 50%;">
+                                        </div>
+                                        <div
+                                            style="width: 15px; height: 15px; background: #1A1A1A; border-radius: 50%;">
+                                        </div>
+                                    </div>
+                                    <span style="font-size: 0.8rem;">Classique</span>
+                                </label>
+
+                                <label class="theme-card"
+                                    style="cursor: pointer; border: 1px solid #ddd; padding: 10px; border-radius: 8px; display: flex; flex-direction: column; align-items: center; width: 100px; background: #fff;">
+                                    <input type="radio" name="theme" value="dark">
+                                    <div style="display: flex; gap: 2px; margin: 5px 0;">
+                                        <div
+                                            style="width: 15px; height: 15px; background: #D4AF37; border-radius: 50%;">
+                                        </div>
+                                        <div
+                                            style="width: 15px; height: 15px; background: #121212; border: 1px solid #333; border-radius: 50%;">
+                                        </div>
+                                        <div
+                                            style="width: 15px; height: 15px; background: #EFEEEF; border-radius: 50%;">
+                                        </div>
+                                    </div>
+                                    <span style="font-size: 0.8rem;">Nuit Chic</span>
+                                </label>
+
+                                <label class="theme-card"
+                                    style="cursor: pointer; border: 1px solid #ddd; padding: 10px; border-radius: 8px; display: flex; flex-direction: column; align-items: center; width: 100px; background: #fff;">
+                                    <input type="radio" name="theme" value="nature">
+                                    <div style="display: flex; gap: 2px; margin: 5px 0;">
+                                        <div
+                                            style="width: 15px; height: 15px; background: #c0392b; border-radius: 50%;">
+                                        </div>
+                                        <div
+                                            style="width: 15px; height: 15px; background: #f4f9f4; border: 1px solid #ccc; border-radius: 50%;">
+                                        </div>
+                                        <div
+                                            style="width: 15px; height: 15px; background: #2d3436; border-radius: 50%;">
+                                        </div>
+                                    </div>
+                                    <span style="font-size: 0.8rem;">Rouge & Blanc</span>
+                                </label>
+
+                                <label class="theme-card"
+                                    style="cursor: pointer; border: 1px solid #ddd; padding: 10px; border-radius: 8px; display: flex; flex-direction: column; align-items: center; width: 100px; background: #fff;">
+                                    <input type="radio" name="theme" value="ocean">
+                                    <div style="display: flex; gap: 2px; margin: 5px 0;">
+                                        <div
+                                            style="width: 15px; height: 15px; background: #2980b9; border-radius: 50%;">
+                                        </div>
+                                        <div
+                                            style="width: 15px; height: 15px; background: #ecf0f1; border: 1px solid #ccc; border-radius: 50%;">
+                                        </div>
+                                        <div
+                                            style="width: 15px; height: 15px; background: #2c3e50; border-radius: 50%;">
+                                        </div>
+                                    </div>
+                                    <span style="font-size: 0.8rem;">Océan</span>
+                                </label>
+
+                                <label class="theme-card"
+                                    style="cursor: pointer; border: 1px solid #ddd; padding: 10px; border-radius: 8px; display: flex; flex-direction: column; align-items: center; width: 100px; background: #fff;">
+                                    <input type="radio" name="theme" value="red-black">
+                                    <div style="display: flex; gap: 2px; margin: 5px 0;">
+                                        <div
+                                            style="width: 15px; height: 15px; background: #e74c3c; border-radius: 50%;">
+                                        </div>
+                                        <div
+                                            style="width: 15px; height: 15px; background: #000000; border: 1px solid #ccc; border-radius: 50%;">
+                                        </div>
+                                        <div
+                                            style="width: 15px; height: 15px; background: #2c3e50; border-radius: 50%;">
+                                        </div>
+                                    </div>
+                                    <span style="font-size: 0.8rem;">Rouge & Noir</span>
+                                </label>
+                            </div>
+                        </div>
+                        <div class="form-actions">
+                            <button class="btn" onclick="saveThemeSettings()" style="width:auto;">Appliquer le
+                                Thème</button>
+                        </div>
+                    </div>
+                </div>
 
 
                 <!-- General Text -->

@@ -1,5 +1,5 @@
 .login-box {
-    background: white;
+    background: var(--white);
     padding: 2rem;
     border-radius: 8px;
     box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
@@ -15,7 +15,8 @@ label {
     margin-bottom: 0.5rem;
 }
 
-input {
+input,
+textarea {
     width: 100%;
     padding: 8px;
     border: 1px solid #ccc;
@@ -66,7 +67,7 @@ input {
 }
 
 .modal-content {
-    background: white;
+    background: var(--white);
     padding: 2rem;
     border-radius: 8px;
     width: 100%;
@@ -212,7 +213,7 @@ input {
 table {
     width: 100%;
     border-collapse: collapse;
-    background: white;
+    background: var(--white);
     border-radius: 8px;
     overflow: hidden;
 }

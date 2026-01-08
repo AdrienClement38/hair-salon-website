@@ -78,17 +78,7 @@
         </div>
     </div>
 
-    <!-- Forgot Password Modal -->
-    <div id="forgotPasswordModal" class="modal">
-        <div class="modal-content">
-            <span class="close-modal">&times;</span>
-            <h2>Réinitialisation</h2>
-            <p>Un lien de réinitialisation sera envoyé à l'adresse email configurée pour le salon.</p>
-            <form id="forgotPasswordForm">
-                <button type="submit" class="btn" style="width: 100%;">Envoyer le lien</button>
-            </form>
-        </div>
-    </div>
+    <!-- Forgot Password Modal Removed -->
 
     <div id="dashboard-view" class="dashboard">
         <header>
@@ -269,6 +259,10 @@
                             <label>Identifiant de connexion</label>
                             <input type="text" id="profile-username" placeholder="Login de connexion" required
                                 autocomplete="off">
+                            <small style="display:block; margin-top:4px; font-style:italic; color:#666;">
+                                Pour des raisons de sécurité, choisissez un identifiant différent du nom d'affichage
+                                public (ne mettez pas le prénom).
+                            </small>
                         </div>
                         <div class="form-group">
                             <label>Nom d'affichage</label>
@@ -305,6 +299,10 @@
                                 <label>Identifiant (Login)</label>
                                 <input type="text" id="team-username" required autocomplete="off" readonly
                                     onfocus="this.removeAttribute('readonly');">
+                                <small style="display:block; margin-top:4px; font-style:italic; color:#666;">
+                                    Pour des raisons de sécurité, choisissez un identifiant différent du nom d'affichage
+                                    public (ne mettez pas le prénom).
+                                </small>
                             </div>
                             <div class="form-group">
                                 <label>Nom d'affichage (Client)</label>

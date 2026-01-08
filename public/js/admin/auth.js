@@ -99,73 +99,55 @@ export function initAuth() {
         }
     });
 
-    // Forgot Password Logic
+    // Forgot Password Logic - Native Alert Implementation
     const forgotLink = document.getElementById('forgot-password-link');
-    const forgotModal = document.getElementById('forgotPasswordModal'); // Fixed ID
-    const closeForgot = forgotModal ? forgotModal.querySelector('.close-modal') : null;
-    const forgotForm = document.getElementById('forgotPasswordForm'); // Fixed ID
-    // resetMessage removed as not in HTML anymore
 
-    if (forgotLink && forgotModal) {
-        forgotLink.addEventListener('click', (e) => {
+    if (forgotLink) {
+        forgotLink.addEventListener('click', async (e) => {
             e.preventDefault();
-            forgotModal.style.display = 'block'; // Ensure block display
-        });
-    }
 
-    if (closeForgot) {
-        closeForgot.addEventListener('click', () => {
-            forgotModal.style.display = 'none';
-        });
-    }
+            if (confirm("Réinitialisation du mot de passe\n\nUn lien de réinitialisation sera envoyé à l'adresse email configurée pour le salon.\n\nVoulez-vous continuer ?")) {
+                try {
+                    // Visual feedback during request (optional, but good for UX)
+                    const originalText = forgotLink.textContent;
+                    forgotLink.textContent = "Envoi en cours...";
+                    forgotLink.style.pointerEvents = "none";
+                    forgotLink.style.color = "#999";
 
-    // Close on outside click
-    window.addEventListener('click', (e) => {
-        if (e.target == forgotModal) {
-            forgotModal.style.display = 'none';
-        }
-    });
+                    const res = await fetch('/api/auth/forgot-password', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({})
+                    });
 
-    // Forgot Password Form Submission
-    // The original code uses `forgotForm` and `forgotModal`. I will adapt the new code to use these existing variables.
-    if (forgotForm) { // Assuming forgotForm is the element with id 'forgot-password-form'
-        forgotForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const submitBtn = forgotForm.querySelector('button[type="submit"]');
-            const originalText = submitBtn.textContent;
+                    // Restore link state
+                    forgotLink.textContent = originalText;
+                    forgotLink.style.pointerEvents = "auto";
+                    forgotLink.style.color = "#666";
 
-            submitBtn.textContent = 'Envoi en cours...';
-            submitBtn.disabled = true;
-
-            try {
-                // No username required anymore
-                const res = await fetch('/api/auth/forgot-password', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({})
-                });
-
-                const contentType = res.headers.get("content-type");
-                if (contentType && contentType.indexOf("application/json") !== -1) {
-                    const data = await res.json();
-
-                    if (data.success) {
-                        forgotModal.style.display = 'none';
-                        alert("✅ Un email de réinitialisation a bien été envoyé !\n\nVérifiez la boîte mail du salon (celle configurée dans les paramètres) pour y trouver le lien.");
+                    const contentType = res.headers.get("content-type");
+                    if (contentType && contentType.indexOf("application/json") !== -1) {
+                        const data = await res.json();
+                        if (data.success) {
+                            alert("✅ Un email de réinitialisation a bien été envoyé !\n\nVérifiez la boîte mail du salon pour y trouver le lien.");
+                        } else {
+                            alert('Erreur: ' + (data.error || 'Erreur inconnue'));
+                        }
                     } else {
-                        alert('Erreur: ' + (data.error || 'Erreur inconnue'));
+                        const text = await res.text();
+                        console.error('Server Error:', text);
+                        alert('Erreur Serveur (Non-JSON) : ' + text.substring(0, 500));
                     }
-                } else {
-                    const text = await res.text();
-                    console.error('Server Error:', text);
-                    alert('Erreur Serveur (Non-JSON) : ' + text.substring(0, 500)); // Show first 500 chars
+
+                } catch (error) {
+                    console.error('Error:', error);
+                    alert('Une erreur est survenue : ' + error.message);
+
+                    // Restore link state in case of error
+                    forgotLink.textContent = "Mot de passe oublié ?";
+                    forgotLink.style.pointerEvents = "auto";
+                    forgotLink.style.color = "#666";
                 }
-            } catch (error) {
-                console.error('Error:', error);
-                alert('Une erreur est survenue : ' + error.message);
-            } finally {
-                submitBtn.textContent = originalText;
-                submitBtn.disabled = false;
             }
         });
     }

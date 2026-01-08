@@ -94,9 +94,81 @@ export function initAuth() {
             }
         } catch (e) {
             console.error(e);
+
             document.getElementById('login-error').style.display = 'block';
         }
     });
+
+    // Forgot Password Logic
+    const forgotLink = document.getElementById('forgot-password-link');
+    const forgotModal = document.getElementById('forgotPasswordModal'); // Fixed ID
+    const closeForgot = forgotModal ? forgotModal.querySelector('.close-modal') : null;
+    const forgotForm = document.getElementById('forgotPasswordForm'); // Fixed ID
+    // resetMessage removed as not in HTML anymore
+
+    if (forgotLink && forgotModal) {
+        forgotLink.addEventListener('click', (e) => {
+            e.preventDefault();
+            forgotModal.style.display = 'block'; // Ensure block display
+        });
+    }
+
+    if (closeForgot) {
+        closeForgot.addEventListener('click', () => {
+            forgotModal.style.display = 'none';
+        });
+    }
+
+    // Close on outside click
+    window.addEventListener('click', (e) => {
+        if (e.target == forgotModal) {
+            forgotModal.style.display = 'none';
+        }
+    });
+
+    // Forgot Password Form Submission
+    // The original code uses `forgotForm` and `forgotModal`. I will adapt the new code to use these existing variables.
+    if (forgotForm) { // Assuming forgotForm is the element with id 'forgot-password-form'
+        forgotForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const submitBtn = forgotForm.querySelector('button[type="submit"]');
+            const originalText = submitBtn.textContent;
+
+            submitBtn.textContent = 'Envoi en cours...';
+            submitBtn.disabled = true;
+
+            try {
+                // No username required anymore
+                const res = await fetch('/api/auth/forgot-password', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({})
+                });
+
+                const contentType = res.headers.get("content-type");
+                if (contentType && contentType.indexOf("application/json") !== -1) {
+                    const data = await res.json();
+
+                    if (data.success) {
+                        forgotModal.style.display = 'none';
+                        alert("✅ Un email de réinitialisation a bien été envoyé !\n\nVérifiez la boîte mail du salon (celle configurée dans les paramètres) pour y trouver le lien.");
+                    } else {
+                        alert('Erreur: ' + (data.error || 'Erreur inconnue'));
+                    }
+                } else {
+                    const text = await res.text();
+                    console.error('Server Error:', text);
+                    alert('Erreur Serveur (Non-JSON) : ' + text.substring(0, 500)); // Show first 500 chars
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Une erreur est survenue : ' + error.message);
+            } finally {
+                submitBtn.textContent = originalText;
+                submitBtn.disabled = false;
+            }
+        });
+    }
 }
 
 export async function verifyAuth() {

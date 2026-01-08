@@ -100,22 +100,32 @@ exports.serveImage = async (req, res) => {
         const image = await db.getImage(filename);
         if (image) {
             console.log(`Serving image: ${filename} (${image.mimetype})`);
+
+            if (res.headersSent) return;
+
             res.setHeader('Content-Type', image.mimetype);
             res.setHeader('Cache-Control', 'no-cache'); // Prevent caching issues
             res.send(image.data);
         } else {
             console.warn(`Image not found in DB: ${filename}`);
+
+            if (res.headersSent) return;
+
             // Try to send a default file if DB is empty, but handling extensions is tricky without DB.
             // For now, if missing in DB, we verify if a static fallback exists using the param as is.
             res.sendFile(filename + '.jpg', { root: path.join(__dirname, '../../public/images') }, (err) => {
                 if (err) {
                     console.warn(`Static fallback not found for: ${filename}`);
-                    res.status(404).send('Not Found');
+                    if (!res.headersSent) {
+                        res.status(404).send('Not Found');
+                    }
                 }
             });
         }
     } catch (err) {
         console.error("Serve image error:", err);
-        res.status(404).send('Not Found');
+        if (!res.headersSent) {
+            res.status(404).send('Not Found');
+        }
     }
 };

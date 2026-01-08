@@ -224,6 +224,14 @@ const initDB = async () => {
           created_at DATETIME DEFAULT CURRENT_TIMESTAMP
       );
     `);
+    db.run(`
+      CREATE TABLE IF NOT EXISTS password_reset_tokens (
+          token TEXT PRIMARY KEY,
+          admin_id INTEGER NOT NULL,
+          expires_at DATETIME NOT NULL,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
     saveDB();
 
     // Migration Logic
@@ -284,6 +292,12 @@ const initDB = async () => {
           filename TEXT NOT NULL,
           description TEXT,
           admin_id INTEGER,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+       );
+       CREATE TABLE IF NOT EXISTS password_reset_tokens (
+          token TEXT PRIMARY KEY,
+          admin_id INTEGER NOT NULL,
+          expires_at TIMESTAMP NOT NULL,
           created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
        );
      `;
@@ -415,6 +429,26 @@ const deletePortfolioItem = async (id) => {
   return await query('DELETE FROM portfolio WHERE id = ?', [id]);
 }
 
+const createResetToken = async (token, adminId, expiresAt) => {
+  const expires = expiresAt instanceof Date ? expiresAt.toISOString() : expiresAt;
+  if (type === 'pg') {
+    return await query('INSERT INTO password_reset_tokens (token, admin_id, expires_at) VALUES ($1, $2, $3)', [token, adminId, expires]);
+  } else {
+    return await query('INSERT INTO password_reset_tokens (token, admin_id, expires_at) VALUES (?, ?, ?)', [token, adminId, expires]);
+  }
+};
+
+const getResetToken = async (token) => {
+  const row = await getOne('SELECT * FROM password_reset_tokens WHERE token = ?', [token]);
+  // Check if expired logic can be done here or in controller. Controller is fine.
+  return row;
+};
+
+const deleteResetToken = async (token) => {
+  if (type === 'pg') return await query('DELETE FROM password_reset_tokens WHERE token = $1', [token]);
+  return await query('DELETE FROM password_reset_tokens WHERE token = ?', [token]);
+};
+
 const saveImage = async (filename, buffer, mimetype) => {
   if (type === 'pg') {
     const sql = `
@@ -476,9 +510,16 @@ const updateAdminPassword = async (id, newHash) => {
   return await query('UPDATE admins SET password_hash = ? WHERE id = ?', [newHash, id]);
 };
 
-const updateAdminProfile = async (id, displayName) => {
-  if (type === 'pg') return await query('UPDATE admins SET display_name = $1 WHERE id = $2', [displayName, id]);
-  return await query('UPDATE admins SET display_name = ? WHERE id = ?', [displayName, id]);
+const updateAdminProfile = async (id, displayName, username) => {
+  console.log('DB: updateAdminProfile', { id, displayName, username });
+  if (typeof username !== 'undefined') {
+    if (type === 'pg') return await query('UPDATE admins SET display_name = $1, username = $2 WHERE id = $3', [displayName, username, id]);
+    return await query('UPDATE admins SET display_name = ?, username = ? WHERE id = ?', [displayName, username, id]);
+  } else {
+    // Legacy support or fallback if no username passed
+    if (type === 'pg') return await query('UPDATE admins SET display_name = $1 WHERE id = $2', [displayName, id]);
+    return await query('UPDATE admins SET display_name = ? WHERE id = ?', [displayName, id]);
+  }
 };
 
 const deleteAdmin = async (username) => {
@@ -622,6 +663,9 @@ module.exports = {
   getPortfolioItemIds,
   getPortfolioItemsByIds,
   deletePortfolioItem,
+  createResetToken,
+  getResetToken,
+  deleteResetToken,
   getSetting,
   setSetting,
   saveImage,

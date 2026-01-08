@@ -54,8 +54,7 @@ const polling = require('../config/polling');
 
 exports.updateWorker = async (req, res) => {
     const { id } = req.params;
-    const { password, displayName, daysOff } = req.body;
-
+    const { password, displayName, daysOff, username } = req.body;
 
     try {
         const admin = await db.getAdminById(id);
@@ -66,8 +65,8 @@ exports.updateWorker = async (req, res) => {
             await db.updateAdminPassword(id, hash);
         }
 
-        if (displayName) {
-            await db.updateAdminProfile(id, displayName);
+        if (displayName || username) {
+            await db.updateAdminProfile(id, displayName || admin.display_name, username);
         }
 
         if (daysOff) {

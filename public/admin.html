@@ -70,6 +70,22 @@
                 </div>
                 <button type="submit" class="btn">Se connecter</button>
                 <p id="login-error" style="color: red; display: none;">Identifiants incorrects</p>
+                <div style="margin-top: 15px; text-align: center;">
+                    <a href="#" id="forgot-password-link"
+                        style="color: #666; font-size: 0.9em; text-decoration: none;">Mot de passe oublié ?</a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Forgot Password Modal -->
+    <div id="forgotPasswordModal" class="modal">
+        <div class="modal-content">
+            <span class="close-modal">&times;</span>
+            <h2>Réinitialisation</h2>
+            <p>Un lien de réinitialisation sera envoyé à l'adresse email configurée pour le salon.</p>
+            <form id="forgotPasswordForm">
+                <button type="submit" class="btn" style="width: 100%;">Envoyer le lien</button>
             </form>
         </div>
     </div>
@@ -249,6 +265,11 @@
                 <div class="settings-section">
                     <h3>Mon Profil</h3>
                     <form id="profile-form" autocomplete="off">
+                        <div class="form-group">
+                            <label>Identifiant de connexion</label>
+                            <input type="text" id="profile-username" placeholder="Login de connexion" required
+                                autocomplete="off">
+                        </div>
                         <div class="form-group">
                             <label>Nom d'affichage</label>
                             <input type="text" id="profile-displayname" placeholder="Votre nom public"
@@ -606,7 +627,7 @@
 
     <!-- Socket.io removed -->
     <script type="module" src="js/admin/main.js"></script>
-    <script type="module" src="js/admin/settings.js"></script>
+    <script type="module" src="js/admin/settings.js?v=2"></script>
     <script type="module" src="js/admin/products.js"></script>
 </body>
 

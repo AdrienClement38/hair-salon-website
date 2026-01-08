@@ -135,6 +135,70 @@ class EmailService {
         }
     }
 
+    /**
+     * Send password reset link
+     * @param {string} to - Recipient email
+     * @param {string} resetLink - The full reset URL
+     */
+    async sendPasswordReset(to, resetLink) {
+        if (!to) {
+            console.warn('EmailService: No "to" address provided for password reset');
+            return;
+        }
+
+        const config = await db.getSetting('email_config');
+        let settings;
+        try {
+            settings = typeof config === 'string' ? JSON.parse(config) : config;
+        } catch (e) {
+            settings = null;
+        }
+
+        if (!settings || !settings.user || !settings.pass) {
+            console.warn('EmailService: No email configuration found for reset.');
+            return; // Fail silently or warn? Controller handles generic success message.
+        }
+
+        const transportConfig = {
+            host: settings.host || 'smtp.gmail.com',
+            port: settings.port || 465,
+            secure: (settings.port || 465) == 465,
+            auth: { user: settings.user, pass: settings.pass },
+            tls: { rejectUnauthorized: false },
+            connectionTimeout: 10000,
+            family: 4
+        };
+
+        const transporter = nodemailer.createTransport(transportConfig);
+
+        const mailOptions = {
+            from: `"La Base Coiffure" <${settings.user}>`,
+            to: to,
+            subject: 'Réinitialisation de mot de passe - La Base Coiffure',
+            html: `
+                <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                    <h2 style="color: #333;">Réinitialisation de mot de passe</h2>
+                    <p>Une demande de réinitialisation de mot de passe a été effectuée.</p>
+                    <p>Cliquez sur le lien ci-dessous pour définir un nouveau mot de passe :</p>
+                    <p style="text-align: center; margin: 30px 0;">
+                        <a href="${resetLink}" style="background-color: #000; color: #fff; padding: 12px 24px; text-decoration: none; border-radius: 4px;">Réinitialiser mon mot de passe</a>
+                    </p>
+                    <p>Ou copiez ce lien : <br> ${resetLink}</p>
+                    <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;">
+                    <p style="font-size: 12px; color: #777;">Si vous n'êtes pas à l'origine de cette demande, ignorez cet email.</p>
+                </div>
+            `
+        };
+
+        try {
+            await transporter.sendMail(mailOptions);
+            console.log(`Reset email sent to ${to}`);
+        } catch (error) {
+            console.error('EmailService Reset Error:', error);
+            throw error; // Re-throw for controller to handle logging if needed
+        }
+    }
+
     generateICS(data) {
         const { date, time, service, workerName } = data;
 

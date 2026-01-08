@@ -144,17 +144,17 @@ function initProfileForm() {
     const updateProfileView = async () => {
         const adminId = filterEl.value;
         const adminName = filterEl.options[filterEl.selectedIndex]?.text || 'Salon';
+        const usernameInput = document.getElementById('profile-username');
 
         // Clear sensitive fields
         document.getElementById('profile-new-pass').value = '';
 
-        // Pre-fill with known name from dropdown (better UX than loading)
-        displayInput.value = adminName;
-
         if (adminId) {
             // Editing specific worker
             sectionTitle.textContent = `Profil de ${adminName}`;
+            displayInput.value = adminName;
             displayInput.disabled = false; // Allow editing workers
+            if (usernameInput) usernameInput.disabled = false;
 
             // Fetch worker details to ensure we have the latest display name
             try {
@@ -163,9 +163,10 @@ function initProfileForm() {
                 const worker = workers.find(w => w.id == adminId);
                 if (worker) {
                     displayInput.value = worker.displayName || worker.username;
+                    if (usernameInput) usernameInput.value = worker.username;
 
                     // Update Days Off Checkboxes
-                    const daysOff = worker.daysOff || []; // API returns [0,1,...]
+                    const daysOff = worker.daysOff || [];
                     const container = document.getElementById('days-off-container');
                     if (container) {
                         const boxes = container.querySelectorAll('input[type="checkbox"]');
@@ -183,14 +184,40 @@ function initProfileForm() {
             // Editing Self (Salon/Logged-in User)
             sectionTitle.textContent = 'Profil du Salon';
             displayInput.value = 'Salon';
-            displayInput.disabled = true; // Enforce "Salon" cannot be changed
+            displayInput.disabled = true; // "Salon" display name is fixed in UI for clarity, or should we allow changing it too?
+            // Users instructions: "permettre de modifier le nom de login aussi" -> login name.
+            // Display Name "Salon" seems to be a placeholder for "All".
+            // If they want to change the display name of the admin account ("Roger"), they should be able to.
+            // But here "Salon" implies the *view*.
+            // Let's Fetch /me to get actual username/displayname of the logged in user
+            try {
+                const res = await fetch(`${API_URL}/me`, { headers: getHeaders() });
+                const me = await res.json();
+                if (usernameInput) {
+                    usernameInput.value = me.username;
+                    usernameInput.disabled = false;
+                }
+                // We keep displayInput as "Salon" (disabled) to not confuse the "View" concept, 
+                // OR we enable it and let them change "Roger".
+                // The prompt says "je croyais que l'admin c'était salon... c'est qui salon du coup ?".
+                // "Salon" is the generated "All" view.
+                // The actual admin user is me.id.
+                // Let's populate displayInput with me.displayName BUT keep it disabled if we want to force "Salon" view concept?
+                // No, the user wants to edit "Roger" (display name) and "admin" (username).
+                // So we should probably ENABLE displayInput and show real name "Roger",
+                // BUT the filter needs to stay "Salon" for the view?
+                // Complex data binding.
+                // Let's just enable Username editing for now.
+                displayInput.value = me.displayName || me.username; // Show "Roger"
+                displayInput.disabled = false; // Allow changing "Roger"
+                sectionTitle.textContent = `Profil de ${me.displayName || 'Salon'}`;
+            } catch (e) {
+                console.error('Failed to load me', e);
+            }
 
-            // Hide Days Off for Salon (implies open every day per schedule)
+            // Hide Days Off for Salon/Main Admin (implies open every day per schedule)
             const container = document.getElementById('days-off-container');
             if (container) container.style.display = 'none';
-
-            // We do not fetch /me name here to avoid overwriting "Salon" with "Roger".
-            // The user wants "Salon" to be displayed automatically.
         }
     };
 
@@ -206,9 +233,6 @@ function initProfileForm() {
             <label style="display:block; margin-bottom:5px;">Jours de repos hebdomadaires :</label>
             <div style="display:flex; gap:10px; flex-wrap:wrap;">
                 ${['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'].map((d, index) => {
-            // Map visual index (0=Lun) to DB index (1=Lun ... 6=Sam, 0=Dim)
-            // Visual: 0(Lun), 1(Mar), 2(Mer), 3(Jeu), 4(Ven), 5(Sam), 6(Dim)
-            // DB:     1,      2,      3,      4,      5,      6,      0
             let dbValue = index + 1;
             if (dbValue === 7) dbValue = 0; // Sunday
 
@@ -236,45 +260,35 @@ function initProfileForm() {
     // START: Delete Worker Button Logic
     // ----------------------------------------------------
     const deleteBtn = document.createElement('button');
-    deleteBtn.className = 'btn'; // removed btn-danger to avoid BS conflict if any, custom style below
-    deleteBtn.style.backgroundColor = '#d32f2f'; // Red
+    deleteBtn.className = 'btn';
+    deleteBtn.style.backgroundColor = '#d32f2f';
     deleteBtn.style.color = '#ffffff';
     deleteBtn.style.border = 'none';
     deleteBtn.style.padding = '10px 20px';
     deleteBtn.style.cursor = 'pointer';
-    deleteBtn.style.marginTop = '0px'; // Align with submit
+    deleteBtn.style.marginTop = '0px';
     deleteBtn.textContent = 'Supprimer ce profil';
     deleteBtn.style.display = 'none';
-
-    // Ensure it sits next to Update
-    // Ensure it sits next to Update
     deleteBtn.style.verticalAlign = 'middle';
-    deleteBtn.style.width = 'auto'; // Force auto width "taille normale"
+    deleteBtn.style.width = 'auto';
 
-    // Insert logic: Wrap in .form-actions if not already
     const submitBtn = profileForm.querySelector('button[type="submit"]');
     if (submitBtn) {
         let container = submitBtn.parentNode;
-
-        // Check if already in a wrapper
         if (!container.classList.contains('form-actions')) {
             const wrapper = document.createElement('div');
             wrapper.className = 'form-actions';
-            // Insert wrapper before button
             container.insertBefore(wrapper, submitBtn);
-            // Move button into wrapper
             wrapper.appendChild(submitBtn);
             container = wrapper;
         }
-
-        // Append delete button next to submit button
         container.appendChild(deleteBtn);
     }
 
     deleteBtn.onclick = async (e) => {
         e.preventDefault();
         const adminId = filterEl.value;
-        if (!adminId) return; // Should not happen if button is shown
+        if (!adminId) return;
 
         if (!confirm('Attention: La suppression est définitive.\n\nTous les rendez-vous et congés associés à ce coiffeur seront également supprimés.\n\nContinuer ?')) {
             return;
@@ -288,11 +302,8 @@ function initProfileForm() {
 
             if (res.ok) {
                 alert('Profil supprimé avec succès.');
-
-                // 1. Immediate Visual Reset
                 filterEl.value = "";
                 filterEl.innerHTML = '<option value="">Salon</option>';
-
                 const displayInput = document.getElementById('profile-displayname');
                 if (displayInput) {
                     displayInput.value = 'Salon';
@@ -302,17 +313,9 @@ function initProfileForm() {
                 if (sectionTitle) sectionTitle.textContent = 'Profil du Salon';
                 document.getElementById('profile-new-pass').value = '';
                 deleteBtn.style.display = 'none';
-
-                // 2. Refresh Data (Async)
                 await loadWorkersForFilter();
-
-                // Ensure value is still empty after reload
                 filterEl.value = "";
-
                 loadAppointments();
-
-                // REMOVED: dispatchEvent(change) to avoid race conditions.
-
             } else {
                 const err = await res.json();
                 alert('Erreur: ' + (err.error || 'Impossible de supprimer'));
@@ -323,7 +326,6 @@ function initProfileForm() {
         }
     };
 
-    // Update visibility in updateProfileView wrapper
     const originalUpdateView = updateProfileView;
     const wrappedUpdateView = async () => {
         await originalUpdateView();
@@ -335,21 +337,17 @@ function initProfileForm() {
         }
     };
 
-    // Override the listener
     filterEl.removeEventListener('change', updateProfileView);
     filterEl.addEventListener('change', wrappedUpdateView);
 
-    // Call immediately
     wrappedUpdateView();
-    // ----------------------------------------------------
-    // END: Delete Worker Button Logic
-    // ----------------------------------------------------
 
     // Handle Submit
     profileForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         const adminId = filterEl.value;
         const displayname = displayInput.value;
+        const username = document.getElementById('profile-username')?.value; // Get username
         const newpass = document.getElementById('profile-new-pass').value;
 
         try {
@@ -389,21 +387,28 @@ function initProfileForm() {
                 res = await fetch(`${API_URL}/workers/${adminId}`, {
                     method: 'PUT',
                     headers: getHeaders(),
-                    body: JSON.stringify({ displayName: displayname, password: newpass, daysOff: daysOff })
+                    body: JSON.stringify({ displayName: displayname, username: username, password: newpass, daysOff: daysOff })
                 });
             } else {
                 // Update Self
-                // Self-update of daysOff not implemented/exposed for Salon "me"
-                res = await fetch(`${API_URL}/me`, {
+                res = await fetch(`${API_URL}/profile`, {
                     method: 'PUT',
                     headers: getHeaders(),
-                    // Old password no longer required
-                    body: JSON.stringify({ displayName: displayname, newPassword: newpass })
+                    body: JSON.stringify({ displayName: displayname, username: username, newPassword: newpass })
                 });
             }
 
             if (res.ok) {
-                alert('Profil mis à jour');
+                alert('Profil mis à jour. SI vous avez modifié vos identifiants, vous serez déconnecté.');
+
+                // Check if critical fields changed (heuristic or forced)
+                if (username || newpass) {
+                    // Force logout to ensure clean state and prevent 401 loops
+                    localStorage.removeItem('auth');
+                    window.location.reload();
+                    return;
+                }
+
                 document.getElementById('profile-new-pass').value = '';
 
                 // Reload Admin Filter to update cache (Worker Names, Days Off)
@@ -412,10 +417,6 @@ function initProfileForm() {
                 // If we edited a specific worker, re-select them in the filter to keep context
                 if (adminId) {
                     filterEl.value = adminId;
-                } else {
-                    // If we updated ourselves (Salon), might be "Salon" or actual user ID if implemented differently.
-                    // Assuming "Salon" is empty string value
-                    // filterEl.value = ""; 
                 }
 
                 // Refresh title

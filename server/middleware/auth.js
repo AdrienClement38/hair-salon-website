@@ -5,7 +5,6 @@ const checkAuth = async (req, res, next) => {
     const authHeader = req.headers.authorization;
 
     if (!authHeader) {
-        res.setHeader('WWW-Authenticate', 'Basic');
         return res.status(401).send('Authentication required');
     }
 
@@ -21,7 +20,6 @@ const checkAuth = async (req, res, next) => {
         } else {
             // Fake delay to prevent timing attacks equivalent
             await new Promise(resolve => setTimeout(resolve, 100));
-            res.setHeader('WWW-Authenticate', 'Basic');
             return res.status(401).send('Access denied');
         }
     } catch (e) {

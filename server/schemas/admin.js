@@ -30,6 +30,7 @@ const updateWorkerSchema = z.object({
         id: z.string().or(z.number())
     }),
     body: z.object({
+        username: safeString(3, 50).optional(),
         displayName: safeString(2, 50).optional(),
         password: z.string().min(6).optional().or(z.literal('')),
         daysOff: z.array(z.number().min(0).max(6)).optional()

@@ -52,8 +52,13 @@ const loginLimiter = rateLimit({
 
 // --- Auth Routes ---
 router.get('/auth/status', authController.status);
-router.post('/auth/setup', authController.setup); // Setup might need schema too, but usually one-off
+router.post('/auth/setup', authController.setup);
 router.post('/auth/login', loginLimiter, validate(loginSchema), authController.login);
+
+// --- Password Reset ---
+router.post('/auth/forgot-password', authController.requestPasswordReset);
+router.get('/auth/verify-token/:token', authController.verifyResetToken);
+router.post('/auth/reset-password', authController.resetPassword);
 
 // --- Admin Auth/Profile ---
 router.get('/admin/me', checkAuth, authController.me);

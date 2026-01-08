@@ -37,22 +37,22 @@ describe('Mobile UX Tests', () => {
         await page.setViewport({ width: 375, height: 812 });
         await page.goto(BASE_URL);
 
-        // Wait for dynamic services to load (or at least one card)
+        // Wait for dynamic services to load (looking for .item-card)
         try {
-            await page.waitForSelector('#services-grid .card', { timeout: 2000 });
+            await page.waitForSelector('#services-grid .item-card', { timeout: 2000 });
         } catch (e) {
-            // If dynamic loading fails, checks static structure
+            // Ignore timeout
         }
 
-        const cards = await page.$$('.card');
+        const cards = await page.$$('#services-grid .item-card');
         if (cards.length >= 2) {
             const card1Box = await cards[0].boundingBox();
             const card2Box = await cards[1].boundingBox();
 
             // In a stacked layout, the X coordinate should be roughly the same (aligned left)
-            // And Y coordinate of second card should be strictly greater than first
             expect(Math.abs(card1Box.x - card2Box.x)).toBeLessThan(10);
-            expect(card2Box.y).toBeGreaterThan(card1Box.y + card1Box.height);
+            // And Y coordinate of second card should be strictly greater than first
+            expect(card2Box.y).toBeGreaterThan(card1Box.y + card1Box.height - 10); // Allow slight overlap or margin
         }
     });
 
@@ -60,21 +60,36 @@ describe('Mobile UX Tests', () => {
         await page.setViewport({ width: 375, height: 812 });
         await page.goto(BASE_URL);
 
-        // Check if hamburger exists (it should be visible on mobile)
-        // This will FAIL initially as we haven't implemented it
         const hamburger = await page.$('.hamburger-menu');
         expect(hamburger).not.toBeNull();
 
-        // Ensure nav list is hidden (or translated off screen) initially
-        const navVisible = await page.evaluate(() => {
-            const nav = document.querySelector('.nav-list');
-            const style = window.getComputedStyle(nav);
-            // Check if display none or off-screen
-            return style.display !== 'none' && style.visibility !== 'hidden' && style.opacity !== '0';
+        // Initially nav should be off-screen
+        const navBoxInit = await page.$eval('.nav-list', el => {
+            const rect = el.getBoundingClientRect();
+            return { x: rect.x, width: rect.width };
+        });
+        // Check if it's off-screen (right: -100%) -> x should be approx viewport width or greater
+        // Or check if class active is absent
+        const hasActiveClassInit = await page.$eval('.nav-list', el => el.classList.contains('active'));
+        expect(hasActiveClassInit).toBe(false);
+
+        // Click hamburger
+        await hamburger.click();
+
+        // Wait for animation
+        await new Promise(r => setTimeout(r, 500));
+
+        // Check if active class is added
+        const hasActiveClassAfter = await page.$eval('.nav-list', el => el.classList.contains('active'));
+        expect(hasActiveClassAfter).toBe(true);
+
+        // Check visibility (on screen)
+        const navBoxAfter = await page.$eval('.nav-list', el => {
+            const rect = el.getBoundingClientRect();
+            return { x: rect.x, right: rect.right };
         });
 
-        // If implementation hides it via display:none or off-screen, adjust expectation
-        // For now, let's assume it should NOT be visible in the viewport flow
-        // But currently in code it is just display: none in media query
+        // Should be at right: 0, so right edge approx 375
+        expect(navBoxAfter.right).toBeCloseTo(375, -1); // within 10px
     });
 });

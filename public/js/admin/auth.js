@@ -58,98 +58,135 @@ export function initAuth() {
     });
 
     // Login Handler
-    loginForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const username = document.getElementById('username').value;
-        const password = document.getElementById('password').value;
+    // Login Handler
+    // Login Handler
+    const errorEl = document.getElementById('login-error');
 
+    // Clear error on input
+    if (loginForm && errorEl) {
         try {
-            const res = await fetch('/api/auth/login', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ username, password })
+            loginForm.querySelectorAll('input').forEach(input => {
+                input.addEventListener('input', () => {
+                    errorEl.style.display = 'none';
+                });
             });
-
-            if (res.ok) {
-                const authString = btoa(`${username}:${password}`);
-                localStorage.setItem('auth', authString);
-
-                // Clear fields to prevent autofill on other forms
-                document.getElementById('username').value = '';
-                document.getElementById('password').value = '';
-
-                // Reload to initialize everything (settings, etc.) with new auth
-                window.location.reload();
-            } else {
-                let errorMsg = 'Identifiants incorrects';
-                try {
-                    const data = await res.json();
-                    if (data.error) errorMsg = data.error;
-                } catch (jsonErr) {
-                    console.warn('Non-JSON error response');
-                }
-                const errorEl = document.getElementById('login-error');
-                errorEl.textContent = errorMsg;
-                errorEl.style.display = 'block';
-            }
         } catch (e) {
-            console.error(e);
-
-            document.getElementById('login-error').style.display = 'block';
+            console.warn('Error attaching input listeners', e);
         }
-    });
+    }
 
-    // Forgot Password Logic - Native Alert Implementation
-    const forgotLink = document.getElementById('forgot-password-link');
-
-    if (forgotLink) {
-        forgotLink.addEventListener('click', async (e) => {
+    if (loginForm) {
+        loginForm.addEventListener('submit', async (e) => {
             e.preventDefault();
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            const submitBtn = loginForm.querySelector('button[type="submit"]');
+            const originalBtnText = submitBtn.textContent;
 
-            if (confirm("Réinitialisation du mot de passe\n\nUn lien de réinitialisation sera envoyé à l'adresse email configurée pour le salon.\n\nVoulez-vous continuer ?")) {
-                try {
-                    // Visual feedback during request (optional, but good for UX)
-                    const originalText = forgotLink.textContent;
-                    forgotLink.textContent = "Envoi en cours...";
-                    forgotLink.style.pointerEvents = "none";
-                    forgotLink.style.color = "#999";
+            // Reset state
+            errorEl.style.display = 'none';
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Connexion...';
 
-                    const res = await fetch('/api/auth/forgot-password', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({})
-                    });
+            // UX: Artificial delay to ensure user sees the "Processing" state
+            await new Promise(r => setTimeout(r, 600));
 
-                    // Restore link state
-                    forgotLink.textContent = originalText;
-                    forgotLink.style.pointerEvents = "auto";
-                    forgotLink.style.color = "#666";
+            try {
+                const res = await fetch('/api/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password })
+                });
 
-                    const contentType = res.headers.get("content-type");
-                    if (contentType && contentType.indexOf("application/json") !== -1) {
+                if (res.ok) {
+                    const authString = btoa(`${username}:${password}`);
+                    localStorage.setItem('auth', authString);
+
+                    // Clear fields to prevent autofill on other forms
+                    document.getElementById('username').value = '';
+                    document.getElementById('password').value = '';
+
+                    // Reload to initialize everything (settings, etc.) with new auth
+                    window.location.reload();
+                } else {
+                    let errorMsg = 'Identifiants incorrects';
+                    try {
                         const data = await res.json();
-                        if (data.success) {
-                            alert("✅ Un email de réinitialisation a bien été envoyé !\n\nVérifiez la boîte mail du salon pour y trouver le lien.");
-                        } else {
-                            alert('Erreur: ' + (data.error || 'Erreur inconnue'));
-                        }
-                    } else {
-                        const text = await res.text();
-                        console.error('Server Error:', text);
-                        alert('Erreur Serveur (Non-JSON) : ' + text.substring(0, 500));
+                        if (data.error) errorMsg = data.error;
+                    } catch (jsonErr) {
+                        console.warn('Non-JSON error response');
                     }
 
-                } catch (error) {
-                    console.error('Error:', error);
-                    alert('Une erreur est survenue : ' + error.message);
+                    errorEl.textContent = errorMsg;
+                    errorEl.style.display = 'block';
 
-                    // Restore link state in case of error
-                    forgotLink.textContent = "Mot de passe oublié ?";
-                    forgotLink.style.pointerEvents = "auto";
-                    forgotLink.style.color = "#666";
+                    // Restore button
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = originalBtnText;
                 }
+            } catch (e) {
+                console.error(e);
+                errorEl.textContent = 'Erreur réseau';
+                errorEl.style.display = 'block';
+
+                // Restore button
+                submitBtn.disabled = false;
+                submitBtn.textContent = originalBtnText;
             }
         });
+
+        // Forgot Password Logic - Native Alert Implementation
+        const forgotLink = document.getElementById('forgot-password-link');
+
+        if (forgotLink) {
+            forgotLink.addEventListener('click', async (e) => {
+                e.preventDefault();
+
+                if (confirm("Réinitialisation du mot de passe\n\nUn lien de réinitialisation sera envoyé à l'adresse email configurée pour le salon.\n\nVoulez-vous continuer ?")) {
+                    try {
+                        // Visual feedback during request (optional, but good for UX)
+                        const originalText = forgotLink.textContent;
+                        forgotLink.textContent = "Envoi en cours...";
+                        forgotLink.style.pointerEvents = "none";
+                        forgotLink.style.color = "#999";
+
+                        const res = await fetch('/api/auth/forgot-password', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({})
+                        });
+
+                        // Restore link state
+                        forgotLink.textContent = originalText;
+                        forgotLink.style.pointerEvents = "auto";
+                        forgotLink.style.color = "#666";
+
+                        const contentType = res.headers.get("content-type");
+                        if (contentType && contentType.indexOf("application/json") !== -1) {
+                            const data = await res.json();
+                            if (data.success) {
+                                alert("✅ Un email de réinitialisation a bien été envoyé !\n\nVérifiez la boîte mail du salon pour y trouver le lien.");
+                            } else {
+                                alert('Erreur: ' + (data.error || 'Erreur inconnue'));
+                            }
+                        } else {
+                            const text = await res.text();
+                            console.error('Server Error:', text);
+                            alert('Erreur Serveur (Non-JSON) : ' + text.substring(0, 500));
+                        }
+
+                    } catch (error) {
+                        console.error('Error:', error);
+                        alert('Une erreur est survenue : ' + error.message);
+
+                        // Restore link state in case of error
+                        forgotLink.textContent = "Mot de passe oublié ?";
+                        forgotLink.style.pointerEvents = "auto";
+                        forgotLink.style.color = "#666";
+                    }
+                }
+            });
+        }
     }
 }
 

@@ -228,7 +228,7 @@ class AppointmentService {
     }
 
     async createBooking(data) {
-        const { name, date, time, service, phone, adminId } = data;
+        const { name, date, time, service, phone, adminId, email } = data;
 
         // 0. Check Date Limit (2 Months) Security
         const checkDate = new Date(date);
@@ -275,7 +275,7 @@ class AppointmentService {
             }
         }
 
-        return await db.createBooking(name, date, time, service, phone, adminId);
+        return await db.createBooking(name, date, time, service, phone, adminId, email);
     }
 }
 

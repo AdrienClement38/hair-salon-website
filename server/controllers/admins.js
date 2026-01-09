@@ -54,7 +54,7 @@ const polling = require('../config/polling');
 
 exports.updateWorker = async (req, res) => {
     const { id } = req.params;
-    const { password, displayName, daysOff, username } = req.body;
+    const { password, displayName, daysOff, username, sendEmails, forceDelete } = req.body;
 
     try {
         const admin = await db.getAdminById(id);
@@ -70,6 +70,30 @@ exports.updateWorker = async (req, res) => {
         }
 
         if (daysOff) {
+            // Check conflicts if email requested OR valid force delete implied
+            if (sendEmails || forceDelete) {
+                const conflicts = await db.checkDaysOffConflicts(id, daysOff);
+                const emailService = require('../services/emailService');
+                for (const appt of conflicts) {
+                    // Send Email if applicable
+                    if (sendEmails && appt.email) {
+                        // We need worker name for context, admin.display_name might be old if updated above?
+                        // Use displayName if provided, else admin.display_name
+                        const wName = displayName || admin.display_name;
+                        try {
+                            await emailService.sendCancellation(appt, {
+                                reason: 'Modification des horaires hebdomadaires',
+                                workerName: wName
+                            });
+                            console.log(`Cancelled appointment ${appt.id} for ${appt.email}`);
+                        } catch (emailErr) {
+                            console.error(`Failed to send email to ${appt.email}:`, emailErr);
+                        }
+                    }
+                    // Always delete if we are in this block (confirmed action)
+                    await db.deleteAppointment(appt.id);
+                }
+            }
             await db.updateAdminDaysOff(id, daysOff);
         }
 

@@ -14,16 +14,40 @@ exports.list = async (req, res) => {
 };
 
 exports.create = async (req, res) => {
-    const { start, end, adminId, note } = req.body;
+    const { start, end, adminId, note, sendEmails, forceDelete } = req.body;
     if (!start || !end) {
         return res.status(400).json({ error: 'Start and End dates are required' });
     }
 
     try {
         // adminId might be provided or null (for Global)
-        // Ensure adminId is treated as null if it's an empty string or 'null' string
         let targetAdminId = adminId;
         if (targetAdminId === '' || targetAdminId === 'null') targetAdminId = null;
+
+        // Check for conflicts if we want to send emails OR force delete
+        if (sendEmails || forceDelete) {
+            const conflicts = await db.checkAppointmentConflicts(start, end, targetAdminId);
+            const emailService = require('../services/emailService');
+
+            for (const appt of conflicts) {
+                // If appointment has an email AND sendEmails is true, send cancellation
+                if (sendEmails && appt.email) {
+                    try {
+                        await emailService.sendCancellation(appt, {
+                            reason: note || (targetAdminId ? 'Congés Coiffeur' : 'Fermeture exceptionnelle')
+                        });
+                        console.log(`Cancelled appointment ${appt.id} for ${appt.email}`);
+                    } catch (emailErr) {
+                        console.error(`Failed to send email to ${appt.email}:`, emailErr);
+                    }
+                }
+
+                // Delete appointment regardless of email presense if forceDelete is true (or implied by sendEmails?)
+                // User said: "suppression des rdv se fasse aussi même si le client n'a pas de mail".
+                // If we are here, user confirmed action.
+                await db.deleteAppointment(appt.id);
+            }
+        }
 
         await db.createLeave(start, end, targetAdminId, note);
         triggerUpdate('settings'); // Trigger update for frontend to refresh calendar/settings

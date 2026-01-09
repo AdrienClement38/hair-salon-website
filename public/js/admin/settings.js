@@ -163,7 +163,10 @@ function initProfileForm() {
                 const worker = workers.find(w => w.id == adminId);
                 if (worker) {
                     displayInput.value = worker.displayName || worker.username;
-                    if (usernameInput) usernameInput.value = worker.username;
+                    if (usernameInput) {
+                        usernameInput.value = worker.username;
+                        usernameInput.dataset.original = worker.username;
+                    }
 
                     // Update Days Off Checkboxes
                     const daysOff = worker.daysOff || [];
@@ -195,7 +198,10 @@ function initProfileForm() {
                 const me = await res.json();
                 if (usernameInput) {
                     usernameInput.value = me.username;
+                    usernameInput.dataset.original = me.username;
                     usernameInput.disabled = false;
+                    // Store ID globally for self-check
+                    window.currentUserId = me.id;
                 }
                 // We keep displayInput as "Salon" (disabled) to not confuse the "View" concept, 
                 // OR we enable it and let them change "Roger".
@@ -273,6 +279,21 @@ function initProfileForm() {
     deleteBtn.style.width = 'auto';
 
     const submitBtn = profileForm.querySelector('button[type="submit"]');
+
+    // Initialize currentUserId globally
+    // Initialize currentUserId globally
+    fetch(`${API_URL}/me`, { headers: getHeaders() })
+        .then(res => {
+            if (res.ok) return res.json();
+            throw new Error('Failed to fetch profile');
+        })
+        .then(me => {
+            window.currentUserId = me.id;
+        })
+        .catch(e => {
+            console.error("Failed to fetch my profile", e);
+        });
+
     if (submitBtn) {
         let container = submitBtn.parentNode;
         if (!container.classList.contains('form-actions')) {
@@ -352,6 +373,8 @@ function initProfileForm() {
 
         try {
             let res;
+            let sendEmails = false;
+            let forceDelete = false;
             if (adminId) {
                 // Collect Days Off
                 const daysOff = [];
@@ -372,12 +395,35 @@ function initProfileForm() {
                     const conflicts = await checkRes.json();
 
                     if (conflicts.length > 0) {
-                        const msg = `Attention: ${conflicts.length} rendez-vous existent sur ces nouveaux jours de repos :\n\n` +
+                        const hasEmails = conflicts.some(c => c.email && c.email.trim() !== '');
+                        const isPlural = conflicts.length > 1;
+                        const someMissingEmail = conflicts.some(c => !c.email || c.email.trim() === '');
+                        let msg = `Attention: ${conflicts.length} rendez-vous exist${isPlural ? 'ent' : 'e'} sur ces nouveaux jours de repos :\n\n` +
                             conflicts.map(c => `- ${formatDateDisplay(c.date)} ${c.time} : ${c.name} (${c.phone || 'Sans tél'})`).join('\n') +
-                            `\n\nVoulez-vous quand même appliquer ces jours de repos ? (Pensez à prévenir les clients)`;
+                            `\n\n${isPlural ? 'Ces rendez-vous seront supprimés' : 'Ce rendez-vous sera supprimé'}.\n\nVoulez-vous appliquer ces changements ?`;
+
+                        if (hasEmails) {
+                            msg += `\n(Une option pour envoyer un email d'annulation automatique vous sera proposée à l'étape suivante.)`;
+                        }
+
+                        if (someMissingEmail) {
+                            const missingList = conflicts.filter(c => !c.email || c.email.trim() === '');
+                            msg += `\n\n⚠️ Clients sans email (à contacter par téléphone) :\n` +
+                                missingList.map(c => `- ${c.name}`).join('\n');
+                        }
 
                         if (!confirm(msg)) {
                             return; // Abort
+                        }
+
+                        // Force Delete enabled by user confirmation
+                        forceDelete = true;
+
+                        // Second confirmation only if emails exist
+                        if (hasEmails) {
+                            if (confirm("Voulez-vous envoyer un email d'annulation aux clients concernés ?")) {
+                                sendEmails = true;
+                            }
                         }
                     }
                 }
@@ -387,7 +433,7 @@ function initProfileForm() {
                 res = await fetch(`${API_URL}/workers/${adminId}`, {
                     method: 'PUT',
                     headers: getHeaders(),
-                    body: JSON.stringify({ displayName: displayname, username: username, password: newpass, daysOff: daysOff })
+                    body: JSON.stringify({ displayName: displayname, username: username, password: newpass, daysOff: daysOff, sendEmails: sendEmails, forceDelete: forceDelete })
                 });
             } else {
                 // Update Self
@@ -399,17 +445,31 @@ function initProfileForm() {
             }
 
             if (res.ok) {
-                alert('Profil mis à jour. SI vous avez modifié vos identifiants, vous serez déconnecté.');
+                // Smart Logout Logic
+                // 1. Check if we are editing ourselves
+                const isSelf = !adminId || (window.currentUserId && adminId == window.currentUserId);
 
-                // Check if critical fields changed (heuristic or forced)
-                if (username || newpass) {
-                    // Force logout to ensure clean state and prevent 401 loops
+                // 2. Check if credentials actually changed
+                const original = document.getElementById('profile-username')?.dataset.original;
+                const usernameChanged = username && original && username !== original;
+                const passwordChanged = newpass && newpass.trim() !== '';
+
+                if (isSelf && (usernameChanged || passwordChanged)) {
+                    alert('Profil mis à jour. Vos identifiants ont changé, vous allez être déconnecté.');
                     localStorage.removeItem('auth');
                     window.location.reload();
                     return;
+                } else {
+                    alert('Profil mis à jour.');
                 }
 
                 document.getElementById('profile-new-pass').value = '';
+
+                // If updating self username, update original data to prevent future false triggers
+                if (isSelf && usernameChanged) {
+                    const uInput = document.getElementById('profile-username');
+                    if (uInput) uInput.dataset.original = username;
+                }
 
                 // Reload Admin Filter to update cache (Worker Names, Days Off)
                 await loadWorkersForFilter();
@@ -524,14 +584,36 @@ export async function addHolidayRange() {
             headers: getHeaders()
         });
         const conflicts = await checkRes.json();
+        let sendEmails = false;
 
         if (conflicts.length > 0) {
-            const msg = `Attention: ${conflicts.length} rendez-vous existent pendant cette période :\n\n` +
+            const hasEmails = conflicts.some(c => c.email && c.email.trim() !== '');
+            const someMissingEmail = conflicts.some(c => !c.email || c.email.trim() === '');
+
+            const isPlural = conflicts.length > 1;
+            let msg = `Attention: ${conflicts.length} rendez-vous exist${isPlural ? 'ent' : 'e'} pendant cette période :\n\n` +
                 conflicts.map(c => `- ${formatDateDisplay(c.date)} ${c.time} : [${c.worker_name || c.worker_username || 'Salon'}] ${c.name} (${c.phone || 'Sans tél'})`).join('\n') +
-                `\n\nVoulez-vous quand même créer cette période d'absence ? (Pensez à prévenir les clients)`;
+                `\n\n${isPlural ? 'Ces rendez-vous seront supprimés' : 'Ce rendez-vous sera supprimé'}.\n\nVoulez-vous bloquer cette période ?`;
+
+            if (hasEmails) {
+                msg += `\n(Une option pour envoyer un email d'annulation automatique vous sera proposée à l'étape suivante.)`;
+            }
+
+            if (someMissingEmail) {
+                const missingList = conflicts.filter(c => !c.email || c.email.trim() === '');
+                msg += `\n\n⚠️ Clients sans email (à contacter par téléphone) :\n` +
+                    missingList.map(c => `- ${c.name}`).join('\n');
+            }
 
             if (!confirm(msg)) {
                 return; // Abort
+            }
+
+            // Second confirmation for Emails only if relevant
+            if (hasEmails) {
+                if (confirm("Voulez-vous envoyer un email d'annulation aux clients concernés ?")) {
+                    sendEmails = true;
+                }
             }
         }
 
@@ -542,7 +624,8 @@ export async function addHolidayRange() {
                 start,
                 end,
                 adminId: adminId, // Controller handles "" as null
-                note: adminId ? 'Congés Coiffeur' : 'Fermeture'
+                note: adminId ? 'Congés Coiffeur' : 'Fermeture',
+                sendEmails
             })
         });
 
@@ -552,7 +635,11 @@ export async function addHolidayRange() {
         }
 
         // Success Feedback
-        alert('Congés ajoutés avec succès');
+        if (sendEmails) {
+            alert('Congés ajoutés et emails d\'annulation envoyés.');
+        } else {
+            alert('Congés ajoutés avec succès');
+        }
 
         // Reload
         await loadLeaves();

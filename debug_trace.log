@@ -1,0 +1,5 @@
+[auth.js] updateProfile User=sim_user Body={"displayName":"Sim User Modified","username":"sim_user_mod","newPassword":""}
+[auth.js] updateProfile User=admin_repro Body={"displayName":"Repro User Updated","username":"admin_repro_new"}
+[auth.js] updateProfile User=testadmin_prof Body={"username":"testadmin_prof","displayName":"Updated Name","new_password":"","daysOff":[1]}
+[auth.js] updateProfile User=testadmin_prof Body={"username":"testadmin_prof","displayName":"Updated Name","new_password":"","daysOff":[2]}
+[auth.js] updateProfile User=testadmin_prof Body={"username":"testadmin_new","displayName":"Updated Name","new_password":"","daysOff":[2]}

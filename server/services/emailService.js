@@ -239,6 +239,76 @@ STATUS:CONFIRMED
 END:VEVENT
 END:VCALENDAR`.replace(/\n/g, '\r\n');
     }
+
+    /**
+     * Send cancellation email
+     * @param {Object} appointment - { email, name, date, time, service, worker_name }
+     * @param {Object} context - { reason, workerName }
+     */
+    async sendCancellation(appointment, context) {
+        if (!appointment.email) return;
+
+        const config = await db.getSetting('email_config');
+        let settings;
+        try {
+            settings = typeof config === 'string' ? JSON.parse(config) : config;
+        } catch (e) {
+            settings = null;
+        }
+
+        if (!settings || !settings.user || !settings.pass) {
+            console.warn('EmailService: No email configuration found for cancellation.');
+            return;
+        }
+
+        const transportConfig = {
+            host: settings.host || 'smtp.gmail.com',
+            port: settings.port || 465,
+            secure: (settings.port || 465) == 465,
+            auth: { user: settings.user, pass: settings.pass },
+            tls: { rejectUnauthorized: false },
+            connectionTimeout: 10000,
+            family: 4
+        };
+
+        const transporter = nodemailer.createTransport(transportConfig);
+
+        // Format date common usage
+        const dateObj = new Date(appointment.date);
+        const dateStr = dateObj.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+
+        const mailOptions = {
+            from: `"La Base Coiffure" <${settings.user}>`,
+            to: appointment.email,
+            subject: 'Annulation de votre Rendez-vous - La Base Coiffure',
+            html: `
+                <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                    <h2 style="color: #d32f2f;">Rendez-vous Annulé</h2>
+                    <p>Bonjour ${appointment.name},</p>
+                    <p>Nous sommes au regret de vous informer que votre rendez-vous a dû être annulé.</p>
+                    
+                    <div style="background-color: #fff3f3; padding: 15px; border-radius: 5px; margin: 20px 0; border-left: 4px solid #d32f2f;">
+                        <p style="margin: 5px 0;"><strong>Date :</strong> ${dateStr}</p>
+                        <p style="margin: 5px 0;"><strong>Heure :</strong> ${appointment.time}</p>
+                        <p style="margin: 5px 0;"><strong>Raison :</strong> ${context.reason}</p>
+                    </div>
+
+                    <p>Nous vous invitons à reprendre rendez-vous sur notre site ou à nous contacter pour plus d'informations.</p>
+                    <p>Veuillez nous excuser pour ce désagrément.</p>
+                    
+                    <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;">
+                    <p style="font-size: 12px; color: #777;">La Base Coiffure<br>Ref: ${Date.now().toString().slice(-6)}</p>
+                </div>
+            `
+        };
+
+        try {
+            await transporter.sendMail(mailOptions);
+            console.log(`Cancellation email sent to ${appointment.email}`);
+        } catch (error) {
+            console.error('EmailService Cancellation Error:', error);
+        }
+    }
 }
 
 module.exports = new EmailService();

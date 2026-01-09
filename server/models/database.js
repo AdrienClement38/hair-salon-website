@@ -200,11 +200,20 @@ const initDB = async () => {
         }
       });
     } catch (e) {
-      // sql.js might throw synchronously
       if (!e.message.includes('duplicate column')) {
         console.error("Migration Exception (ignored if duplicate):", e.message);
       }
     }
+
+    // Migration: Add email to appointments
+    try {
+      db.run("ALTER TABLE appointments ADD COLUMN email TEXT", (err) => {
+        // Ignore duplicate column error often thrown by sqlite if it exists
+      });
+    } catch (e) {
+      // Ignore
+    }
+
     db.run(`
       CREATE TABLE IF NOT EXISTS leaves (
           id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -349,14 +358,19 @@ const getAllAppointments = async (forceAdminId = null) => {
   return await query('SELECT * FROM appointments ORDER BY date DESC, time ASC');
 };
 
-const createBooking = async (name, date, time, service, phone, adminId) => {
+const createBooking = async (name, date, time, service, phone, adminId, email) => {
   if (type === 'pg') {
-    const sql = 'INSERT INTO appointments (name, date, time, service, phone, admin_id) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id';
-    const res = await db.query(sql, [name, date, time, service, phone, adminId]);
+    const sql = 'INSERT INTO appointments (name, date, time, service, phone, admin_id, email) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id';
+    const res = await db.query(sql, [name, date, time, service, phone, adminId, email || null]);
     return { lastInsertRowid: res.rows[0].id };
   } else {
-    return await query('INSERT INTO appointments (name, date, time, service, phone, admin_id) VALUES (?, ?, ?, ?, ?, ?)', [name, date, time, service, phone, adminId]);
+    return await query('INSERT INTO appointments (name, date, time, service, phone, admin_id, email) VALUES (?, ?, ?, ?, ?, ?, ?)', [name, date, time, service, phone, adminId, email || null]);
   }
+};
+
+const getAppointmentById = async (id) => {
+  if (type === 'pg') return await getOne('SELECT * FROM appointments WHERE id = $1', [id]);
+  return await getOne('SELECT * FROM appointments WHERE id = ?', [id]);
 };
 
 const deleteAppointment = async (id) => {
@@ -652,6 +666,7 @@ let initPromise = initDB().catch(e => console.error(e));
 module.exports = {
   getBookingsForDate,
   getAllAppointments,
+  getAppointmentById,
   createBooking,
   deleteAppointment,
   updateAppointment,

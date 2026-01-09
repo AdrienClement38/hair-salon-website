@@ -46,7 +46,7 @@ exports.login = async (req, res) => {
         if (admin && await bcrypt.compare(password, admin.password_hash)) {
             res.json({ success: true });
         } else {
-            res.status(401).json({ error: 'Invalid credentials' });
+            res.status(401).json({ error: 'Identifiants incorrects' });
         }
     } catch (e) {
         res.status(500).json({ error: e.message });
@@ -73,11 +73,11 @@ exports.me = async (req, res) => {
 
 exports.updateProfile = async (req, res) => {
     const { newPassword, displayName, username } = req.body;
-    const authHeader = req.headers.authorization;
-    const auth = Buffer.from(authHeader.split(' ')[1], 'base64').toString().split(':');
-    const currentUser = auth[0];
+    // req.user is set by checkAuth middleware
+    const currentUser = req.user ? req.user.username : null;
 
     console.log('Update Profile Request:', { currentUser, body: req.body });
+    require('fs').appendFileSync('debug_trace.log', `[auth.js] updateProfile User=${currentUser} Body=${JSON.stringify(req.body)}\n`);
 
     try {
         console.log('Update Profile Request:', { currentUser, body: req.body });
@@ -87,6 +87,35 @@ exports.updateProfile = async (req, res) => {
         if (newPassword) {
             const newHash = await bcrypt.hash(newPassword, 10);
             await db.updateAdminPassword(admin.id, newHash);
+        }
+
+        if (req.body.daysOff) {
+            const { sendEmails, forceDelete } = req.body;
+
+            if (sendEmails || forceDelete) {
+                const conflicts = await db.checkDaysOffConflicts(admin.id, req.body.daysOff);
+                // Ensure emailService is available (module scope or require)
+                const emailServiceLib = require('../services/emailService');
+
+                for (const appt of conflicts) {
+                    if (sendEmails && appt.email) {
+                        const wName = displayName || admin.display_name || admin.username;
+                        try {
+                            await emailServiceLib.sendCancellation(appt, {
+                                reason: 'Modification des horaires hebdomadaires',
+                                workerName: wName
+                            });
+                            console.log(`Cancelled appointment ${appt.id} for ${appt.email}`);
+                        } catch (emailErr) {
+                            console.error(`Failed to send email to ${appt.email}:`, emailErr);
+                        }
+                    }
+                    // Force delete
+                    await db.deleteAppointment(appt.id);
+                }
+            }
+
+            await db.updateAdminDaysOff(admin.id, req.body.daysOff);
         }
 
         if (displayName || username) {

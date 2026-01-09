@@ -33,7 +33,9 @@ const updateWorkerSchema = z.object({
         username: safeString(3, 50).optional(),
         displayName: safeString(2, 50).optional(),
         password: z.string().min(6).optional().or(z.literal('')),
-        daysOff: z.array(z.number().min(0).max(6)).optional()
+        daysOff: z.array(z.number().min(0).max(6)).optional(),
+        sendEmails: z.boolean().optional(),
+        forceDelete: z.boolean().optional()
     })
 });
 
@@ -42,7 +44,9 @@ const leaveSchema = z.object({
         start: z.string().regex(dateRegex, "Format de date invalide (YYYY-MM-DD)"),
         end: z.string().regex(dateRegex, "Format de date invalide (YYYY-MM-DD)"),
         note: safeString(0, 500).optional(), // Note can be empty
-        adminId: z.number().or(z.string().nullable()).optional() // frontend sends "" or ID string
+        adminId: z.number().or(z.string().nullable()).optional(), // frontend sends "" or ID string
+        sendEmails: z.boolean().optional(),
+        forceDelete: z.boolean().optional()
     })
 });
 

@@ -15,7 +15,34 @@ exports.list = async (req, res) => {
 
 exports.delete = async (req, res) => {
     try {
-        await db.deleteAppointment(req.params.id);
+        const { sendEmail } = req.body; // Check flag from frontend
+        const id = req.params.id;
+
+        if (sendEmail) {
+            const appt = await db.getAppointmentById(id);
+            if (appt && appt.email) {
+                const emailService = require('../services/emailService');
+                // Resolve worker name for the email template
+                let workerName = 'Le Coiffeur';
+                if (appt.admin_id) {
+                    const admin = await db.getAdminById(appt.admin_id);
+                    if (admin) workerName = admin.display_name || admin.username;
+                }
+
+                try {
+                    await emailService.sendCancellation(appt, {
+                        reason: 'Annulation manuelle par le salon',
+                        workerName: workerName
+                    });
+                    console.log(`Manual cancellation email sent to ${appt.email}`);
+                } catch (emailErr) {
+                    console.error("Failed to send manual cancellation email:", emailErr);
+                    // Continue with deletion even if email fails
+                }
+            }
+        }
+
+        await db.deleteAppointment(id);
         triggerUpdate();
         res.json({ success: true });
     } catch (err) {
@@ -41,6 +68,7 @@ exports.update = async (req, res) => {
 exports.createBooking = async (req, res) => {
     try {
         // Validation now handled by middleware
+        // Pass email if present
         const result = await appointmentService.createBooking(req.body);
 
         // Send Email Confirmation (Fire and Forget)

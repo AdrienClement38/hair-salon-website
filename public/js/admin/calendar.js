@@ -512,9 +512,13 @@ function openDayDetails(dateStr, appointments, shouldScroll = true) {
                         ${showWorkerCol ? `<td><span class="appt-badge">${workerName}</span></td>` : ''}
                         <td>${formatPhoneNumberDisplay(apt.phone)}</td>
                         <td>
-                            ${renderActionButtons(`openEdit(${apt.id}, '${apt.name.replace("'", "\\'")}', '${apt.date}', '${apt.time}')`, `deleteApt(${apt.id})`, {
-                editLabel: `<svg xmlns="http://www.w3.org/2000/svg" style="width:1.25rem; height:1.25rem;" viewBox="0 -960 960 960" fill="#000000"><path d="M200-200h57l391-391-57-57-391 391v57Zm-80 80v-170l528-527q12-11 26.5-17t30.5-6q16 0 31 6t26 18l55 56q12 11 17.5 26t5.5 30q0 16-5.5 30.5T817-647L290-120H120Zm640-584-56-56 56 56Zm-141 85-28-29 57 57-29-28Z"/></svg>`
-            })}
+                            ${renderActionButtons(
+                `openEdit(${apt.id}, '${apt.name.replace("'", "\\'")}', '${apt.date}', '${apt.time}')`,
+                `deleteApt(${apt.id}, '${apt.name.replace("'", "\\'")}', '${apt.date}', '${apt.time}', '${serviceDisplay.replace("'", "\\'")}', '${apt.email || ''}', '${(apt.phone || '').replace("'", "\\'")}')`,
+                {
+                    editLabel: `<svg xmlns="http://www.w3.org/2000/svg" style="width:1.25rem; height:1.25rem;" viewBox="0 -960 960 960" fill="#000000"><path d="M200-200h57l391-391-57-57-391 391v57Zm-80 80v-170l528-527q12-11 26.5-17t30.5-6q16 0 31 6t26 18l55 56q12 11 17.5 26t5.5 30q0 16-5.5 30.5T817-647L290-120H120Zm640-584-56-56 56 56Zm-141 85-28-29 57 57-29-28Z"/></svg>`
+                }
+            )}
                         </td>
                     </tr>
                     `;
@@ -536,13 +540,47 @@ export function closeDayDetails() {
     currentDetailDate = null;
 }
 
-export async function deleteApt(id) {
-    if (!confirm('Êtes-vous sûr ?')) return;
-    await fetch(`${API_URL}/appointments/${id}`, {
-        method: 'DELETE',
-        headers: getHeaders()
-    });
-    loadAppointments();
+export async function deleteApt(id, name, date, time, service, email, phone) {
+    const hasEmail = (email && email !== 'null' && email !== 'undefined' && email.trim() !== '');
+
+    // 1. Detailed Confirmation (Matching settings.js style)
+    // Structure:
+    // "Êtes-vous sûr de vouloir supprimer le rendez-vous ?
+    //
+    // - [Date] [Heure] : [Nom] ([Phone])
+    //
+    // (Une option pour envoyer un email...)"
+
+    let msg = `Êtes-vous sûr de vouloir supprimer le rendez-vous ?\n\n` +
+        `- ${formatDateDisplay(date)} ${time} : ${name} (${phone || 'Sans tél'})`;
+
+    if (hasEmail) {
+        msg += `\n\n(Une option pour envoyer un email d'annulation automatique vous sera proposée à l'étape suivante.)`;
+    } else {
+        msg += `\n\n⚠️ Ce client n'a pas d'adresse email enregistrée. Pensez à le prévenir par téléphone.`;
+    }
+
+    if (!confirm(msg)) return;
+
+    let sendEmail = false;
+
+    // 2. Email Confirmation (only if email exists)
+    if (hasEmail) {
+        if (confirm("Voulez-vous envoyer un email d'annulation au client concerné ?")) {
+            sendEmail = true;
+        }
+    }
+
+    try {
+        await fetch(`${API_URL}/appointments/${id}`, {
+            method: 'DELETE',
+            headers: getHeaders(),
+            body: JSON.stringify({ sendEmail }) // Pass flag
+        });
+        loadAppointments();
+    } catch (e) {
+        alert('Erreur: ' + e.message);
+    }
 }
 
 // Edit Modal Functions

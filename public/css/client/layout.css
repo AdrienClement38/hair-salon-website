@@ -1,7 +1,7 @@
 /* Layout & Grids */
 .section {
     padding: 4rem 0;
-    scroll-margin-top: 80px;
+    scroll-margin-top: 60px;
     /* Offset for fixed header */
 }
 
@@ -10,8 +10,10 @@
     background: var(--white);
     padding: 1rem 0;
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-    position: sticky;
+    position: fixed;
+    width: 100%;
     top: 0;
+    left: 0;
     z-index: 1000;
 }
 
@@ -92,11 +94,11 @@
     }
 
     .section {
-        scroll-margin-top: 60px;
+        scroll-margin-top: 50px;
     }
 
     #booking {
-        scroll-margin-top: 40px;
+        scroll-margin-top: 50px;
     }
 
     /* Remove nav from flex flow on mobile to let justify-content work for logo/burger */

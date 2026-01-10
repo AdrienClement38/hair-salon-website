@@ -33,15 +33,15 @@ describe('Mobile UX Tests', () => {
         expect(scrollWidth).toBeLessThanOrEqual(clientWidth + 1);
     });
 
-    test('Mobile: Services should stack vertically', async () => {
+    test('Mobile: Services should be displayed horizontally (slider)', async () => {
         await page.setViewport({ width: 375, height: 812 });
         await page.goto(BASE_URL);
 
-        // Wait for dynamic services to load (looking for .item-card)
+        // Wait for dynamic services to load
         try {
             await page.waitForSelector('#services-grid .item-card', { timeout: 2000 });
         } catch (e) {
-            // Ignore timeout
+            // Ignore
         }
 
         const cards = await page.$$('#services-grid .item-card');
@@ -49,10 +49,12 @@ describe('Mobile UX Tests', () => {
             const card1Box = await cards[0].boundingBox();
             const card2Box = await cards[1].boundingBox();
 
-            // In a stacked layout, the X coordinate should be roughly the same (aligned left)
-            expect(Math.abs(card1Box.x - card2Box.x)).toBeLessThan(10);
-            // And Y coordinate of second card should be strictly greater than first
-            expect(card2Box.y).toBeGreaterThan(card1Box.y + card1Box.height - 10); // Allow slight overlap or margin
+            // In horizontal slider:
+            // Y coordinates should be roughly aligned (same row)
+            expect(Math.abs(card1Box.y - card2Box.y)).toBeLessThan(10);
+
+            // X coordinate of second card should be strictly greater than first
+            expect(card2Box.x).toBeGreaterThan(card1Box.x);
         }
     });
 

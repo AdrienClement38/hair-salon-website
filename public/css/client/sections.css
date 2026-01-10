@@ -134,76 +134,7 @@
     object-fit: contain;
 }
 
-@media (max-width: 768px) {
-    #services-grid {
-        display: block;
-        /* Stack vertically */
-        max-height: 50vh;
-        /* Approx 5 items */
-        overflow-y: auto;
-        /* Scrollable */
-        padding-right: 5px;
-        /* Space for scrollbar */
-    }
-
-    #services-grid .item-card {
-        width: 100%;
-        margin-bottom: 10px;
-        flex-direction: row;
-        flex-wrap: wrap;
-        align-items: center;
-        padding: 0.75rem;
-        /* Tighter padding */
-        min-height: auto;
-    }
-
-    #services-grid .item-card .card-media {
-        width: 70px;
-        /* Base container larger */
-        height: 70px;
-        margin: 0 10px 0 0;
-        flex-shrink: 0;
-    }
-
-    /* Override component.css specific to mobile sections.css */
-    #services-grid .item-card .card-media.icon svg,
-    #services-grid .item-card .card-media.icon img {
-        width: 80%;
-        /* Significantly larger icon inside circle */
-        height: 80%;
-        object-fit: contain;
-    }
-
-    #services-grid .item-card .card-header {
-        flex: 1;
-        margin-bottom: 0;
-        display: flex;
-        flex-direction: row;
-        align-items: center;
-        justify-content: space-between;
-        text-align: left;
-    }
-
-    #services-grid .item-card .card-header h3 {
-        font-size: 1.1rem;
-        margin-bottom: 0;
-    }
-
-    #services-grid .item-card .card-header .price {
-        font-size: 1.1rem;
-        font-weight: bold;
-    }
-
-    #services-grid .item-card .card-body {
-        flex-basis: 100%;
-        text-align: center;
-        /* Centered description */
-        margin-top: 5px;
-        font-size: 0.9rem;
-        padding-left: 0;
-        color: #aaa;
-    }
-}
+/* Mobile overrides for Services removed to match Desktop/Product slider layout */
 
 /* Booking Section */
 .booking-wrapper {
@@ -268,6 +199,58 @@
     height: auto;
     margin: 0;
     padding: 1rem;
+}
+
+@media (max-width: 768px) {
+
+    /* Reduce Carousel Wrapper Padding to give more space */
+    .carousel-wrapper {
+        padding: 0 35px;
+        /* Reduced from 60px */
+    }
+
+    /* Scale Down Cards for Mobile */
+    #services-grid .item-card,
+    #products-grid .item-card {
+        flex: 0 0 160px;
+        width: 160px;
+        min-width: 160px;
+        max-width: 160px;
+        min-height: 260px;
+        padding: 0.8rem;
+    }
+
+    #services-grid .item-card .card-media,
+    #products-grid .item-card .card-media {
+        width: 100px;
+        height: 100px;
+        margin-bottom: 0.5rem;
+    }
+
+    #services-grid .item-card .card-header,
+    #products-grid .item-card .card-header {
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+        gap: 0.2rem;
+    }
+
+    #services-grid .item-card .card-header h3,
+    #products-grid .item-card .card-header h3 {
+        font-size: 0.95rem;
+        text-align: center;
+    }
+
+    #services-grid .item-card .card-header .price,
+    #products-grid .item-card .card-header .price {
+        font-size: 0.95rem;
+    }
+
+    #services-grid .item-card .card-body,
+    #products-grid .item-card .card-body {
+        font-size: 0.8rem;
+        margin-top: 0.2rem;
+    }
 }
 
 /* Portfolio Masonry */

@@ -275,7 +275,8 @@ const initDB = async () => {
          id SERIAL PRIMARY KEY,
          username TEXT UNIQUE NOT NULL,
          password_hash TEXT NOT NULL,
-         display_name TEXT
+         display_name TEXT,
+         days_off TEXT
        );
        CREATE TABLE IF NOT EXISTS appointments (
          id SERIAL PRIMARY KEY,
@@ -311,6 +312,20 @@ const initDB = async () => {
        );
      `;
     await db.query(queries);
+
+    // Migration: Add days_off to admins if missing
+    try {
+      await db.query("ALTER TABLE admins ADD COLUMN IF NOT EXISTS days_off TEXT");
+    } catch (e) {
+      console.log('PG Migration (days_off):', e.message);
+    }
+
+    // Migration: Add email to appointments if missing
+    try {
+      await db.query("ALTER TABLE appointments ADD COLUMN IF NOT EXISTS email TEXT");
+    } catch (e) {
+      console.log('PG Migration (email):', e.message);
+    }
   }
 
   // Defaults

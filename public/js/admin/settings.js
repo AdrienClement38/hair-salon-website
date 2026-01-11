@@ -158,12 +158,16 @@ function initProfileForm() {
         const adminId = filterEl.value;
         const adminName = filterEl.options[filterEl.selectedIndex]?.text || 'Salon';
         const usernameInput = document.getElementById('profile-username');
+        // Parent section of the form
+        const profileSection = profileForm.closest('.settings-section');
 
         // Clear sensitive fields
         document.getElementById('profile-new-pass').value = '';
 
         if (adminId) {
             // Editing specific worker
+            if (profileSection) profileSection.style.display = 'block';
+
             sectionTitle.textContent = `Profil de ${adminName}`;
             displayInput.value = adminName;
             displayInput.disabled = false; // Allow editing workers
@@ -197,52 +201,14 @@ function initProfileForm() {
             }
 
         } else {
-            // Editing Self (Salon/Logged-in User)
-            sectionTitle.textContent = 'Profil du Salon';
-            displayInput.value = 'Salon';
-            displayInput.disabled = true; // "Salon" display name is fixed in UI for clarity, or should we allow changing it too?
-            // Users instructions: "permettre de modifier le nom de login aussi" -> login name.
-            // Display Name "Salon" seems to be a placeholder for "All".
-            // If they want to change the display name of the admin account ("Roger"), they should be able to.
-            // But here "Salon" implies the *view*.
-            // Let's Fetch /me to get actual username/displayname of the logged in user
-            try {
-                const res = await fetch(`${API_URL}/me`, { headers: getHeaders() });
-                const me = await res.json();
-                if (usernameInput) {
-                    usernameInput.value = me.username;
-                    usernameInput.dataset.original = me.username;
-                    usernameInput.disabled = false;
-                    // Store ID globally for self-check
-                    window.currentUserId = me.id;
-                }
-                // We keep displayInput as "Salon" (disabled) to not confuse the "View" concept, 
-                // OR we enable it and let them change "Roger".
-                // The prompt says "je croyais que l'admin c'était salon... c'est qui salon du coup ?".
-                // "Salon" is the generated "All" view.
-                // The actual admin user is me.id.
-                // Let's populate displayInput with me.displayName BUT keep it disabled if we want to force "Salon" view concept?
-                // No, the user wants to edit "Roger" (display name) and "admin" (username).
-                // So we should probably ENABLE displayInput and show real name "Roger",
-                // BUT the filter needs to stay "Salon" for the view?
-                // Complex data binding.
-                // Let's just enable Username editing for now.
-                displayInput.value = me.displayName || me.username; // Show "Roger"
-                displayInput.disabled = false; // Allow changing "Roger"
-                sectionTitle.textContent = `Profil de ${me.displayName || 'Salon'}`;
-            } catch (e) {
-                console.error('Failed to load me', e);
-            }
-
-            // Hide Days Off for Salon/Main Admin (implies open every day per schedule)
-            const container = document.getElementById('days-off-container');
-            if (container) container.style.display = 'none';
+            // Editing Salon (Global Content) - HIDE Profile Section as per user request
+            if (profileSection) profileSection.style.display = 'none';
         }
     };
 
     // Inject Days Off UI
     const passInput = document.getElementById('profile-new-pass');
-    if (passInput) {
+    if (passInput && !document.getElementById('days-off-container')) {
         const wrapper = document.createElement('div');
         wrapper.id = 'days-off-container';
         wrapper.style.marginTop = '15px';
@@ -278,45 +244,41 @@ function initProfileForm() {
     // ----------------------------------------------------
     // START: Delete Worker Button Logic
     // ----------------------------------------------------
-    const deleteBtn = document.createElement('button');
-    deleteBtn.className = 'btn';
-    deleteBtn.style.backgroundColor = '#d32f2f';
-    deleteBtn.style.color = '#ffffff';
-    deleteBtn.style.border = 'none';
-    deleteBtn.style.padding = '10px 20px';
-    deleteBtn.style.cursor = 'pointer';
-    deleteBtn.style.marginTop = '0px';
-    deleteBtn.textContent = 'Supprimer ce profil';
-    deleteBtn.style.display = 'none';
-    deleteBtn.style.verticalAlign = 'middle';
-    deleteBtn.style.width = 'auto';
+    // Check if button already exists to prevent duplication
+    let deleteBtn = document.getElementById('btn-delete-profile');
 
-    const submitBtn = profileForm.querySelector('button[type="submit"]');
+    if (!deleteBtn) {
+        deleteBtn = document.createElement('button');
+        deleteBtn.id = 'btn-delete-profile';
+        deleteBtn.className = 'btn';
+        deleteBtn.style.backgroundColor = '#d32f2f';
+        deleteBtn.style.color = '#ffffff';
+        deleteBtn.style.border = 'none';
+        deleteBtn.style.padding = '10px 20px';
+        deleteBtn.style.cursor = 'pointer';
+        deleteBtn.style.marginTop = '0px';
+        deleteBtn.textContent = 'Supprimer ce profil';
+        deleteBtn.style.display = 'none';
+        deleteBtn.style.verticalAlign = 'middle';
+        deleteBtn.style.width = 'auto';
 
-    // Initialize currentUserId globally
-    // Initialize currentUserId globally
-    fetch(`${API_URL}/me`, { headers: getHeaders() })
-        .then(res => {
-            if (res.ok) return res.json();
-            throw new Error('Failed to fetch profile');
-        })
-        .then(me => {
-            window.currentUserId = me.id;
-        })
-        .catch(e => {
-            console.error("Failed to fetch my profile", e);
-        });
+        const submitBtn = profileForm.querySelector('button[type="submit"]');
 
-    if (submitBtn) {
-        let container = submitBtn.parentNode;
-        if (!container.classList.contains('form-actions')) {
-            const wrapper = document.createElement('div');
-            wrapper.className = 'form-actions';
-            container.insertBefore(wrapper, submitBtn);
-            wrapper.appendChild(submitBtn);
-            container = wrapper;
+        if (submitBtn) {
+            let container = submitBtn.parentNode;
+            // Ensure we are in form-actions and not creating nested ones
+            if (!container.classList.contains('form-actions')) {
+                // Check if a form-actions sibling exists? No, usually we wrap.
+                // But if we run this logic again on re-init, we might double wrap.
+                // Best to verify structure.
+                const wrapper = document.createElement('div');
+                wrapper.className = 'form-actions';
+                container.insertBefore(wrapper, submitBtn);
+                wrapper.appendChild(submitBtn);
+                container = wrapper;
+            }
+            container.appendChild(deleteBtn);
         }
-        container.appendChild(deleteBtn);
     }
 
     deleteBtn.onclick = async (e) => {

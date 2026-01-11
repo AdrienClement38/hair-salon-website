@@ -543,29 +543,38 @@ export function closeDayDetails() {
 export async function deleteApt(id, name, date, time, service, email, phone) {
     const hasEmail = (email && email !== 'null' && email !== 'undefined' && email.trim() !== '');
 
-    // 1. Detailed Confirmation (Matching settings.js style)
-    // Structure:
-    // "Êtes-vous sûr de vouloir supprimer le rendez-vous ?
-    //
-    // - [Date] [Heure] : [Nom] ([Phone])
-    //
-    // (Une option pour envoyer un email...)"
+    // Check Email Config first
+    let emailConfigured = false;
+    try {
+        const sRes = await fetch(`${API_URL}/settings`, { headers: getHeaders() });
+        const settings = await sRes.json();
+        // Admin side gets full email_config object, check if host/user exist
+        if (settings.email_config && settings.email_config.host && settings.email_config.user) {
+            emailConfigured = true;
+        }
+    } catch (e) { console.warn("Settings check failed", e); }
 
+    // 1. Detailed Confirmation (Matching settings.js style)
     let msg = `Êtes-vous sûr de vouloir supprimer le rendez-vous ?\n\n` +
         `- ${formatDateDisplay(date)} ${time} : ${name} (${phone || 'Sans tél'})`;
 
-    if (hasEmail) {
+    if (hasEmail && emailConfigured) {
         msg += `\n\n(Une option pour envoyer un email d'annulation automatique vous sera proposée à l'étape suivante.)`;
     } else {
-        msg += `\n\n⚠️ Ce client n'a pas d'adresse email enregistrée. Pensez à le prévenir par téléphone.`;
+        if (!hasEmail) {
+            msg += `\n\n⚠️ Ce client n'a pas d'adresse email enregistrée. Pensez à le prévenir par téléphone.`;
+        } else {
+            // Has email but NO config
+            msg += `\n\n(L'envoi d'email est désactivé car le serveur SMTP n'est pas configuré.)`;
+        }
     }
 
     if (!confirm(msg)) return;
 
     let sendEmail = false;
 
-    // 2. Email Confirmation (only if email exists)
-    if (hasEmail) {
+    // 2. Email Confirmation (only if email exists AND configured)
+    if (hasEmail && emailConfigured) {
         if (confirm("Voulez-vous envoyer un email d'annulation au client concerné ?")) {
             sendEmail = true;
         }

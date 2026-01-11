@@ -12,7 +12,7 @@ exports.update = async (req, res) => {
         if (home_content) await db.setSetting('home_content', home_content);
         if (services) await db.setSetting('services', services);
         if (contact_info) await db.setSetting('contact_info', contact_info);
-        if (email_config) await db.setSetting('email_config', email_config);
+        if (email_config !== undefined) await db.setSetting('email_config', email_config);
         if (salon_identity) await db.setSetting('salon_identity', salon_identity);
         if (products) {
             // Check for orphan images before saving new list
@@ -65,11 +65,34 @@ exports.get = async (req, res) => {
         const services = (await db.getSetting('services')) || [];
         const contact_info = (await db.getSetting('contact_info')) || { address: '', phone: '' };
         const products = (await db.getSetting('products')) || [];
-        const email_config = (await db.getSetting('email_config')); // Not default to null/empty so frontend knows if set
         const salon_identity = (await db.getSetting('salon_identity')) || { name: 'La Base Coiffure', logo: null };
 
-        // console.log('Serving settings. Products count:', products.length);
+        const fullEmailConfig = (await db.getSetting('email_config'));
+        let email_config = fullEmailConfig;
 
+        // Security: If not authenticated as Admin, DO NOT return sensitive email config.
+        // Instead, return a flag indicating if it is configured.
+        if (!req.user) {
+            const isConfigured = !!(fullEmailConfig && fullEmailConfig.user && fullEmailConfig.host);
+            email_config = null; // Strip sensitive data
+            // Add flag to response (top level or separate)
+            // We'll add it to the JSON response
+            res.json({
+                openingHours,
+                holidays,
+                holidayRanges,
+                home_content,
+                services,
+                contact_info,
+                products,
+                salon_identity,
+                // Public Safe Flag
+                emailConfigured: isConfigured
+            });
+            return;
+        }
+
+        // Admin gets the full config
         res.json({ openingHours, holidays, holidayRanges, home_content, services, contact_info, products, email_config, salon_identity });
     } catch (err) {
         res.status(500).json({ error: err.message });

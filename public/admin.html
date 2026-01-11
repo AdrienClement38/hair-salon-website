@@ -363,11 +363,16 @@
                                 <input type="number" id="email-config-port" placeholder="465">
                             </div>
                         </details>
-                        <div class="form-actions" style="display:flex; gap:10px;">
+                        <div class="form-actions" style="display:flex; gap:10px; align-items: center;">
                             <button class="btn" onclick="saveEmailConfig()" style="width:auto;">Enregistrer la
                                 connexion</button>
                             <button class="btn btn-outline" onclick="testEmailConfig()"
                                 style="width:auto; border-color: #ccc; color: #333;">Tester la connexion</button>
+
+                            <button class="btn btn-text" onclick="deleteEmailConfig()"
+                                style="width:auto; margin-left: auto; color: #d9534f; font-size: 0.9rem; text-decoration:underline; border:none; background:none; cursor:pointer;">
+                                Supprimer la configuration
+                            </button>
                         </div>
                     </div>
                 </div>

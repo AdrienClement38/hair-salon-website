@@ -27,11 +27,18 @@ export async function loadSettings() {
 
         // Populate Email Config
         // Populate Email Config
+        // Populate Email Config
         if (email_config) {
-            document.getElementById('email-config-user').value = email_config.user || '';
-            document.getElementById('email-config-pass').value = email_config.pass || '';
-            document.getElementById('email-config-host').value = email_config.host || '';
-            document.getElementById('email-config-port').value = email_config.port || '';
+            if (document.getElementById('email-config-user')) document.getElementById('email-config-user').value = email_config.user || '';
+            if (document.getElementById('email-config-pass')) document.getElementById('email-config-pass').value = email_config.pass || '';
+            if (document.getElementById('email-config-host')) document.getElementById('email-config-host').value = email_config.host || '';
+            if (document.getElementById('email-config-port')) document.getElementById('email-config-port').value = email_config.port || '';
+        } else {
+            // Explicitly clear fields if no config exists (handles case where fields were autofilled)
+            if (document.getElementById('email-config-user')) document.getElementById('email-config-user').value = '';
+            if (document.getElementById('email-config-pass')) document.getElementById('email-config-pass').value = '';
+            if (document.getElementById('email-config-host')) document.getElementById('email-config-host').value = '';
+            if (document.getElementById('email-config-port')) document.getElementById('email-config-port').value = '';
         }
 
         // Auto-Discovery Logic
@@ -377,8 +384,15 @@ function initProfileForm() {
                             conflicts.map(c => `- ${formatDateDisplay(c.date)} ${c.time} : ${c.name} (${c.phone || 'Sans tél'})`).join('\n') +
                             `\n\n${isPlural ? 'Ces rendez-vous seront supprimés' : 'Ce rendez-vous sera supprimé'}.\n\nVoulez-vous appliquer ces changements ?`;
 
-                        if (hasEmails) {
+                        // Check if Email Config is present in the form (Admin Context)
+                        const emailUser = document.getElementById('email-config-user')?.value;
+                        const emailHost = document.getElementById('email-config-host')?.value;
+                        const isEmailConfigured = (emailUser && emailHost);
+
+                        if (hasEmails && isEmailConfigured) {
                             msg += `\n(Une option pour envoyer un email d'annulation automatique vous sera proposée à l'étape suivante.)`;
+                        } else if (hasEmails && !isEmailConfigured) {
+                            msg += `\n(L'envoi d'email est désactivé car le serveur SMTP n'est pas configuré.)`;
                         }
 
                         if (someMissingEmail) {
@@ -394,8 +408,8 @@ function initProfileForm() {
                         // Force Delete enabled by user confirmation
                         forceDelete = true;
 
-                        // Second confirmation only if emails exist
-                        if (hasEmails) {
+                        // Second confirmation only if emails exist AND configured
+                        if (hasEmails && isEmailConfigured) {
                             if (confirm("Voulez-vous envoyer un email d'annulation aux clients concernés ?")) {
                                 sendEmails = true;
                             }
@@ -836,6 +850,33 @@ export async function testEmailConfig() {
     }
 }
 window.testEmailConfig = testEmailConfig;
+
+
+export async function deleteEmailConfig() {
+    if (!confirm('Supprimer la configuration email ?\n\nLe site ne pourra plus envoyer de confirmations de RDV.')) {
+        return;
+    }
+
+    try {
+        await fetch(`${API_URL}/settings`, {
+            method: 'POST',
+            headers: getHeaders(),
+            body: JSON.stringify({ email_config: null })
+        });
+
+        // Clear Fields
+        document.getElementById('email-config-user').value = '';
+        document.getElementById('email-config-pass').value = '';
+        document.getElementById('email-config-host').value = '';
+        document.getElementById('email-config-port').value = '';
+
+        alert('Configuration supprimée.');
+    } catch (e) {
+        console.error(e);
+        alert('Erreur lors de la suppression');
+    }
+}
+window.deleteEmailConfig = deleteEmailConfig;
 
 // Identity Management
 export async function saveIdentitySettings() {

@@ -138,6 +138,13 @@ export function initAuth() {
         // Forgot Password Logic - Native Alert Implementation
         const forgotLink = document.getElementById('forgot-password-link');
 
+        // Check if email service is configured
+        fetch('/api/settings').then(res => res.json()).then(settings => {
+            if (!settings.emailConfigured && forgotLink) {
+                forgotLink.style.display = 'none';
+            }
+        }).catch(err => console.warn('Failed to check email config for auth UI', err));
+
         if (forgotLink) {
             forgotLink.addEventListener('click', async (e) => {
                 e.preventDefault();

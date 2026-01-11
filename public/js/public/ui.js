@@ -345,3 +345,16 @@ window.scrollProducts = scrollProducts;
 window.scrollCarousel = scrollCarousel;
 // Listen for resize
 window.addEventListener('resize', updateCarouselUI);
+export function updateEmailFieldVisibility(isConfigured) {
+    const emailInput = document.getElementById('email');
+    if (!emailInput) return;
+    const formGroup = emailInput.closest('.form-group');
+    if (formGroup) {
+        if (isConfigured) {
+            formGroup.style.display = 'block';
+        } else {
+            formGroup.style.display = 'none';
+            emailInput.value = ''; // clear value if hidden
+        }
+    }
+}

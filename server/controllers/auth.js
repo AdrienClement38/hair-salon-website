@@ -77,7 +77,6 @@ exports.updateProfile = async (req, res) => {
     const currentUser = req.user ? req.user.username : null;
 
     console.log('Update Profile Request:', { currentUser, body: req.body });
-    require('fs').appendFileSync('debug_trace.log', `[auth.js] updateProfile User=${currentUser} Body=${JSON.stringify(req.body)}\n`);
 
     try {
         console.log('Update Profile Request:', { currentUser, body: req.body });

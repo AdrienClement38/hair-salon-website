@@ -23,6 +23,12 @@ input {
     box-sizing: border-box;
 }
 
+input:disabled {
+    background-color: #e9ecef;
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
 .btn {
     width: 100%;
     padding: 10px;

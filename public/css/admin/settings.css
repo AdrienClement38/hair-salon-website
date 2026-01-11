@@ -317,27 +317,13 @@
         display: block;
     }
 
-    /* Close */
-    #schedule-table td:nth-child(4) {
-        grid-row: 1;
-        grid-column: 4;
-    }
-
-    #schedule-table td:nth-child(4)::before {
-        content: "Fermeture";
-        font-size: 0.65rem;
-        color: #888;
-        margin-bottom: 2px;
-        display: block;
-    }
-
     /* Break Start */
-    #schedule-table td:nth-child(5) {
+    #schedule-table td:nth-child(4) {
         grid-row: 2;
         grid-column: 3;
     }
 
-    #schedule-table td:nth-child(5)::before {
+    #schedule-table td:nth-child(4)::before {
         content: "Pause Début";
         font-size: 0.65rem;
         color: #888;
@@ -346,13 +332,27 @@
     }
 
     /* Break End */
-    #schedule-table td:nth-child(6) {
+    #schedule-table td:nth-child(5) {
         grid-row: 2;
         grid-column: 4;
     }
 
-    #schedule-table td:nth-child(6)::before {
+    #schedule-table td:nth-child(5)::before {
         content: "Pause Fin";
+        font-size: 0.65rem;
+        color: #888;
+        margin-bottom: 2px;
+        display: block;
+    }
+
+    /* Close */
+    #schedule-table td:nth-child(6) {
+        grid-row: 1;
+        grid-column: 4;
+    }
+
+    #schedule-table td:nth-child(6)::before {
+        content: "Fermeture";
         font-size: 0.65rem;
         color: #888;
         margin-bottom: 2px;

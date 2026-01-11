@@ -112,9 +112,16 @@ export function renderOpeningHours(openingHours) {
 
         let timeStr = 'Fermé';
         if (dayData.isOpen) {
-            if (dayData.breakStart && dayData.breakEnd) {
-                // Formatting helper
-                const cleanTime = (t) => t; // Or trim seconds if needed
+            // Check if break is valid/relevant (Break Start < Break End AND Break End < Close)
+            // If Close is 13:00 and Break End is 14:00, break is invalid.
+            const hasBreak = dayData.breakStart && dayData.breakEnd &&
+                dayData.breakStart < dayData.breakEnd &&
+                dayData.breakEnd < dayData.close;
+
+            // Formatting helper
+            const cleanTime = (t) => t;
+
+            if (hasBreak) {
                 timeStr = `${cleanTime(dayData.open)} - ${cleanTime(dayData.breakStart)} / ${cleanTime(dayData.breakEnd)} - ${cleanTime(dayData.close)}`;
             } else {
                 timeStr = `${dayData.open} - ${dayData.close}`;

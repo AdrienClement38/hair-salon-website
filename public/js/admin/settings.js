@@ -701,18 +701,52 @@ function renderScheduleTable(schedule) {
             <td><strong>${dayNames[dayIdx]}</strong></td>
             <td><input type="checkbox" class="sched-open" ${dayData.isOpen ? 'checked' : ''} onchange="toggleRow(this)"></td>
             <td><input type="time" class="sched-start" value="${dayData.open}" ${!dayData.isOpen ? 'disabled' : ''}></td>
-            <td><input type="time" class="sched-end" value="${dayData.close}" ${!dayData.isOpen ? 'disabled' : ''}></td>
-            <td><input type="time" class="sched-break-start" value="${dayData.breakStart || ''}" ${!dayData.isOpen ? 'disabled' : ''}></td>
+            <td><input type="time" class="sched-break-start" value="${dayData.breakStart || ''}" ${!dayData.isOpen ? 'disabled' : ''} onchange="validateScheduleRow(this.closest('tr'))"></td>
             <td><input type="time" class="sched-break-end" value="${dayData.breakEnd || ''}" ${!dayData.isOpen ? 'disabled' : ''}></td>
+            <td><input type="time" class="sched-end" value="${dayData.close}" ${!dayData.isOpen ? 'disabled' : ''} onchange="validateScheduleRow(this.closest('tr'))"></td>
         `;
         tbody.appendChild(tr);
+        validateScheduleRow(tr); // Initial validation
     });
 }
+
+function validateScheduleRow(tr) {
+    if (!tr) return;
+    const endInput = tr.querySelector('.sched-end');
+    const breakStartInput = tr.querySelector('.sched-break-start');
+    const breakEndInput = tr.querySelector('.sched-break-end');
+    const isOpen = tr.querySelector('.sched-open').checked;
+
+    if (!isOpen) return; // Already disabled by toggleRow
+
+    const closeTime = endInput.value;
+    const breakStartTime = breakStartInput.value;
+    const breakEndTime = breakEndInput.value;
+
+    // Logic: If Close Time <= Break End Time (or generic early closing), disable breaks
+    // If user sets Close to 13:00, and Break End is 14:00 -> Disable Break.
+    // But what if Break Start is EMPTY? 
+    // We rely on the values present.
+
+    if (closeTime && breakEndTime && closeTime <= breakEndTime) {
+        breakStartInput.disabled = true;
+        breakEndInput.disabled = true;
+    } else {
+        // Re-enable (unless row is closed, handled by toggleRow)
+        breakStartInput.disabled = false;
+        breakEndInput.disabled = false;
+    }
+}
+window.validateScheduleRow = validateScheduleRow;
 
 export function toggleRow(checkbox) {
     const tr = checkbox.closest('tr');
     const inputs = tr.querySelectorAll('input[type="time"]');
     inputs.forEach(inp => inp.disabled = !checkbox.checked);
+
+    if (checkbox.checked) {
+        validateScheduleRow(tr);
+    }
 }
 
 export function copyMondayToAll() {

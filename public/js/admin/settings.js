@@ -3,7 +3,7 @@ import { API_URL, getHeaders, formatDateDisplay } from './config.js';
 import { renderServicesList, setServicesData } from './services.js';
 import { renderProductsList } from './products.js';
 import { loadAppointments, loadWorkersForFilter } from './calendar.js';
-import { setSchedule, setHolidayRanges, setHomeContent, setSalonClosingTime, currentHolidayRanges, currentHomeContent, setProducts } from './state.js';
+import { setSchedule, setHolidayRanges, setHomeContent, setSalonClosingTime, currentHolidayRanges, currentHomeContent, setProducts, setSalonIdentity } from './state.js';
 import { renderActionButtons } from './ui-components.js';
 
 let currentHolidays = [];
@@ -13,7 +13,17 @@ let allLeaves = [];
 export async function loadSettings() {
     try {
         const res = await fetch(`${API_URL}/settings`, { headers: getHeaders() });
-        const { openingHours, holidays, home_content, services, contact_info, products, email_config } = await res.json();
+        const { openingHours, holidays, home_content, services, contact_info, products, email_config, salon_identity } = await res.json();
+
+        // Populate Identity
+        const identity = salon_identity || { name: 'La Base Coiffure', logo: null };
+        setSalonIdentity(identity);
+        if (document.getElementById('salon-name')) document.getElementById('salon-name').value = identity.name;
+
+        // Identity Logic - Logo handling moved to content.js to unify image handling
+        // We only handle visibility toggle based on data existence if needed, but content.js handles src.
+        // Actually, content.js sets src regardless.
+        // Let's just remove this block to avoid conflict.
 
         // Populate Email Config
         // Populate Email Config
@@ -124,6 +134,9 @@ export async function loadSettings() {
         }
 
         initProfileForm(); // Initialize profile dynamic logic
+
+        // Dispatch event for other modules (content.js) to know settings are ready
+        window.dispatchEvent(new Event('settings-loaded'));
 
     } catch (e) {
         console.error('Error loading settings', e);
@@ -827,4 +840,36 @@ export async function testEmailConfig() {
     }
 }
 window.testEmailConfig = testEmailConfig;
+
+// Identity Management
+export async function saveIdentitySettings() {
+    const name = document.getElementById('salon-name').value;
+    try {
+        const res = await fetch(`${API_URL}/settings`, { headers: getHeaders() });
+        const { salon_identity } = await res.json();
+        const currentLogo = salon_identity?.logo || null;
+
+        await fetch(`${API_URL}/settings`, {
+            method: 'POST',
+            headers: getHeaders(),
+            body: JSON.stringify({
+                salon_identity: {
+                    name: name,
+                    logo: currentLogo
+                }
+            })
+        });
+        alert('Identité enregistrée !');
+        loadSettings();
+    } catch (e) {
+        alert('Erreur lors de la sauvegarde');
+    }
+}
+window.saveIdentitySettings = saveIdentitySettings;
+
+
+
+
+
+// Upload listener moved to content.js
 

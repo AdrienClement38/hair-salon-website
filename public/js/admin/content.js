@@ -1,6 +1,5 @@
-// public/js/admin/content.js
 import { API_URL, getHeaders } from './config.js';
-import { currentHomeContent } from './state.js'; // Import current content
+import { currentHomeContent, currentSalonIdentity } from './state.js'; // Import current content
 import { loadWorkersForFilter } from './calendar.js';
 
 let currentPositioningImage = null; // 'hero' or 'philosophy'
@@ -13,6 +12,7 @@ export async function saveTextSettings() {
     const philosophy = document.getElementById('content-philosophy').value;
     const address = document.getElementById('content-address').value;
     const phone = document.getElementById('content-phone').value;
+    const salonName = document.getElementById('salon-name') ? document.getElementById('salon-name').value : currentSalonIdentity.name;
 
     // MERGE with existing content to preserve image positions
     const settings = {
@@ -25,6 +25,10 @@ export async function saveTextSettings() {
         contact_info: {
             address,
             phone
+        },
+        salon_identity: {
+            ...currentSalonIdentity,
+            name: salonName
         }
     };
 
@@ -44,51 +48,70 @@ export function initContentForms() {
     // Images
     handleImageUpload('upload-hero', 'hero-bg');
     handleImageUpload('upload-philosophy', 'philosophy-bg');
+    handleImageUpload('upload-logo', 'salon-logo'); // Added Logo
 
     // Init positioning functionality
     initPositioning();
 
-    // Profile listener moved to settings.js for dynamic handling
-
-    // Team
-    // Explicitly clear fields to fight browser autofill
-    if (document.getElementById('team-username')) document.getElementById('team-username').value = '';
-    if (document.getElementById('team-displayname')) document.getElementById('team-displayname').value = '';
-    if (document.getElementById('team-password')) document.getElementById('team-password').value = '';
-
-    document.getElementById('team-form').addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const username = document.getElementById('team-username').value;
-        const displayname = document.getElementById('team-displayname').value;
-        const password = document.getElementById('team-password').value;
-
-        try {
-            const res = await fetch(`${API_URL}/workers`, {
-                method: 'POST',
-                headers: getHeaders(),
-                body: JSON.stringify({ username, displayName: displayname, password })
-            });
-
-            if (res.ok) {
-                alert('Membre ajouté !');
-                e.target.reset();
-                loadWorkersForFilter();
-            } else {
-                const errData = await res.json();
-                alert('Erreur: ' + (errData.error || "Erreur lors de l'ajout"));
-            }
-        } catch (e) {
-            alert('Erreur réseau');
-        }
-    });
-
-    // Initial Thumb Load
+    // Initial Load
     updateThumbnails();
     loadPortfolio();
 }
 
-// ... existing code ...
+// ...
 
+function updateThumbnails() {
+    const ts = Date.now();
+    const heroThumb = document.getElementById('thumb-hero');
+    const philoThumb = document.getElementById('thumb-philosophy');
+    const logoThumb = document.getElementById('thumb-logo'); // Added Logo
+
+    if (heroThumb) heroThumb.src = `/images/hero-bg?t=${ts}`;
+    if (philoThumb) philoThumb.src = `/images/philosophy-bg?t=${ts}`;
+    if (logoThumb) logoThumb.src = `/images/salon-logo?t=${ts}`; // Added Logo
+}
+
+function handleImageUpload(formId, fileName) {
+    const form = document.getElementById(formId);
+    if (!form) return;
+
+    form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const formData = new FormData(form);
+        // Determine type if needed, but for strictly file upload, maybe not?
+        // backend doesn't seem to use 'type' for saving, just 'fieldname'.
+        // But content.js added it. I'll maintain it for hero/philo, but what for logo?
+        // 'logo'?
+        let type = 'unknown';
+        if (fileName === 'hero-bg') type = 'hero';
+        else if (fileName === 'philosophy-bg') type = 'philosophy';
+        else if (fileName === 'salon-logo') type = 'logo';
+
+        formData.append('type', type);
+
+        try {
+            const res = await fetch(`${API_URL}/upload`, {
+                method: 'POST',
+                headers: { 'Authorization': 'Basic ' + localStorage.getItem('auth') },
+                body: formData
+            });
+            if (res.ok) {
+                alert('Image mise à jour !');
+                updateThumbnails(); // Refresh thumbnails
+            } else {
+                const err = await res.json();
+                alert('Erreur upload: ' + (err.error || 'Erreur inconnue'));
+            }
+        } catch (e) {
+            console.error(e);
+            alert('Erreur réseau');
+        }
+    });
+}
+
+
+
+// Positioning Logic
 // --- Portfolio ---
 export async function loadPortfolio() {
     const list = document.getElementById('portfolio-list');
@@ -179,47 +202,6 @@ export async function deletePortfolioItem(id) {
 window.addPortfolioItem = addPortfolioItem;
 window.deletePortfolioItem = deletePortfolioItem;
 
-// Positioning Logic
-
-function updateThumbnails() {
-    const ts = Date.now();
-    const heroThumb = document.getElementById('thumb-hero');
-    const philoThumb = document.getElementById('thumb-philosophy');
-
-    if (heroThumb) heroThumb.src = `/images/hero-bg?t=${ts}`;
-    if (philoThumb) philoThumb.src = `/images/philosophy-bg?t=${ts}`;
-}
-
-function handleImageUpload(formId, fileName) {
-    const form = document.getElementById(formId);
-    if (!form) return;
-
-    form.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const formData = new FormData(form);
-        formData.append('type', fileName === 'hero-bg' ? 'hero' : 'philosophy');
-
-        try {
-            const res = await fetch(`${API_URL}/upload`, {
-                method: 'POST',
-                headers: { 'Authorization': 'Basic ' + localStorage.getItem('auth') },
-                body: formData
-            });
-            if (res.ok) {
-                alert('Image mise à jour !');
-                updateThumbnails(); // Refresh thumbnails
-            } else {
-                const err = await res.json();
-                alert('Erreur upload: ' + (err.error || 'Erreur inconnue'));
-            }
-        } catch (e) {
-            console.error(e);
-            alert('Erreur réseau');
-        }
-    });
-}
-
-// Positioning Logic
 // Positioning Logic
 let onSaveCallback = null;
 

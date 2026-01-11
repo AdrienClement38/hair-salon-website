@@ -1,5 +1,5 @@
 import { initBooking, refreshSlots, loadServices as refreshBookingServices, refreshBookingWorkers } from './booking.js';
-import { renderOpeningHours, renderHolidays, renderHomeContent, renderServices, refreshImages, renderContactInfo, renderProducts } from './ui.js';
+import { renderOpeningHours, renderHolidays, renderHomeContent, renderServices, refreshImages, renderContactInfo, renderProducts, renderIdentity } from './ui.js';
 import { loadPublicPortfolio } from './portfolio.js';
 
 
@@ -46,7 +46,7 @@ async function loadSettings() {
     try {
         console.log("Fetching settings...");
         const res = await fetch(`/api/settings?t=${Date.now()}`);
-        const { openingHours, holidayRanges, home_content, services, contact_info, products } = await res.json();
+        const { openingHours, holidayRanges, home_content, services, contact_info, products, salon_identity } = await res.json();
 
         renderOpeningHours(openingHours);
         renderHolidays(holidayRanges);
@@ -54,6 +54,8 @@ async function loadSettings() {
         renderServices(services);
         renderContactInfo(contact_info);
         renderProducts(products);
+        renderIdentity(salon_identity);
+
 
     } catch (e) {
         console.error('Failed to load settings', e);

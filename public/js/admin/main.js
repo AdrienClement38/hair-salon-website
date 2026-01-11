@@ -3,7 +3,7 @@ import { initUI } from './ui.js';
 import { initCalendar } from './calendar.js';
 import { initContentForms } from './content.js';
 import { pollUpdates } from './dashboard.js';
-import { loadSettings } from './settings.js';
+import { loadSettings } from './settings.js?v=12';
 
 document.addEventListener('DOMContentLoaded', () => {
     initAuth();

@@ -3,7 +3,7 @@ const { triggerUpdate } = require('../config/polling');
 const path = require('path');
 
 exports.update = async (req, res) => {
-    const { openingHours, holidays, holidayRanges, home_content, services, contact_info, products, email_config } = req.body;
+    const { openingHours, holidays, holidayRanges, home_content, services, contact_info, products, email_config, salon_identity } = req.body;
 
     try {
         if (openingHours) await db.setSetting('openingHours', openingHours);
@@ -13,6 +13,7 @@ exports.update = async (req, res) => {
         if (services) await db.setSetting('services', services);
         if (contact_info) await db.setSetting('contact_info', contact_info);
         if (email_config) await db.setSetting('email_config', email_config);
+        if (salon_identity) await db.setSetting('salon_identity', salon_identity);
         if (products) {
             // Check for orphan images before saving new list
             const oldProducts = (await db.getSetting('products')) || [];
@@ -65,10 +66,11 @@ exports.get = async (req, res) => {
         const contact_info = (await db.getSetting('contact_info')) || { address: '', phone: '' };
         const products = (await db.getSetting('products')) || [];
         const email_config = (await db.getSetting('email_config')); // Not default to null/empty so frontend knows if set
+        const salon_identity = (await db.getSetting('salon_identity')) || { name: 'La Base Coiffure', logo: null };
 
         // console.log('Serving settings. Products count:', products.length);
 
-        res.json({ openingHours, holidays, holidayRanges, home_content, services, contact_info, products, email_config });
+        res.json({ openingHours, holidays, holidayRanges, home_content, services, contact_info, products, email_config, salon_identity });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
@@ -78,11 +80,18 @@ exports.uploadImages = async (req, res) => {
     try {
         const files = req.files ? Object.values(req.files).flat() : [];
         console.log('Uploading images:', files.map(f => f.fieldname));
-        const promises = files.map(file => {
+        const promises = files.map(async file => {
             // Save using the specific field name as ID (e.g. 'hero-bg'), ignoring extension
             // Mime type is saved in DB so serving works correctly.
             const filename = file.fieldname;
-            return db.saveImage(filename, file.buffer, file.mimetype);
+            await db.saveImage(filename, file.buffer, file.mimetype);
+
+            // Special handling for salon-logo: update the identity setting
+            if (filename === 'salon-logo') {
+                const identity = (await db.getSetting('salon_identity')) || { name: 'La Base Coiffure' };
+                identity.logo = filename;
+                await db.setSetting('salon_identity', identity);
+            }
         });
 
         await Promise.all(promises);

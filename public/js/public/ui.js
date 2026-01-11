@@ -170,6 +170,39 @@ export function renderHomeContent(content) {
     }
 }
 
+export function renderIdentity(identity) {
+    const logoLink = document.getElementById('header-logo');
+    if (!logoLink) return;
+
+    if (!identity) {
+        // Default
+        logoLink.innerHTML = 'La Base Coiffure';
+        return;
+    }
+
+    if (identity.logo) {
+        // Logo + Name
+        // We want the logo to be nicely integrated.
+        // Maybe an img tag with height constraint.
+        // CSS for .logo needs to handle flex or inline-block.
+        // Current CSS for .logo is likely font-based.
+        // Let's use flexbox for the link container or just inject img + text.
+        logoLink.style.display = 'flex';
+        logoLink.style.alignItems = 'center';
+        logoLink.style.gap = '10px';
+
+        logoLink.innerHTML = `
+            <img src="/images/${identity.logo}?t=${Date.now()}" alt="${identity.name}" style="height: 40px; width: auto; object-fit: contain;">
+            <span>${identity.name}</span>
+        `;
+    } else {
+        logoLink.style.display = ''; // Reset
+        logoLink.style.alignItems = '';
+        logoLink.style.gap = '';
+        logoLink.innerHTML = identity.name || 'La Base Coiffure';
+    }
+}
+
 export function showMessage(msg, type) {
     messageBox.style.color = type === 'success' ? 'green' : 'red';
     messageBox.innerHTML = msg;

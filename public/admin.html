@@ -8,6 +8,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="css/admin/admin.css">
+    <link rel="icon" href="/images/salon-logo">
 </head>
 
 <body>
@@ -379,10 +380,16 @@
             <div class="settings-form">
 
 
+
+
                 <!-- General Text -->
                 <div class="settings-section">
                     <h3>Textes</h3>
                     <div class="admin-form-card">
+                        <div class="form-group">
+                            <label>Nom du Salon (Affiché dans l'en-tête)</label>
+                            <input type="text" id="salon-name" placeholder="La Base Coiffure">
+                        </div>
                         <div class="form-group">
                             <label>Titre Principal (Section Accueil)</label>
                             <input type="text" id="content-title" placeholder="Ex: La Base Coiffure">
@@ -414,6 +421,26 @@
                 <!-- Images -->
                 <div class="settings-section">
                     <h3>Images</h3>
+                    <div class="admin-form-card"> <!-- Added card wrapper if missing, assuming style works -->
+                        <div class="form-group">
+                            <label>Logo du Salon (Optionnel)</label>
+                            <div class="admin-thumb-container">
+                                <img id="thumb-logo" class="admin-thumb" src="" alt="Aperçu Logo"
+                                    onerror="this.style.display='none'" onload="this.style.display='block'">
+                                <button class="btn-x" onclick="removeLogo()" style="margin-left: auto;"
+                                    title="Supprimer le logo">
+                                    &times;
+                                </button>
+                            </div>
+                        </div>
+                        <form id="upload-logo"
+                            style="display:flex; flex-direction:column; align-items:flex-start; gap:10px; margin-top:5px;">
+                            <input type="file" name="salon-logo" accept="image/*">
+                            <button type="submit" class="btn-submit-left">Mettre à jour le fichier</button>
+                        </form>
+                    </div>
+                    <hr style="border:0; border-top:1px solid #eee; margin:15px 0;">
+
                     <div class="form-group">
                         <label>Image d'Accueil</label>
                         <div class="admin-thumb-container">
@@ -464,113 +491,113 @@
                         </form>
                     </div>
                 </div>
+            </div>
 
-                <!-- ... existing code ... -->
-                <!-- Prestations (Moved from Configuration) -->
-                <div class="settings-section">
-                    <h3>Prestations</h3>
-                    <div id="services-list"></div>
+            <!-- ... existing code ... -->
+            <!-- Prestations (Moved from Configuration) -->
+            <div class="settings-section">
+                <h3>Prestations</h3>
+                <div id="services-list"></div>
 
-                    <div class="admin-form-card">
-                        <h5 style="margin-top:0;">Ajouter une prestation</h5>
-                        <div class="form-group">
-                            <label>Nom</label>
-                            <input type="text" id="new-service-name">
+                <div class="admin-form-card">
+                    <h5 style="margin-top:0;">Ajouter une prestation</h5>
+                    <div class="form-group">
+                        <label>Nom</label>
+                        <input type="text" id="new-service-name">
+                    </div>
+                    <div style="display:flex; gap:10px;">
+                        <div class="form-group" style="flex:1">
+                            <label>Prix</label>
+                            <input type="number" id="new-service-price" step="0.5" min="0"
+                                onkeydown="return ['Backspace','Delete','ArrowLeft','ArrowRight','Tab'].includes(event.key) || (!isNaN(Number(event.key)) || event.key === '.' || event.key === ',')">
                         </div>
-                        <div style="display:flex; gap:10px;">
-                            <div class="form-group" style="flex:1">
-                                <label>Prix</label>
-                                <input type="number" id="new-service-price" step="0.5" min="0"
-                                    onkeydown="return ['Backspace','Delete','ArrowLeft','ArrowRight','Tab'].includes(event.key) || (!isNaN(Number(event.key)) || event.key === '.' || event.key === ',')">
-                            </div>
-                            <div class="form-group" style="flex:1">
-                                <label>Durée (min)</label>
-                                <input type="number" id="new-service-duration" step="5" min="5" value="30">
-                            </div>
-                            <div class="form-group" style="flex:1">
-                                <label>Icône</label>
-                                <select id="new-service-icon" style="width:100%; padding:8px;">
-                                    <option value="cut">Ciseaux</option>
-                                    <option value="razor">Rasoir</option>
-                                    <option value="barber">Barber Pole</option>
-                                </select>
-                            </div>
+                        <div class="form-group" style="flex:1">
+                            <label>Durée (min)</label>
+                            <input type="number" id="new-service-duration" step="5" min="5" value="30">
                         </div>
-                        <div class="form-group">
-                            <label>Description (Info-bulle)</label>
-                            <input type="text" id="new-service-desc">
-                        </div>
-                        <div class="form-actions">
-                            <button class="btn" id="btn-add-service" onclick="addService()" style="width:auto">Ajouter à
-                                la liste</button>
-                            <button class="btn btn-outline" id="btn-cancel-service" onclick="cancelEditService()"
-                                style="width:auto; display: none;">Annuler</button>
+                        <div class="form-group" style="flex:1">
+                            <label>Icône</label>
+                            <select id="new-service-icon" style="width:100%; padding:8px;">
+                                <option value="cut">Ciseaux</option>
+                                <option value="razor">Rasoir</option>
+                                <option value="barber">Barber Pole</option>
+                            </select>
                         </div>
                     </div>
-
-                </div>
-                <!-- Products -->
-                <div class="settings-section">
-                    <h3>Nos Produits</h3>
-                    <div id="products-list"></div>
-
-                    <div class="admin-form-card">
-                        <h5 style="margin-top:0;">Ajouter un produit</h5>
-                        <div class="form-group">
-                            <label>Nom</label>
-                            <input type="text" id="new-product-name">
-                        </div>
-                        <div style="display:flex; gap:10px;">
-                            <div class="form-group" style="flex:1">
-                                <label>Prix (€)</label>
-                                <input type="number" id="new-product-price" step="0.5" min="0">
-                            </div>
-                        </div>
-                        <div class="form-group">
-                            <label>Description</label>
-                            <input type="text" id="new-product-desc">
-                        </div>
-                        <div class="form-group">
-                            <label>Photo</label>
-                            <form id="upload-new-product" style="display:flex; align-items:center; gap:10px;">
-                                <input type="file" name="product-image" accept="image/*" required id="new-product-file">
-                            </form>
-                        </div>
-                        <div class="form-actions">
-                            <button class="btn" id="btn-add-product" onclick="addProduct()" style="width:auto">Ajouter à
-                                la liste</button>
-                            <button class="btn btn-outline" id="btn-cancel-product" onclick="cancelEdit()"
-                                style="display:none; width:auto">Annuler</button>
-                        </div>
+                    <div class="form-group">
+                        <label>Description (Info-bulle)</label>
+                        <input type="text" id="new-service-desc">
+                    </div>
+                    <div class="form-actions">
+                        <button class="btn" id="btn-add-service" onclick="addService()" style="width:auto">Ajouter à
+                            la liste</button>
+                        <button class="btn btn-outline" id="btn-cancel-service" onclick="cancelEditService()"
+                            style="width:auto; display: none;">Annuler</button>
                     </div>
                 </div>
 
-                <!-- Portfolio (Notre Travail) -->
-                <div class="settings-section">
-                    <h3>Notre Travail</h3>
-                    <p>Ajoutez des photos de vos réalisations. <span id="portfolio-count"
-                            style="font-weight:bold; color: var(--primary);">(0 / 50)</span></p>
-                    <div id="portfolio-list" class="portfolio-grid">
-                    </div>
+            </div>
+            <!-- Products -->
+            <div class="settings-section">
+                <h3>Nos Produits</h3>
+                <div id="products-list"></div>
 
-                    <div class="admin-form-card">
-                        <h5 style="margin-top:0;">Ajouter une photo</h5>
-                        <!-- Description removed as per user request -->
-                        <div class="form-group">
-                            <label>Photo</label>
-                            <form id="upload-portfolio" style="display:flex; align-items:center; gap:10px;">
-                                <input type="file" name="portfolio-image" accept="image/*" required
-                                    id="new-portfolio-file">
-                            </form>
+                <div class="admin-form-card">
+                    <h5 style="margin-top:0;">Ajouter un produit</h5>
+                    <div class="form-group">
+                        <label>Nom</label>
+                        <input type="text" id="new-product-name">
+                    </div>
+                    <div style="display:flex; gap:10px;">
+                        <div class="form-group" style="flex:1">
+                            <label>Prix (€)</label>
+                            <input type="number" id="new-product-price" step="0.5" min="0">
                         </div>
-                        <div class="form-actions">
-                            <button class="btn" onclick="addPortfolioItem()" style="width:auto">Ajouter à la
-                                liste</button>
-                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Description</label>
+                        <input type="text" id="new-product-desc">
+                    </div>
+                    <div class="form-group">
+                        <label>Photo</label>
+                        <form id="upload-new-product" style="display:flex; align-items:center; gap:10px;">
+                            <input type="file" name="product-image" accept="image/*" required id="new-product-file">
+                        </form>
+                    </div>
+                    <div class="form-actions">
+                        <button class="btn" id="btn-add-product" onclick="addProduct()" style="width:auto">Ajouter à
+                            la liste</button>
+                        <button class="btn btn-outline" id="btn-cancel-product" onclick="cancelEdit()"
+                            style="display:none; width:auto">Annuler</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Portfolio (Notre Travail) -->
+            <div class="settings-section">
+                <h3>Notre Travail</h3>
+                <p>Ajoutez des photos de vos réalisations. <span id="portfolio-count"
+                        style="font-weight:bold; color: var(--primary);">(0 / 50)</span></p>
+                <div id="portfolio-list" class="portfolio-grid">
+                </div>
+
+                <div class="admin-form-card">
+                    <h5 style="margin-top:0;">Ajouter une photo</h5>
+                    <!-- Description removed as per user request -->
+                    <div class="form-group">
+                        <label>Photo</label>
+                        <form id="upload-portfolio" style="display:flex; align-items:center; gap:10px;">
+                            <input type="file" name="portfolio-image" accept="image/*" required id="new-portfolio-file">
+                        </form>
+                    </div>
+                    <div class="form-actions">
+                        <button class="btn" onclick="addPortfolioItem()" style="width:auto">Ajouter à la
+                            liste</button>
                     </div>
                 </div>
             </div>
         </div>
+    </div>
     </div>
 
     <!-- Edit Modal -->
@@ -624,9 +651,7 @@
     </div>
 
     <!-- Socket.io removed -->
-    <script type="module" src="js/admin/main.js"></script>
-    <script type="module" src="js/admin/calendar.js?v=4"></script>
-    <script type="module" src="js/admin/settings.js?v=11"></script>
+    <script type="module" src="js/admin/main.js?v=12"></script>
     <script type="module" src="js/admin/products.js"></script>
 </body>
 

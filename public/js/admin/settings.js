@@ -346,7 +346,7 @@ function initProfileForm() {
     wrappedUpdateView();
 
     // Handle Submit
-    profileForm.addEventListener('submit', async (e) => {
+    profileForm.onsubmit = async (e) => {
         e.preventDefault();
         const adminId = filterEl.value;
         const displayname = displayInput.value;
@@ -479,7 +479,7 @@ function initProfileForm() {
             console.error(err);
             alert('Erreur réseau');
         }
-    });
+    };
 
 }
 

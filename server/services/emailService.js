@@ -293,7 +293,7 @@ END:VCALENDAR`.replace(/\n/g, '\r\n');
                         <p style="margin: 5px 0;"><strong>Raison :</strong> ${context.reason}</p>
                     </div>
 
-                    <p>Nous vous invitons à reprendre rendez-vous sur notre site ou à nous contacter pour plus d'informations.</p>
+                    <p>Si l'annulation n'est pas de votre initiative, nous vous invitons à reprendre rendez-vous sur notre site ou à nous contacter pour plus d'informations.</p>
                     <p>Veuillez nous excuser pour ce désagrément.</p>
                     
                     <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;">
@@ -308,6 +308,106 @@ END:VCALENDAR`.replace(/\n/g, '\r\n');
         } catch (error) {
             console.error('EmailService Cancellation Error:', error);
         }
+    }
+
+    /**
+     * Send confirmation of joining waiting list
+     */
+    async sendWaitlistJoin(to, name, date) {
+        if (!to) return;
+
+        // Helper to get transport... DRY this up?
+        // Copy-paste for stability now.
+        const config = await db.getSetting('email_config');
+        let settings;
+        try { settings = typeof config === 'string' ? JSON.parse(config) : config; } catch (e) { settings = null; }
+        if (!settings || !settings.user || !settings.pass) return;
+
+        const transportConfig = {
+            host: settings.host || 'smtp.gmail.com',
+            port: settings.port || 465,
+            secure: (settings.port || 465) == 465,
+            auth: { user: settings.user, pass: settings.pass },
+            tls: { rejectUnauthorized: false }, family: 4
+        };
+        const transporter = nodemailer.createTransport(transportConfig);
+
+        const mailOptions = {
+            from: `"La Base Coiffure" <${settings.user}>`,
+            to: to,
+            subject: 'Liste d\'attente - Confirmation',
+            html: `
+                <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                    <h2 style="color: #333;">Vous êtes sur liste d'attente 🕒</h2>
+                    <p>Bonjour ${name},</p>
+                    <p>Nous avons bien noté votre souhait de rendez-vous pour le <strong>${date.split('-').reverse().join('/')}</strong>.</p>
+                    <p>Si un créneau se libère, vous recevrez immédiatement un email pour vous le proposer.</p>
+                    <p><strong>⚠️ Attention :</strong> Vous aurez alors <strong>20 minutes</strong> pour confirmer votre réservation via le lien reçu, sinon le créneau sera proposé à la personne suivante.</p>
+                    <p>Soyez réactif, les places partent vite !</p>
+                    <p><small>(Vous n'avez rien d'autre à faire pour l'instant).</small></p>
+                </div>
+            `
+        };
+        await transporter.sendMail(mailOptions);
+    }
+
+    /**
+     * Send Offer (Golden Ticket)
+     */
+    async sendSlotOffer(to, name, date, time, token) {
+        if (!to) return;
+        const config = await db.getSetting('email_config');
+        let settings;
+        try { settings = typeof config === 'string' ? JSON.parse(config) : config; } catch (e) { settings = null; }
+        if (!settings || !settings.user || !settings.pass) return;
+
+        const transportConfig = {
+            host: settings.host || 'smtp.gmail.com',
+            port: settings.port || 465,
+            secure: (settings.port || 465) == 465,
+            auth: { user: settings.user, pass: settings.pass },
+            tls: { rejectUnauthorized: false }, family: 4
+        };
+        const transporter = nodemailer.createTransport(transportConfig);
+
+        // Host should be dynamic ideally.
+        // Assuming we are running on localhost for dev or typical production.
+        // We will Use a relative link in text or try to guess.
+        // For robustness, let's hardcode / relative if user clicks from same device? No.
+        // We need a BASE URL.
+        // Let's assume standard port 3000 or inferred.
+        // HACK: Use simple endpoint path, user might need to ensure domain matches.
+
+        // Better: Pass full URL from Service if possible, but Service doesn't know domain.
+        // Let's assume a default production URL or localhost.
+        const baseUrl = process.env.BASE_URL || 'http://localhost:3000';
+        const link = `${baseUrl}/api/waiting-list/claim?token=${token}`;
+
+        const mailOptions = {
+            from: `"La Base Coiffure" <${settings.user}>`,
+            to: to,
+            subject: '⚡ Une place s\'est libérée !',
+            html: `
+                <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; border: 2px solid #eeba30; padding: 20px; border-radius: 8px;">
+                    <h2 style="color: #eeba30; text-align: center;">Une opportunité pour vous !</h2>
+                    <p>Bonjour ${name},</p>
+                    <p>Suite à un désistement, un créneau est disponible :</p>
+                    
+                    <div style="background-color: #fff8e1; padding: 15px; text-align: center; font-size: 1.2em; margin: 20px 0;">
+                        <strong>${date.split('-').reverse().join('/')}</strong> à <strong>${time}</strong>
+                    </div>
+
+                    <p style="text-align: center;"><strong>Ce créneau vous est réservé pendant 20 minutes !</strong><br>Passé ce délai, il sera proposé à la personne suivante.</p>
+                    
+                    <p style="text-align: center; margin: 30px 0;">
+                        <a href="${link}" style="background-color: #000; color: #fff; padding: 15px 30px; text-decoration: none; border-radius: 50px; font-weight: bold; font-size: 1.1em;">RÉSERVER CE CRÉNEAU</a>
+                    </p>
+                    
+                    <p style="font-size: 12px; color: #777; text-align: center;">Si ce lien ne fonctionne pas : <br> ${link}</p>
+                </div>
+            `
+        };
+        await transporter.sendMail(mailOptions);
     }
 }
 

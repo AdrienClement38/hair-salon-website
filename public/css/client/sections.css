@@ -163,7 +163,8 @@
 
 .slots-grid>p,
 .slots-grid>span,
-.slots-grid>div:not(.slot-btn) {
+.slots-grid>div:not(.slot-btn),
+.slots-grid>button {
     grid-column: 1 / -1;
 }
 

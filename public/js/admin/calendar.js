@@ -6,12 +6,16 @@ let appointmentsCache = [];
 let currentCalendarDate = new Date();
 let currentWorkers = [];
 let currentDetailDate = null;
+let currentAppointments = [];
 
 // DOM Elements
 const dayDetailsSection = document.getElementById('day-details-inline');
 const editModal = document.getElementById('edit-modal');
 const editIdInput = document.getElementById('edit-id');
 const editTimeInput = document.getElementById('edit-time');
+
+// Global Polling Interval
+let calendarPollingInterval = null;
 
 export function initCalendar() {
     initYearSelect();
@@ -54,6 +58,14 @@ export function initCalendar() {
 
     // Load services for ID lookup
     loadServicesForCalendar();
+
+    // Start Global Polling (Every 10 seconds)
+    if (calendarPollingInterval) clearInterval(calendarPollingInterval);
+    calendarPollingInterval = setInterval(() => {
+        // Refresh Appointments (which triggers renderCalendar)
+        // This keeps the Grid View Badges up to date
+        loadAppointments();
+    }, 10000);
 }
 
 async function loadServicesForCalendar() {
@@ -410,15 +422,32 @@ export function jumpToDate() {
     renderCalendar();
 }
 
-function openDayDetails(dateStr, appointments, shouldScroll = true) {
+async function openDayDetails(dateStr, appointments, shouldScroll = true) {
     currentDetailDate = dateStr;
     document.getElementById('details-date-label').textContent = `Détails du ${formatDateDisplay(dateStr)}`;
     const listContainer = document.getElementById('day-appointments-list');
 
-    if (!appointments || appointments.length === 0) {
-        listContainer.innerHTML = '<p>Aucun rendez-vous ce jour-là.</p>';
+    // Fetch Waitlist Counts
+    let wlCounts = [];
+    try {
+        const res = await fetch(`${API_URL}/waiting-list/counts?date=${dateStr}`, { headers: getHeaders() });
+        if (res.ok) wlCounts = await res.json();
+    } catch (e) { console.error("WL Count error", e); }
+
+    const getWlCount = (workerId) => {
+        // defined workerId or null for 'any'
+        // DB returns { desired_worker_id: X, count: N }
+        // desired_worker_id might be null in DB for 'any'
+        const entry = wlCounts.find(c => c.desired_worker_id == workerId); // loose match for null/undefined
+        return entry ? entry.count : 0;
+    };
+
+    if ((!appointments || appointments.length === 0) && wlCounts.length === 0) {
+        listContainer.innerHTML = '<p>Aucun rendez-vous ni liste d\'attente ce jour-là.</p>';
     } else {
-        appointments.sort((a, b) => a.time.localeCompare(b.time));
+        // Sort appointments
+        const safeAppts = appointments || [];
+        safeAppts.sort((a, b) => a.time.localeCompare(b.time));
 
         listContainer.innerHTML = ''; // Clear
 
@@ -428,48 +457,160 @@ function openDayDetails(dateStr, appointments, shouldScroll = true) {
         if (isSalonView) {
             // Group by Worker
             const groups = {};
-            appointments.forEach(apt => {
+            safeAppts.forEach(apt => {
                 const wId = apt.admin_id || 'unassigned';
                 if (!groups[wId]) groups[wId] = [];
                 groups[wId].push(apt);
             });
 
-            // Iterating keys (Worker IDs)
-            // Sort to have named workers first?
-            for (const [wId, groupApts] of Object.entries(groups)) {
-                let workerName = "Autre / Non assigné";
-                if (wId !== 'unassigned') {
-                    const w = currentWorkers.find(worker => worker.id == wId);
-                    if (w) workerName = w.name;
+            // Ensure we also show workers with 0 appointments but HAVE waitlist
+            // Iterate all active workers + unassigned
+            const allWorkerIds = new Set(Object.keys(groups));
+            wlCounts.forEach(c => {
+                if (c.desired_worker_id) allWorkerIds.add(String(c.desired_worker_id));
+                // if null, mapped to 'unassigned' logic below? 
+                // DB returns null for unassigned.
+            });
+            // Handle unassigned/any separately?
+            // Let's iterate currentWorkers and add 'unassigned'
+
+            // Build a consistent list of sections to render
+            // 1. Real Workers
+            currentWorkers.forEach(w => {
+                const wId = String(w.id);
+                const appts = groups[wId] || [];
+                const waitingCount = getWlCount(w.id);
+
+                if (appts.length > 0 || waitingCount > 0) {
+                    renderWorkerSection(w.name, appts, waitingCount);
                 }
+            });
 
-                // Create Section
-                const section = document.createElement('div');
-                section.className = 'worker-section';
-                section.style.marginBottom = '20px';
-                section.innerHTML = `<h2 style="font-size: 1.8rem; margin-bottom: 10px; color: #333;">${workerName}</h2>`;
+            // 2. Unassigned / Others (from groups or waitlist with null worker)
+            const unassignedAppts = groups['unassigned'] || [];
+            const unassignedWait = getWlCount(null); // or 'null' string? Check logic. likely null.
 
-                section.innerHTML += renderAppointmentTable(groupApts, false); // False = No Coiffeur column
-                listContainer.appendChild(section);
+            if (unassignedAppts.length > 0 || unassignedWait > 0) {
+                renderWorkerSection("Non assigné / Autre", unassignedAppts, unassignedWait);
             }
 
-            if (appointments.length === 0) {
+            if (listContainer.children.length === 0) {
                 listContainer.innerHTML = '<p>Aucun rendez-vous sur cette journée.</p>';
             }
 
         } else {
             // Single Worker View
-            // Render one table, maybe still hide Coiffeur col as it's redundant?
-            // User asked for specific table titles on Salon profile. 
-            // For specific profile, standard table is fine, but maybe title is good too?
-            // Let's keep one table.
-            listContainer.innerHTML = renderAppointmentTable(appointments, false); // No need for col since we know who it is
+            const wId = filterEl.value;
+            const waitingCount = getWlCount(wId);
+            // Show subtitle with waiting count?
+            if (waitingCount > 0) {
+                const notice = document.createElement('div');
+                notice.className = 'alert alert-info';
+                notice.style.marginBottom = '10px';
+                notice.style.backgroundColor = '#e1f5fe';
+                notice.style.color = '#0277bd';
+                notice.style.padding = '10px';
+                notice.style.borderRadius = '4px';
+                notice.innerHTML = `<strong>File d'attente :</strong> ${waitingCount} personne(s) en attente pour ce jour.`;
+                listContainer.appendChild(notice);
+            }
+            listContainer.innerHTML += renderAppointmentTable(safeAppts, false);
+        }
+        // Start Polling for updates (every 30 seconds)
+        if (window.detailsInterval) clearInterval(window.detailsInterval);
+        window.detailsInterval = setInterval(async () => {
+            // We need to re-fetch appointments to be safe, but typically appointments don't change as fast as WL?
+            // Actually, if we want "sync", we should re-fetch everything.
+            // But re-rendering clears selection or scroll? 
+            // User asked "sync de ce coté là" (Waitlist).
+            // Let's re-fetch waitlist requests and re-render ONLY the waitlist parts or badges?
+            // Simpler: Re-run openDayDetails with fresh data?
+            // We need to fetch 'appointments' for that day first.
+            // We lack a simple "getAppointmentsForDate" here.
+            // But we can re-fetch just the WL requests and update DOM?
+            // That's cleaner to avoid flickering.
+
+            try {
+                const resWL = await fetch(`${API_URL}/waiting-list/requests?date=${dateStr}`, { headers: getHeaders() });
+                if (resWL.ok) {
+                    const newRequests = await resWL.json();
+                    // Update Badge Counts and Lists
+                    // This requires parsing the DOM or re-rendering sections.
+                    // Re-rendering sections might be easier if we have the "appointments" data handy.
+                    // We passed 'appointments' to this function. It might be stale.
+                    // ideally we should fetch fresh appointments too.
+
+                    // Let's try a full refresh if we can fetch appointments.
+                    // /api/admin/appointments?start=...&end=... ?
+                    // The main calendar uses /api/admin/appointments?month=...&year=...
+                    // Maybe too heavy.
+
+                    // Let's just update the Waitlist Badges and Tables.
+                    updateWaitlistUI(newRequests);
+                }
+            } catch (e) { console.error("Polling error", e); }
+
+        }, 10000); // 10 seconds
+
+        function updateWaitlistUI(requests) {
+            // Helper to filter
+            const getWlForWorker = (wid) => requests.filter(r => r.desired_worker_id == wid);
+
+            // 1. Update Badges
+            // Iterate all worker headings
+            const sections = listContainer.querySelectorAll('.worker-section');
+            sections.forEach(sec => {
+                const titleEl = sec.querySelector('h2');
+                if (!titleEl) return;
+                const workerName = titleEl.textContent;
+                // Find worker ID by name? 
+                const worker = currentWorkers.find(w => w.name === workerName);
+                const wId = worker ? worker.id : null; // 'Non assigné' matches null?
+
+                // If "Non assigné", wId is undefined/null.
+                // Check title text for "Non assigné"
+                let targetRequests = [];
+                if (titleEl.innerText.includes("Non assigné")) {
+                    targetRequests = requests.filter(r => !r.desired_worker_id);
+                } else if (worker) {
+                    targetRequests = getWlForWorker(worker.id);
+                }
+
+                // Update Badge
+                // Remove old badge
+                const oldBadge = sec.querySelector('span[style*="background-color: #ff9800"]');
+                if (oldBadge) oldBadge.remove();
+
+                if (targetRequests.length > 0) {
+                    const badge = document.createElement('span');
+                    badge.style.cssText = "background-color: #ff9800; color: white; padding: 4px 12px; border-radius: 20px; font-size: 0.9rem; font-weight: bold; box-shadow: 0 2px 4px rgba(0,0,0,0.1);";
+                    badge.innerText = `⏳ ${targetRequests.length} en attente`;
+                    titleEl.parentNode.appendChild(badge);
+                }
+
+                // Update Table
+                // Remove old table
+                const oldTable = sec.querySelector('div[style*="background-color: #fff8e1"]');
+                if (oldTable) oldTable.remove();
+
+                if (targetRequests.length > 0) {
+                    const wlContainer = document.createElement('div');
+                    renderWaitlistTable(targetRequests, wlContainer);
+                    sec.appendChild(wlContainer);
+                }
+            });
+        }
+
+        dayDetailsSection.style.display = 'block';
+
+        if (shouldScroll) {
+            dayDetailsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }
     }
 
     // Helper to render table
     function renderAppointmentTable(apts, showWorkerCol) {
-        if (apts.length === 0) return '<p>Aucun rendez-vous.</p>';
+        if (!apts || apts.length === 0) return '<p style="color:#777; font-style:italic;">Aucun rendez-vous planifié.</p>';
 
         return `
         <table class="day-details-table">
@@ -504,11 +645,26 @@ function openDayDetails(dateStr, appointments, shouldScroll = true) {
                 }
             }
 
+            let rowStyle = '';
+            let statusBadge = '';
+            let actionButtons = '';
+
+            if (apt.status === 'HOLD') {
+                rowStyle = 'background-color: #fff3e0;'; // Light Orange
+                statusBadge = '<span class="appt-badge" style="background:#ff9800; color:white">En attente</span>';
+                // Restricted Actions for HOLD? 
+                // Maybe just Delete? Or Force Confirm?
+                // Let's allow Delete (cancels offer) and maybe Edit?
+                // Or "Valider" manually?
+                // For now, standard actions but visually distinct.
+                // User asked: "affiche en attente"
+            }
+
             return `
-                    <tr>
+                    <tr style="${rowStyle}">
                         <td>${apt.time}</td>
                          <td>${serviceDisplay}</td>
-                        <td>${apt.name}</td>
+                        <td>${apt.name} ${statusBadge}</td>
                         ${showWorkerCol ? `<td><span class="appt-badge">${workerName}</span></td>` : ''}
                         <td>${formatPhoneNumberDisplay(apt.phone)}</td>
                         <td>

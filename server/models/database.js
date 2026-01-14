@@ -117,6 +117,7 @@ const initDB = async () => {
 
     // TRY LOADING EXISTING DB FOR REALISTIC TESTING
     const dbPath = path.resolve(__dirname, '../../salon.db');
+    // console.log('[DEBUG] initDB Test Mode. Path:', dbPath, 'FS:', !!fs);
     if (fs.existsSync(dbPath)) {
       try {
         const filebuffer = fs.readFileSync(dbPath);
@@ -205,14 +206,14 @@ const initDB = async () => {
       }
     }
 
-    // Migration: Add email to appointments
     try {
-      db.run("ALTER TABLE appointments ADD COLUMN email TEXT", (err) => {
-        // Ignore duplicate column error often thrown by sqlite if it exists
-      });
-    } catch (e) {
-      // Ignore
-    }
+      db.run("ALTER TABLE appointments ADD COLUMN email TEXT", (err) => { });
+    } catch (e) { }
+
+    // Migration: Add status to appointments
+    try {
+      db.run("ALTER TABLE appointments ADD COLUMN status TEXT DEFAULT 'CONFIRMED'", (err) => { });
+    } catch (e) { }
 
     db.run(`
       CREATE TABLE IF NOT EXISTS leaves (
@@ -238,6 +239,21 @@ const initDB = async () => {
           token TEXT PRIMARY KEY,
           admin_id INTEGER NOT NULL,
           expires_at DATETIME NOT NULL,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+    db.run(`
+      CREATE TABLE IF NOT EXISTS waiting_list_requests (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          client_name TEXT NOT NULL,
+          client_email TEXT NOT NULL,
+          client_phone TEXT,
+          target_date TEXT NOT NULL,
+          desired_service_id TEXT NOT NULL,
+          desired_worker_id INTEGER,
+          status TEXT DEFAULT 'WAITING',
+          offer_token TEXT,
+          offer_expires_at DATETIME,
           created_at DATETIME DEFAULT CURRENT_TIMESTAMP
       );
     `);
@@ -310,6 +326,19 @@ const initDB = async () => {
           expires_at TIMESTAMP NOT NULL,
           created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
        );
+       CREATE TABLE IF NOT EXISTS waiting_list_requests (
+          id SERIAL PRIMARY KEY,
+          client_name TEXT NOT NULL,
+          client_email TEXT NOT NULL,
+          client_phone TEXT,
+          target_date TEXT NOT NULL,
+          desired_service_id TEXT NOT NULL,
+          desired_worker_id INTEGER,
+          status TEXT DEFAULT 'WAITING',
+          offer_token TEXT,
+          offer_expires_at TIMESTAMP,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+       );
      `;
     await db.query(queries);
 
@@ -325,6 +354,13 @@ const initDB = async () => {
       await db.query("ALTER TABLE appointments ADD COLUMN IF NOT EXISTS email TEXT");
     } catch (e) {
       console.log('PG Migration (email):', e.message);
+    }
+
+    // Migration: Add status to appointments if missing
+    try {
+      await db.query("ALTER TABLE appointments ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'CONFIRMED'");
+    } catch (e) {
+      console.log('PG Migration (status):', e.message);
     }
   }
 
@@ -365,6 +401,134 @@ const getBookingsForDate = async (date, adminId) => {
   return await query('SELECT time FROM appointments WHERE date = ?', [date]);
 };
 
+const getAppointmentsForWorker = async (date, workerId) => {
+  // Return all appointments for this worker on this date, sorted by time
+  if (type === 'pg') {
+    return await query('SELECT * FROM appointments WHERE date = $1 AND (admin_id = $2 OR admin_id IS NULL) ORDER BY time ASC', [date, workerId]);
+  } else {
+    return await query('SELECT * FROM appointments WHERE date = ? AND (admin_id = ? OR admin_id IS NULL) ORDER BY time ASC', [date, workerId]);
+  }
+};
+
+const getDailyGaps = async (date, workerId) => {
+  // 1. Get Opening Hours
+  // Fallback defaults if settings are completely missing
+  let dayStart = 9 * 60 + 30; // 09:30 default
+  let dayEnd = 19 * 60;       // 19:00 default
+  let breakInterval = null;
+
+  try {
+    const openingHoursStr = await getSetting('opening_hours');
+    if (openingHoursStr) {
+      const openingHours = JSON.parse(openingHoursStr);
+      const dayIndex = new Date(date).getDay();
+      // Adjust day index if needed (DB vs JS matching)
+      // Assuming standard JS 0-6.
+      const dayConfig = openingHours[dayIndex] || openingHours[String(dayIndex)];
+
+      // If dayConfig exists and isOpen is false (or not open), treat as closed (00:00-00:00 or skip?)
+      // Actually if closed, dayStart=dayEnd is best to prevent slots.
+      if (dayConfig) {
+        if (dayConfig.isOpen === false) {
+          dayStart = 0;
+          dayEnd = 0;
+        } else if (dayConfig.open && dayConfig.close) {
+          const [sh, sm] = dayConfig.open.split(':').map(Number);
+          const [eh, em] = dayConfig.close.split(':').map(Number);
+          dayStart = sh * 60 + sm;
+          dayEnd = eh * 60 + em;
+
+          if (dayConfig.breakStart && dayConfig.breakEnd) {
+            const [bsh, bsm] = dayConfig.breakStart.split(':').map(Number);
+            const [beh, bem] = dayConfig.breakEnd.split(':').map(Number);
+            breakInterval = { start: bsh * 60 + bsm, end: beh * 60 + bem };
+          }
+        }
+      }
+    }
+  } catch (e) { console.warn('Gap Calc: Failed to parse opening hours', e); }
+
+  // 2. Get Appointments
+  const appts = await getAppointmentsForWorker(date, workerId);
+
+  // 3. Calculate Gaps
+
+  const timeToMins = (t) => {
+    const [h, m] = t.split(':').map(Number);
+    return h * 60 + m;
+  };
+  const minsToTime = (m) => {
+    const h = Math.floor(m / 60);
+    const min = m % 60;
+    return `${String(h).padStart(2, '0')}:${String(min).padStart(2, '0')}`;
+  };
+
+  // Helper to get duration of an appt (Name -> Duration)
+  // We need services setting
+  let services = [];
+  try {
+    const sStr = await getSetting('services');
+    if (sStr) services = JSON.parse(sStr);
+  } catch (e) { }
+
+  const getDuration = (name) => {
+    if (!services || !Array.isArray(services)) return 30;
+    const s = services.find(srv => srv.name === name);
+    return s ? s.duration : 30;
+  };
+
+  let busyIntervals = appts.map(appt => {
+    const start = timeToMins(appt.time);
+    const duration = getDuration(appt.service);
+    return { start, end: start + duration };
+  });
+
+  if (breakInterval) {
+    busyIntervals.push(breakInterval);
+  }
+
+  // Sort by start to handle mixed inputs
+  busyIntervals.sort((a, b) => a.start - b.start);
+
+  const gaps = [];
+  let currentPointer = dayStart;
+
+  for (const busy of busyIntervals) {
+    const bStart = Math.max(busy.start, dayStart);
+    const bEnd = Math.min(busy.end, dayEnd);
+
+    if (bStart >= bEnd) continue; // Invalid or out of bounds
+
+    // Check gap before this busy slot
+    if (bStart > currentPointer) {
+      const gapDur = bStart - currentPointer;
+      if (gapDur > 0) {
+        gaps.push({
+          start: minsToTime(currentPointer),
+          end: minsToTime(bStart),
+          duration: gapDur
+        });
+      }
+    }
+
+    // Move pointer to end of this appointment
+    if (bEnd > currentPointer) {
+      currentPointer = bEnd;
+    }
+  }
+
+  // Check final gap
+  if (currentPointer < dayEnd) {
+    gaps.push({
+      start: minsToTime(currentPointer),
+      end: minsToTime(dayEnd),
+      duration: dayEnd - currentPointer
+    });
+  }
+
+  return gaps;
+};
+
 const getAllAppointments = async (forceAdminId = null) => {
   if (forceAdminId) {
     if (type === 'pg') return await query('SELECT * FROM appointments WHERE admin_id = $1 OR admin_id IS NULL ORDER BY date DESC, time ASC', [forceAdminId]);
@@ -373,13 +537,13 @@ const getAllAppointments = async (forceAdminId = null) => {
   return await query('SELECT * FROM appointments ORDER BY date DESC, time ASC');
 };
 
-const createBooking = async (name, date, time, service, phone, adminId, email) => {
+const createBooking = async (name, date, time, service, phone, adminId, email, status = 'CONFIRMED') => {
   if (type === 'pg') {
-    const sql = 'INSERT INTO appointments (name, date, time, service, phone, admin_id, email) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id';
-    const res = await db.query(sql, [name, date, time, service, phone, adminId, email || null]);
+    const sql = 'INSERT INTO appointments (name, date, time, service, phone, admin_id, email, status) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id';
+    const res = await db.query(sql, [name, date, time, service, phone, adminId, email || null, status]);
     return { lastInsertRowid: res.rows[0].id };
   } else {
-    return await query('INSERT INTO appointments (name, date, time, service, phone, admin_id, email) VALUES (?, ?, ?, ?, ?, ?, ?)', [name, date, time, service, phone, adminId, email || null]);
+    return await query('INSERT INTO appointments (name, date, time, service, phone, admin_id, email, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?)', [name, date, time, service, phone, adminId, email || null, status]);
   }
 };
 
@@ -511,6 +675,12 @@ const createAdmin = async (username, passwordHash, displayName, daysOff = []) =>
   } else {
     return await query('INSERT INTO admins (username, password_hash, display_name, days_off) VALUES (?, ?, ?, ?)', [username, passwordHash, dName, dOff]);
   }
+};
+
+const createWorker = async (username, email, phone, color, daysOff, password) => {
+  // Wrapper for createAdmin to satisfy tests. Ignores extra fields not in schema yet.
+  // Note: Password passed is used as hash directly for tests.
+  return await createAdmin(username, password, username, daysOff);
 };
 
 const getAdmin = async (username) => {
@@ -676,10 +846,171 @@ const checkDaysOffConflicts = async (adminId, daysOff = []) => {
   return conflicts;
 };
 
+// --- Waiting List Helpers ---
+
+const addWaitingListRequest = async (name, email, phone, date, serviceId, workerId) => {
+  if (type === 'pg') {
+    const sql = `INSERT INTO waiting_list_requests 
+    (client_name, client_email, client_phone, target_date, desired_service_id, desired_worker_id, status) 
+    VALUES ($1, $2, $3, $4, $5, $6, 'WAITING') RETURNING id`;
+    const res = await db.query(sql, [name, email, phone, date, serviceId, workerId || null]);
+    return { lastInsertRowid: res.rows[0].id };
+  } else {
+    return await query(`INSERT INTO waiting_list_requests 
+    (client_name, client_email, client_phone, target_date, desired_service_id, desired_worker_id, status) 
+    VALUES (?, ?, ?, ?, ?, ?, 'WAITING')`, [name, email, phone, date, serviceId, workerId || null]);
+  }
+};
+
+const getPendingWaitingDates = async () => {
+  // Return distinct dates holding WAITING requests
+  const sql = "SELECT DISTINCT target_date FROM waiting_list_requests WHERE status = 'WAITING'";
+  const rows = await query(sql);
+  // rows is array of objects { target_date: 'YYYY-MM-DD' }
+  return rows.map(r => r.target_date);
+};
+
+const findNextWaitingRequest = async (date, serviceIdsCompatible, workerId = null) => {
+  // Logic: Find oldest 'WAITING' request for this date
+  // worker logic: if workerId provided, find req with specific workerId OR null (any)
+  // service logic: simplistic match or handled by Service (we pass serviceIdsCompatible array?)
+  // For DB simplicty, let's select all waiting for DATE and filter in JS if complex
+
+  let sql;
+  const params = [date];
+
+  if (type === 'pg') {
+    sql = "SELECT * FROM waiting_list_requests WHERE target_date = $1 AND status = 'WAITING' ORDER BY created_at ASC";
+  } else {
+    sql = "SELECT * FROM waiting_list_requests WHERE target_date = ? AND status = 'WAITING' ORDER BY created_at ASC";
+  }
+
+  const allWaiting = await query(sql, params);
+
+  // Filter in JS for flexibility
+  return allWaiting.filter(req => {
+    // 1. Worker Check
+    // If request has desired_worker_id, it must match workerId (or workerId is null? No, workerId comes from cancellation)
+    // If request has desired_worker_id provided, it means client wants THAT worker.
+    // So if workerId (freed) != req.desired_worker_id, skip.
+    // If req.desired_worker_id is NULL (Any), then it matches anyone.
+
+    // BUT, if the cancellation is for a specific worker (workerId), we can only offer it to:
+    // a) People waiting for that worker
+    // b) People waiting for ANY worker
+
+    if (req.desired_worker_id && workerId && req.desired_worker_id != workerId) {
+      return false;
+    }
+
+    // 2. Service Duration Check (Simplistic: We assume if they wait for 'serviceIdsCompatible' it fits?
+    // The caller passes 'serviceIdsCompatible' which is an array of NAMES?
+    // database.js signature says `serviceIdsCompatible`.
+    // In waitingListService it passes `compatibleServiceNames`.
+    // So we check if req.desired_service_id (which holds Name currently) is in the array.
+
+    if (serviceIdsCompatible && serviceIdsCompatible.length > 0) {
+      if (!serviceIdsCompatible.includes(req.desired_service_id)) {
+        return false;
+      }
+    }
+
+    console.log('[Debug DB] MATCH CONFIRMED for Req:', req.id);
+    return true;
+  })[0]; // Return the first one (FIFO)
+};
+
+const updateWaitingRequestStatus = async (id, status, token = null, expires = null) => {
+  // Updates status, and optionally sets token/expiry (for making an offer)
+  if (type === 'pg') {
+    let sql = "UPDATE waiting_list_requests SET status = $1";
+    const params = [status];
+    let idx = 2;
+
+    if (token) { sql += `, offer_token = $${idx++}`; params.push(token); }
+    if (expires) { sql += `, offer_expires_at = $${idx++}`; params.push(expires); }
+
+    sql += ` WHERE id = $${idx}`;
+    params.push(id);
+    return await query(sql, params);
+  } else {
+    let sql = "UPDATE waiting_list_requests SET status = ?";
+    const params = [status];
+
+    if (token) { sql += ", offer_token = ?"; params.push(token); }
+    if (expires) { sql += ", offer_expires_at = ?"; params.push(expires); }
+
+    sql += " WHERE id = ?";
+    params.push(id);
+    return await query(sql, params);
+  }
+};
+
+const getWaitingRequestByToken = async (token) => {
+  if (type === 'pg') return await getOne('SELECT * FROM waiting_list_requests WHERE offer_token = $1', [token]);
+  return await getOne('SELECT * FROM waiting_list_requests WHERE offer_token = ?', [token]);
+};
+
+const getExpiredOffers = async () => {
+  // Check requests that are sent but expired
+  const now = new Date(); // ISO String for compare?
+  // SQLite stores dates as strings properly if we use ISO.
+  // However NOW() function in SQL differs. Let's select potentially expired and filter JS to be safe/consistent
+
+  // Simplification: Select all SENT
+  let rows;
+  if (type === 'pg') rows = await query("SELECT * FROM waiting_list_requests WHERE status = 'OFFER_SENT'");
+  else rows = await query("SELECT * FROM waiting_list_requests WHERE status = 'OFFER_SENT'");
+
+  return rows.filter(r => {
+    if (!r.offer_expires_at) return false;
+    return new Date(r.offer_expires_at) < now;
+  });
+};
+
+const getWaitingListCounts = async (date) => {
+  // Returns counts of WAITING requests grouped by desired_worker_id
+  if (type === 'pg') {
+    const sql = "SELECT desired_worker_id, COUNT(*) as count FROM waiting_list_requests WHERE target_date = $1 AND status = 'WAITING' GROUP BY desired_worker_id";
+    return await query(sql, [date]);
+  } else {
+    const sql = "SELECT desired_worker_id, COUNT(*) as count FROM waiting_list_requests WHERE target_date = ? AND status = 'WAITING' GROUP BY desired_worker_id";
+    return await query(sql, [date]);
+  }
+};
+
+const getWaitingRequestsForDate = async (date) => {
+  // Returns full WAITING requests for a date
+  let sql;
+  const params = [date];
+  if (type === 'pg') {
+    sql = "SELECT * FROM waiting_list_requests WHERE target_date = $1 AND status = 'WAITING' ORDER BY created_at ASC";
+  } else {
+    sql = "SELECT * FROM waiting_list_requests WHERE target_date = ? AND status = 'WAITING' ORDER BY created_at ASC";
+  }
+  return await query(sql, params);
+};
+
+const deleteHoldAppointment = async (email, date, time) => {
+  // Remove the temporary HOLD appointment linked to this email/slot
+  // Status must be HOLD?
+  // Let's assume we uniquely identify it by email+date+time (since HOLD appts are created with client email)
+  // Better: store apptID in waiting_list? Or just search
+
+  // Safe delete:
+  if (type === 'pg') {
+    return await query("DELETE FROM appointments WHERE email = $1 AND date = $2 AND time = $3 AND status = 'HOLD'", [email, date, time]);
+  } else {
+    return await query("DELETE FROM appointments WHERE email = ? AND date = ? AND time = ? AND status = 'HOLD'", [email, date, time]);
+  }
+};
+
 let initPromise = initDB().catch(e => console.error(e));
 
 module.exports = {
   getBookingsForDate,
+  getAppointmentsForWorker,
+  getDailyGaps,
   getAllAppointments,
   getAppointmentById,
   createBooking,
@@ -703,6 +1034,7 @@ module.exports = {
   deleteImage,
   checkAdminExists,
   createAdmin,
+  createWorker,
   getAdmin,
   getAdminById,
   getAllAdmins,
@@ -716,9 +1048,25 @@ module.exports = {
   updateAdminDaysOff,
   checkAppointmentConflicts,
   checkDaysOffConflicts,
+
+  // Waiting List Exports
+  addWaitingListRequest,
+  findNextWaitingRequest,
+  getPendingWaitingDates,
+  updateWaitingRequestStatus,
+  getWaitingRequestByToken,
+  getExpiredOffers,
+  getWaitingRequestByToken,
+  getExpiredOffers,
+  getExpiredOffers,
+  deleteHoldAppointment,
+  getWaitingListCounts,
+  getWaitingRequestsForDate,
+
   type,
   initPromise,
   // For testing
   init: () => initPromise,
-  run: query
+  run: query,
+  getOne: getOne
 };

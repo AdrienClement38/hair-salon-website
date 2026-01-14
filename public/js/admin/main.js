@@ -14,6 +14,11 @@ document.addEventListener('DOMContentLoaded', () => {
     // Only load settings if authenticated
     if (localStorage.getItem('auth')) {
         loadSettings();
+        // Trigger manual waitlist scan
+        fetch('/api/waiting-list/scan', {
+            method: 'POST',
+            headers: { 'Authorization': 'Bearer ' + localStorage.getItem('auth') }
+        }).catch(err => console.error('Scan Error:', err));
     }
 
     // Start polling

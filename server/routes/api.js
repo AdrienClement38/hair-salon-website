@@ -10,7 +10,9 @@ const settingsController = require('../controllers/settings');
 const updatesController = require('../controllers/updates');
 const portfolioController = require('../controllers/portfolio');
 const checkAuth = require('../middleware/auth');
+
 const validate = require('../middleware/validate');
+const waitingListController = require('../controllers/waitingList');
 
 // ... existing imports
 
@@ -102,5 +104,21 @@ router.get('/portfolio', portfolioController.list);
 router.get('/admin/portfolio', portfolioController.list); // Add this alias for keys in Admin UI
 router.post('/admin/portfolio', checkAuth, upload.single('image'), portfolioController.create);
 router.delete('/admin/portfolio/:id', checkAuth, portfolioController.delete);
+
+router.delete('/admin/portfolio/:id', checkAuth, portfolioController.delete);
+
+// --- Waiting List ---
+router.post('/waiting-list', waitingListController.join);
+router.get('/waiting-list/claim', waitingListController.claim); // Returns HTML or Redirect
+router.get('/waiting-list/details', waitingListController.getDetails); // JSON details for the claim page
+
+// Admin Routes for Waiting List
+router.get('/admin/waiting-list/counts', checkAuth, waitingListController.counts);
+// router.get('/waiting-list/requests', checkAuth, waitingListController.list); // Let's use /requests for full list
+router.get('/admin/waiting-list/requests', checkAuth, waitingListController.list);
+router.post('/waiting-list/scan', checkAuth, waitingListController.scan);
+
+router.post('/waiting-list/confirm', waitingListController.confirm);
+router.post('/waiting-list/refuse', waitingListController.refuse);
 
 module.exports = router;

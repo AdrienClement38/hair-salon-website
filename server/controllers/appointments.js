@@ -1,6 +1,7 @@
 const db = require('../models/database');
 const { triggerUpdate } = require('../config/polling');
 const appointmentService = require('../services/appointmentService');
+const waitingListService = require('../services/waitingListService');
 
 exports.list = async (req, res) => {
     const { adminId } = req.query;
@@ -42,7 +43,48 @@ exports.delete = async (req, res) => {
             }
         }
 
+        // WAITING LIST HOOK
+        // We need the details of the deleted appt BEFORE deletion to know Date/Time/Service(for duration).
+        // appt is fetched above ONLY if sendEmail is true.
+        // We need it always if we want to trigger waitlist.
+        let deletedAppt = null;
+        if (!req.body.sendEmail) { // If sendEmail was false, we didn't fetch it yet
+            // Try to fetch (if id is valid). If it doesn't exist, delete will create no error but 0 changes.
+            // Best effort.
+            deletedAppt = await db.getAppointmentById(id);
+        } else {
+            // We already fetched (or tried) in 'appt' local var but it is scoped in if block.
+            // Actually, the previous block scopes 'const appt'. We can't access it here.
+            // Let's refactor slightly to fetch once.
+        }
+
+        // Wait, let's just re-fetch or assume 'appt' variable scope issue.
+        // Let's rely on a helper to get details.
+        if (!deletedAppt) deletedAppt = await db.getAppointmentById(id);
+
         await db.deleteAppointment(id);
+
+        // Trigger Waitlist Matcher (Async, don't block response)
+        if (deletedAppt) {
+            // Calculate Duration of freed slot.
+            // We have service Name. We need duration.
+            // Service handles that.
+            // We assume standard slot opening.
+
+            // Get services to find duration of THIS specific service name to know how much time is freed?
+            // Actually AppointmentService / WaitingListService processes that.
+            // We just pass the freed time.
+
+            // Issue: 'service' in DB is a string Name.
+            // We need to look up duration.
+            const services = await db.getSetting('services') || [];
+            const s = services.find(srv => srv.name === deletedAppt.service);
+            const duration = s ? s.duration : 30;
+
+            waitingListService.processCancellation(deletedAppt.date, deletedAppt.time, duration, deletedAppt.admin_id)
+                .catch(e => console.error("Waitlist Trigger Error:", e));
+        }
+
         triggerUpdate();
         res.json({ success: true });
     } catch (err) {

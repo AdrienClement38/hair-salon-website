@@ -6,7 +6,7 @@ exports.update = async (req, res) => {
     const { openingHours, holidays, holidayRanges, home_content, services, contact_info, products, email_config, salon_identity } = req.body;
 
     try {
-        if (openingHours) await db.setSetting('openingHours', openingHours);
+        if (openingHours) await db.setSetting('opening_hours', openingHours);
         if (holidays) await db.setSetting('holidays', holidays);
         if (holidayRanges) await db.setSetting('holidayRanges', holidayRanges);
         if (home_content) await db.setSetting('home_content', home_content);
@@ -57,7 +57,7 @@ exports.testEmail = async (req, res) => {
 
 exports.get = async (req, res) => {
     try {
-        const openingHours = (await db.getSetting('openingHours')) || { start: '09:00', end: '18:00', closedDays: [] };
+        const openingHours = (await db.getSetting('opening_hours')) || { start: '09:00', end: '18:00', closedDays: [] };
         const holidays = (await db.getSetting('holidays')) || [];
         const globalLeaves = await db.getLeaves(null);
         const holidayRanges = globalLeaves.map(l => ({ start: l.start_date, end: l.end_date }));

@@ -96,6 +96,16 @@ router.get('/settings', settingsController.get);
 router.get('/slots', appointmentsController.getSlots);
 router.post('/book', validate(createBookingSchema), appointmentsController.createBooking);
 
+// --- Public Data ---
+router.get('/workers', adminsController.listPublicWorkers);
+router.get('/settings', settingsController.get);
+router.get('/slots', appointmentsController.getSlots);
+router.post('/book', validate(createBookingSchema), appointmentsController.createBooking);
+
+// Client Cancellation (Email link)
+router.get('/appointments/cancel-confirm', appointmentsController.cancelConfirm);
+router.post('/appointments/cancel-client', appointmentsController.cancelClient);
+
 // --- Updates (Polling) ---
 router.get('/updates', updatesController.checkUpdates);
 

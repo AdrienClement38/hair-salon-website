@@ -37,6 +37,7 @@ const corsOptions = {
 app.use(cors(corsOptions));
 
 app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ extended: true })); // Handle form submissions
 app.use(express.static(path.join(__dirname, '../public')));
 
 // Disable caching for API routes

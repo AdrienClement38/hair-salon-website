@@ -143,7 +143,132 @@ class EmailService {
             // Don't throw, we don't want to break the booking flow if email fails
         }
     }
+    /**
+     * Generate secure cancellation token
+     */
+    generateCancellationToken(appointment) {
+        const crypto = require('crypto');
+        const secret = process.env.JWT_SECRET || 'fallback_secret_should_be_changed';
 
+        // Data to sign: ID + Date + Time (ensures link invalid if rescheduled?) 
+        // Or just ID + CreatedAt. Simple: ID + Secret + App specific salt.
+        const payload = `${appointment.id}:${appointment.email}:${secret}`;
+        return crypto.createHmac('sha256', secret).update(payload).digest('hex');
+    }
+
+    /**
+     * Send booking confirmation email with ICS attachment
+     * @param {Object} data - { to, name, date, time, service, workerName, phone?, id? }
+     */
+    async sendConfirmation(data) {
+        if (!data.to) {
+            console.warn('EmailService: No "to" address provided in data:', data);
+            return;
+        }
+
+        const config = await db.getSetting('email_config');
+
+        let settings;
+        try {
+            settings = typeof config === 'string' ? JSON.parse(config) : config;
+        } catch (e) {
+            settings = null;
+        }
+
+        if (!settings || !settings.user || !settings.pass) {
+            console.warn('EmailService: No email configuration found/valid. Config:', config);
+            return;
+        }
+
+        // Generic SMTP Transport
+        const host = settings.host || 'smtp.gmail.com';
+        const port = settings.port || 465;
+        const secure = port == 465;
+
+        const transportConfig = {
+            host,
+            port,
+            secure,
+            auth: {
+                user: settings.user,
+                pass: settings.pass
+            },
+            tls: {
+                rejectUnauthorized: false
+            },
+            connectionTimeout: 10000,
+            family: 4 // Force IPv4
+        };
+
+        const transporter = nodemailer.createTransport(transportConfig);
+
+        const { name, date, time, service, workerName, id, email } = data;
+
+        // Generate ICS content
+        const icsContent = this.generateICS(data);
+
+        // Generate Cancellation Link
+        // We need appointment ID. If not passed (legacy calls), we can't generate it.
+        // Assuming createBooking passes it now (we need to verify controller updates).
+        let cancellationHtml = '';
+        if (id) {
+            const token = this.generateCancellationToken({ id, email: data.to }); // use data.to as email source
+            const baseUrl = process.env.BASE_URL || 'http://localhost:3000';
+            const cancelLink = `${baseUrl}/api/appointments/cancel-confirm?id=${id}&token=${token}`;
+
+            cancellationHtml = `
+                <div style="margin-top: 30px; padding-top: 20px; border-top: 1px dashed #ccc; text-align: center;">
+                    <p style="font-size: 14px; color: #555;">En cas d'imprévu, vous pouvez annuler votre rendez-vous ci-dessous :</p>
+                    <a href="${cancelLink}" style="color: #d32f2f; text-decoration: underline; font-size: 14px;">Annuler ce rendez-vous</a>
+                </div>
+            `;
+        }
+
+        const mailOptions = {
+            from: `"La Base Coiffure" <${settings.user}>`,
+            to: data.to,
+            subject: 'Confirmation de votre Rendez-vous - La Base Coiffure',
+            html: `
+                <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                    <h2 style="color: #333;">Bonjour ${name},</h2>
+                    <p>Votre rendez-vous est confirmé !</p>
+                    
+                    <div style="background-color: #f9f9f9; padding: 15px; border-radius: 5px; margin: 20px 0;">
+                        <p style="margin: 5px 0;"><strong>Prestation :</strong> ${service}</p>
+                        <p style="margin: 5px 0;"><strong>Coiffeur :</strong> ${workerName}</p>
+                        <p style="margin: 5px 0;"><strong>Date :</strong> ${date}</p>
+                        <p style="margin: 5px 0;"><strong>Heure :</strong> ${time}</p>
+                    </div>
+
+                    <p>Vous pouvez ajouter ce rendez-vous à votre calendrier en utilisant le fichier joint ou le bouton ci-dessous (si supporté par votre messagerie).</p>
+                    
+                    ${cancellationHtml}
+
+                    <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;">
+                    <p style="font-size: 12px; color: #777;">La Base Coiffure<br>Ceci est un message automatique, merci de ne pas répondre.</p>
+                </div>
+            `,
+            attachments: [
+                {
+                    filename: 'invite.ics',
+                    content: icsContent,
+                    contentType: 'text/calendar'
+                }
+            ]
+        };
+
+        try {
+            if (process.env.NODE_ENV === 'test') {
+                console.log(`[EmailService] TEST MODE: Email suppressed to ${data.to}`);
+            } else {
+                await transporter.sendMail(mailOptions);
+                console.log(`Email sent to ${data.to}`);
+            }
+        } catch (error) {
+            console.error('EmailService Error:', error);
+            // Don't throw, we don't want to break the booking flow if email fails
+        }
+    }
     /**
      * Send password reset link
      * @param {string} to - Recipient email

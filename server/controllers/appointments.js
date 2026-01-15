@@ -16,77 +16,24 @@ exports.list = async (req, res) => {
 
 exports.delete = async (req, res) => {
     try {
-        const { sendEmail } = req.body; // Check flag from frontend
+        const { sendEmail } = req.body;
         const id = req.params.id;
 
-        if (sendEmail) {
-            const appt = await db.getAppointmentById(id);
-            if (appt && appt.email) {
-                const emailService = require('../services/emailService');
-                // Resolve worker name for the email template
-                let workerName = 'Le Coiffeur';
-                if (appt.admin_id) {
-                    const admin = await db.getAdminById(appt.admin_id);
-                    if (admin) workerName = admin.display_name || admin.username;
-                }
+        const result = await appointmentService.cancelAppointment(id, {
+            source: 'admin',
+            reason: 'Annulation manuelle par le salon',
+            sendEmail: !!sendEmail
+        });
 
-                try {
-                    await emailService.sendCancellation(appt, {
-                        reason: 'Annulation manuelle par le salon',
-                        workerName: workerName
-                    });
-                    console.log(`Manual cancellation email sent to ${appt.email}`);
-                } catch (emailErr) {
-                    console.error("Failed to send manual cancellation email:", emailErr);
-                    // Continue with deletion even if email fails
-                }
-            }
+        if (!result.success && result.message === 'Appointment not found') {
+            // Treat as success (idempotent) or 404? 
+            // Admin UI expects success mainly.
+            console.warn(`Attempted to delete non-existent appointment ${id}`);
         }
 
-        // WAITING LIST HOOK
-        // We need the details of the deleted appt BEFORE deletion to know Date/Time/Service(for duration).
-        // appt is fetched above ONLY if sendEmail is true.
-        // We need it always if we want to trigger waitlist.
-        let deletedAppt = null;
-        if (!req.body.sendEmail) { // If sendEmail was false, we didn't fetch it yet
-            // Try to fetch (if id is valid). If it doesn't exist, delete will create no error but 0 changes.
-            // Best effort.
-            deletedAppt = await db.getAppointmentById(id);
-        } else {
-            // We already fetched (or tried) in 'appt' local var but it is scoped in if block.
-            // Actually, the previous block scopes 'const appt'. We can't access it here.
-            // Let's refactor slightly to fetch once.
-        }
-
-        // Wait, let's just re-fetch or assume 'appt' variable scope issue.
-        // Let's rely on a helper to get details.
-        if (!deletedAppt) deletedAppt = await db.getAppointmentById(id);
-
-        await db.deleteAppointment(id);
-
-        // Trigger Waitlist Matcher (Async, don't block response)
-        if (deletedAppt) {
-            // Calculate Duration of freed slot.
-            // We have service Name. We need duration.
-            // Service handles that.
-            // We assume standard slot opening.
-
-            // Get services to find duration of THIS specific service name to know how much time is freed?
-            // Actually AppointmentService / WaitingListService processes that.
-            // We just pass the freed time.
-
-            // Issue: 'service' in DB is a string Name.
-            // We need to look up duration.
-            const services = await db.getSetting('services') || [];
-            const s = services.find(srv => srv.name === deletedAppt.service);
-            const duration = s ? s.duration : 30;
-
-            await waitingListService.processCancellation(deletedAppt.date, deletedAppt.time, duration, deletedAppt.admin_id);
-        }
-
-        triggerUpdate();
         res.json({ success: true });
     } catch (err) {
+        console.error('Delete Error:', err);
         res.status(500).json({ error: err.message });
     }
 };
@@ -134,6 +81,7 @@ exports.createBooking = async (req, res) => {
         emailService.sendConfirmation({
             ...req.body,
             to: req.body.email,
+            id: result.lastInsertRowid, // Pass ID for cancellation link
             workerName
         }).catch(err => console.error("Email send failed", err));
 
@@ -156,5 +104,119 @@ exports.getSlots = async (req, res) => {
         res.json(slots);
     } catch (err) {
         res.status(500).json({ error: err.message });
+    }
+};
+
+exports.cancelConfirm = async (req, res) => {
+    const { id, token } = req.query;
+    if (!id || !token) return res.status(400).send('Lien invalide');
+
+    try {
+        const appointment = await db.getAppointmentById(id);
+        if (!appointment) return res.status(404).send('Rendez-vous introuvable ou déjà annulé.');
+
+        // Verify Token
+        const emailService = require('../services/emailService');
+        const expectedToken = emailService.generateCancellationToken(appointment);
+
+        if (token !== expectedToken) {
+            return res.status(403).send('Lien invalide ou expiré.');
+        }
+
+        // Render Confirmation Page
+        // Ideally we use a template engine, but simple HTML send is fine for this task.
+        const dateStr = new Date(appointment.date).toLocaleDateString('fr-FR');
+
+        const html = `
+            <!DOCTYPE html>
+            <html lang="fr">
+            <head>
+                <meta charset="UTF-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                <title>Confirmation d'annulation</title>
+                <style>
+                    body { font-family: sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; background-color: #f5f5f5; margin: 0; }
+                    .card { background: white; padding: 30px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); text-align: center; max-width: 400px; width: 90%; }
+                    .btn { background-color: #d32f2f; color: white; padding: 12px 24px; border: none; border-radius: 4px; cursor: pointer; font-size: 16px; text-decoration: none; display: inline-block; margin-top: 20px; }
+                    .btn:hover { background-color: #b71c1c; }
+                    .info { margin: 20px 0; background: #fff3f3; padding: 10px; border-radius: 4px; color: #b71c1c; }
+                </style>
+            </head>
+            <body>
+                <div class="card">
+                    <h2>Annuler le rendez-vous ?</h2>
+                    <p>Vous êtes sur le point d'annuler votre rendez-vous :</p>
+                    <div class="info">
+                        <strong>${appointment.service}</strong><br>
+                        ${dateStr} à ${appointment.time}
+                    </div>
+                    <p>Cette action est irréversible.</p>
+                    
+                    <form action="/api/appointments/cancel-client" method="POST">
+                        <input type="hidden" name="id" value="${id}">
+                        <input type="hidden" name="token" value="${token}">
+                        <button type="submit" class="btn">Confirmer l'abandon</button>
+                    </form>
+                </div>
+            </body>
+            </html>
+        `;
+        res.send(html);
+    } catch (err) {
+        console.error('Cancel Page Error:', err);
+        res.status(500).send('Erreur interne');
+    }
+};
+
+exports.cancelClient = async (req, res) => {
+    const { id, token } = req.body;
+    if (!id || !token) return res.status(400).json({ error: 'Données manquantes' });
+
+    try {
+        const appointment = await db.getAppointmentById(id);
+        if (!appointment) return res.status(404).send('Rendez-vous introuvable ou déjà annulé.');
+
+        // Verify Token Again
+        const emailService = require('../services/emailService');
+        const expectedToken = emailService.generateCancellationToken(appointment);
+
+        if (token !== expectedToken) {
+            return res.status(403).send('Jeton invalide.');
+        }
+
+        // Perform Cancellation
+        await appointmentService.cancelAppointment(id, {
+            source: 'client',
+            reason: 'Annulé par le client',
+            sendEmail: false // Don't spam them back, they just clicked.
+        });
+
+        res.send(`
+            <!DOCTYPE html>
+            <html lang="fr">
+            <head>
+                <meta charset="UTF-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                <title>Annulation confirmée</title>
+                <style>
+                    body { font-family: sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; background-color: #f5f5f5; margin: 0; }
+                    .card { background: white; padding: 30px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); text-align: center; max-width: 400px; width: 90%; }
+                    .success { color: #2e7d32; font-size: 48px; margin-bottom: 20px; }
+                </style>
+            </head>
+            <body>
+                <div class="card">
+                    <div class="success">✓</div>
+                    <h2>Rendez-vous annulé</h2>
+                    <p>Votre rendez-vous a bien été annulé.</p>
+                    <p>Une place a peut-être été libérée pour un autre client.</p>
+                    <p style="margin-top: 30px;"><a href="/" style="color: #333;">Retour à l'accueil</a></p>
+                </div>
+            </body>
+            </html>
+        `);
+    } catch (err) {
+        console.error('Client Cancel Error:', err);
+        res.status(500).send('Erreur lors de l\'annulation');
     }
 };

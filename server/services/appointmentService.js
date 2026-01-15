@@ -277,6 +277,71 @@ class AppointmentService {
 
         return await db.createBooking(name, date, time, service, phone, adminId, email);
     }
+
+    /**
+     * Cancel an appointment (Centralized Logic)
+     * @param {number|string} id - Appointment ID
+     * @param {Object} options - { reason, source: 'admin'|'client', sendEmail: boolean }
+     */
+    async cancelAppointment(id, options = {}) {
+        const { reason, source, sendEmail } = options;
+        const waitingListService = require('./waitingListService');
+        const emailService = require('./emailService');
+        const { triggerUpdate } = require('../config/polling');
+
+        // 1. Fetch Appointment Details BEFORE deletion
+        const appointment = await db.getAppointmentById(id);
+        if (!appointment) {
+            // Idempotent success or throw? 
+            // If it's already gone, our job is done, but maybe warn.
+            return { success: false, message: 'Appointment not found' };
+        }
+
+        // 2. Calculate Duration (Critical for Waitlist)
+        let duration = 30;
+        const services = await db.getSetting('services') || [];
+        // appointment.service is a Name string.
+        const s = services.find(srv => srv.name === appointment.service);
+        if (s && s.duration) duration = parseInt(s.duration);
+
+        // 3. Send Cancellation Email (if requested or source is client?)
+        // If client cancels, they know. But maybe send "Confirmation of cancellation"?
+        // If Admin cancels, usually send email.
+        if (sendEmail && appointment.email) {
+            // Resolve Worker Name
+            let workerName = 'Le Coiffeur';
+            if (appointment.admin_id) {
+                const admin = await db.getAdminById(appointment.admin_id);
+                if (admin) workerName = admin.display_name || admin.username;
+            }
+
+            try {
+                await emailService.sendCancellation(appointment, {
+                    reason: reason || 'Annulation',
+                    workerName
+                });
+            } catch (e) {
+                console.error('[AppointmentService] Failed to send cancellation email:', e);
+            }
+        }
+
+        // 4. Delete Record
+        await db.deleteAppointment(id);
+
+        // 5. Trigger Processes
+        // A. Waitlist
+        // We pass the FREED slot details to the waitlist processor
+        try {
+            await waitingListService.processCancellation(appointment.date, appointment.time, duration, appointment.admin_id);
+        } catch (e) {
+            console.error('[AppointmentService] Waitlist processing failed:', e);
+        }
+
+        // B. Real-time Update
+        triggerUpdate();
+
+        return { success: true, appointment };
+    }
 }
 
 module.exports = new AppointmentService();

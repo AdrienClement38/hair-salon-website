@@ -81,8 +81,7 @@ exports.delete = async (req, res) => {
             const s = services.find(srv => srv.name === deletedAppt.service);
             const duration = s ? s.duration : 30;
 
-            waitingListService.processCancellation(deletedAppt.date, deletedAppt.time, duration, deletedAppt.admin_id)
-                .catch(e => console.error("Waitlist Trigger Error:", e));
+            await waitingListService.processCancellation(deletedAppt.date, deletedAppt.time, duration, deletedAppt.admin_id);
         }
 
         triggerUpdate();

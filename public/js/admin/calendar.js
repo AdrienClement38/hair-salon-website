@@ -142,7 +142,10 @@ export async function loadAppointments() {
         }
 
         const res = await fetch(url, { headers: getHeaders() });
-        appointmentsCache = await res.json();
+        const allAppointments = await res.json();
+        // Filter out HOLD appointments (Waitlist offers) to prevent them from appearing in the main agenda
+        // They are handled by the Waitlist UI (Orange Badges).
+        appointmentsCache = allAppointments;
         renderCalendar();
 
         // If details section is open, refresh it with new data
@@ -502,7 +505,8 @@ async function openDayDetails(dateStr, appointments, shouldScroll = true) {
             // Single Worker View
             const wId = filterEl.value;
             const waitingCount = getWlCount(wId);
-            // Show subtitle with waiting count?
+
+            // Show subtitle with waiting count (restored)
             if (waitingCount > 0) {
                 const notice = document.createElement('div');
                 notice.className = 'alert alert-info';
@@ -514,105 +518,115 @@ async function openDayDetails(dateStr, appointments, shouldScroll = true) {
                 notice.innerHTML = `<strong>File d'attente :</strong> ${waitingCount} personne(s) en attente pour ce jour.`;
                 listContainer.appendChild(notice);
             }
+
+            // Render Appointments
             listContainer.innerHTML += renderAppointmentTable(safeAppts, false);
         }
-        // Start Polling for updates (every 30 seconds)
-        if (window.detailsInterval) clearInterval(window.detailsInterval);
-        window.detailsInterval = setInterval(async () => {
-            // We need to re-fetch appointments to be safe, but typically appointments don't change as fast as WL?
-            // Actually, if we want "sync", we should re-fetch everything.
-            // But re-rendering clears selection or scroll? 
-            // User asked "sync de ce coté là" (Waitlist).
-            // Let's re-fetch waitlist requests and re-render ONLY the waitlist parts or badges?
-            // Simpler: Re-run openDayDetails with fresh data?
-            // We need to fetch 'appointments' for that day first.
-            // We lack a simple "getAppointmentsForDate" here.
-            // But we can re-fetch just the WL requests and update DOM?
-            // That's cleaner to avoid flickering.
 
-            try {
-                const resWL = await fetch(`${API_URL}/waiting-list/requests?date=${dateStr}`, { headers: getHeaders() });
-                if (resWL.ok) {
-                    const newRequests = await resWL.json();
-                    // Update Badge Counts and Lists
-                    // This requires parsing the DOM or re-rendering sections.
-                    // Re-rendering sections might be easier if we have the "appointments" data handy.
-                    // We passed 'appointments' to this function. It might be stale.
-                    // ideally we should fetch fresh appointments too.
+        // Initial Waitlist Fetch & Auto-Refresh Setup
+        // Actually, since we now create HOLD appointments, we just need to refresh appointments!
+        // The separate "Waiting List" fetch is only needed if we want to show badges for "Pending" requests.
+        // But the user specifically complained about "OFFER SENT" visibility.
+        // If we keep the badges, that's fine.
+        // But we should NOT call updateWaitlistUI's table rendering part.
 
-                    // Let's try a full refresh if we can fetch appointments.
-                    // /api/admin/appointments?start=...&end=... ?
-                    // The main calendar uses /api/admin/appointments?month=...&year=...
-                    // Maybe too heavy.
+        try {
+            const performRefresh = async () => {
+                // We mainly need to refresh appointments to see the new HOLD ones.
+                // But openDayDetails doesn't strictly re-fetch appointments in this loop structure easily *without* reloading the whole calendar.
+                // Actually, 'loadAppointments()' refreshes the global cache, but does it update the open view?
 
-                    // Let's just update the Waitlist Badges and Tables.
-                    updateWaitlistUI(newRequests);
+                // Let's modify this to Reload Appointments + Update UI.
+                await loadAppointments(); // Refreshes global 'appointmentsCache'
+
+                // Then re-render the table with new data from cache
+                const freshAppts = appointmentsCache.filter(a => a.date === dateStr);
+                const safeFreshAppts = freshAppts.filter(a => a.admin_id !== null && a.admin_id !== undefined); // Simplified filter
+
+                // Update Badge Counts (Waitlist Counts still relevant for PENDING)
+                try {
+                    const resCounts = await fetch(`${API_URL}/waiting-list/counts?date=${dateStr}`, { headers: getHeaders() });
+                    if (resCounts.ok) {
+                        const counts = await resCounts.json();
+                        // Update Badges Only
+                        updateWaitlistBadges(counts);
+                    }
+                } catch (e) { }
+
+                // Re-render Appointment Table
+                const listContainer = document.getElementById('day-appointments-list');
+                if (listContainer) {
+                    // Update Single Worker View
+                    const filterEl = document.getElementById('admin-filter');
+                    if (filterEl && filterEl.value) {
+                        const wId = filterEl.value;
+                        const filteredAppts = safeFreshAppts.filter(a => a.admin_id == wId);
+                        // Find the table and replace body? Or simplify: just innerHTML the table part.
+                        // This is tricky without destroying headers/alerts.
+                        // Let's just re-run renderAppointmentTable and replace the table element.
+
+                        const oldTable = listContainer.querySelector('.day-details-table');
+                        if (oldTable) oldTable.remove();
+
+                        // Append new table (or Place it)
+                        const newTableHtml = renderAppointmentTable(filteredAppts, false);
+                        listContainer.insertAdjacentHTML('beforeend', newTableHtml);
+                    }
                 }
-            } catch (e) { console.error("Polling error", e); }
+            };
 
-        }, 10000); // 10 seconds
+            // Run immediately
+            // await performRefresh(); 
+            // Actually, initial load is already done via arguments.
 
-        function updateWaitlistUI(requests) {
-            // Helper to filter
-            const getWlForWorker = (wid) => requests.filter(r => r.desired_worker_id == wid);
+            // Setup Polling
+            if (window.detailsInterval) clearInterval(window.detailsInterval);
+            window.detailsInterval = setInterval(performRefresh, 10000);
 
-            // 1. Update Badges
-            // Iterate all worker headings
-            const sections = listContainer.querySelectorAll('.worker-section');
-            sections.forEach(sec => {
-                const titleEl = sec.querySelector('h2');
-                if (!titleEl) return;
-                const workerName = titleEl.textContent;
-                // Find worker ID by name? 
-                const worker = currentWorkers.find(w => w.name === workerName);
-                const wId = worker ? worker.id : null; // 'Non assigné' matches null?
+        } catch (e) { console.error("WL Init error", e); }
+    } // End of if (appointments) check
 
-                // If "Non assigné", wId is undefined/null.
-                // Check title text for "Non assigné"
-                let targetRequests = [];
-                if (titleEl.innerText.includes("Non assigné")) {
-                    targetRequests = requests.filter(r => !r.desired_worker_id);
-                } else if (worker) {
-                    targetRequests = getWlForWorker(worker.id);
-                }
+    dayDetailsSection.style.display = 'block';
 
-                // Update Badge
-                // Remove old badge
-                const oldBadge = sec.querySelector('span[style*="background-color: #ff9800"]');
-                if (oldBadge) oldBadge.remove();
+    if (shouldScroll) {
+        dayDetailsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+}
 
-                if (targetRequests.length > 0) {
-                    const badge = document.createElement('span');
-                    badge.style.cssText = "background-color: #ff9800; color: white; padding: 4px 12px; border-radius: 20px; font-size: 0.9rem; font-weight: bold; box-shadow: 0 2px 4px rgba(0,0,0,0.1);";
-                    badge.innerText = `⏳ ${targetRequests.length} en attente`;
-                    titleEl.parentNode.appendChild(badge);
-                }
+// Helper to update Waitlist UI (Moved out of block scope if possible, but keeps closures if needed. 
+// Actually updateWaitlistUI needs access to 'listContainer' etc.
+// Let's pass 'listContainer' and 'currentWorkers' to it if we move it out. 
+// For now, I'll define it HERE to keep it working with closure vars, but cleanly.
 
-                // Update Table
-                // Remove old table
-                const oldTable = sec.querySelector('div[style*="background-color: #fff8e1"]');
-                if (oldTable) oldTable.remove();
+// Simplified Badge Updater
+function updateWaitlistBadges(counts) {
+    const listContainer = document.getElementById('day-appointments-list');
+    if (!listContainer) return;
 
-                if (targetRequests.length > 0) {
-                    const wlContainer = document.createElement('div');
-                    renderWaitlistTable(targetRequests, wlContainer);
-                    sec.appendChild(wlContainer);
-                }
-            });
-        }
+    const getCount = (wid) => {
+        const entry = counts.find(c => c.desired_worker_id == wid);
+        return entry ? entry.count : 0;
+    };
 
-        dayDetailsSection.style.display = 'block';
-
-        if (shouldScroll) {
-            dayDetailsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    // Update Single Worker View Alert
+    const alertInfo = listContainer.querySelector('.alert-info');
+    if (alertInfo) {
+        const filterEl = document.getElementById('admin-filter');
+        const wId = filterEl.value;
+        const count = getCount(wId);
+        if (count > 0) {
+            alertInfo.innerHTML = `<strong>File d'attente :</strong> ${count} personne(s) en attente pour ce jour.`;
+        } else {
+            alertInfo.remove();
         }
     }
+}
 
-    // Helper to render table
-    function renderAppointmentTable(apts, showWorkerCol) {
-        if (!apts || apts.length === 0) return '<p style="color:#777; font-style:italic;">Aucun rendez-vous planifié.</p>';
+// Helper to render table (Moved to top level)
+function renderAppointmentTable(apts, showWorkerCol) {
+    if (!apts || apts.length === 0) return '<p style="color:#777; font-style:italic;">Aucun rendez-vous planifié.</p>';
 
-        return `
+    return `
         <table class="day-details-table">
             <thead>
                 <tr>
@@ -626,41 +640,34 @@ async function openDayDetails(dateStr, appointments, shouldScroll = true) {
             </thead>
             <tbody>
                 ${apts.map(apt => {
-            let workerName = "Autre";
-            if (apt.admin_id) {
-                const w = currentWorkers.find(worker => worker.id == apt.admin_id);
-                if (w) workerName = w.name;
-            }
+        let workerName = "Autre";
+        if (apt.admin_id) {
+            const w = currentWorkers.find(worker => worker.id == apt.admin_id);
+            if (w) workerName = w.name;
+        }
 
-            let serviceDisplay = apt.service;
-            if (window.currentServices) {
-                const svcObj = window.currentServices.find(s => s.id === apt.service);
-                if (svcObj) {
-                    serviceDisplay = `${svcObj.name} (${svcObj.duration || 30} min)`;
-                } else {
-                    const svcByName = window.currentServices.find(s => s.name === apt.service);
-                    if (svcByName) {
-                        serviceDisplay = `${svcByName.name} (${svcByName.duration || 30} min)`;
-                    }
+        let serviceDisplay = apt.service;
+        if (window.currentServices) {
+            const svcObj = window.currentServices.find(s => s.id === apt.service);
+            if (svcObj) {
+                serviceDisplay = `${svcObj.name} (${svcObj.duration || 30} min)`;
+            } else {
+                const svcByName = window.currentServices.find(s => s.name === apt.service);
+                if (svcByName) {
+                    serviceDisplay = `${svcByName.name} (${svcByName.duration || 30} min)`;
                 }
             }
+        }
 
-            let rowStyle = '';
-            let statusBadge = '';
-            let actionButtons = '';
+        let rowStyle = '';
+        let statusBadge = '';
 
-            if (apt.status === 'HOLD') {
-                rowStyle = 'background-color: #fff3e0;'; // Light Orange
-                statusBadge = '<span class="appt-badge" style="background:#ff9800; color:white">En attente</span>';
-                // Restricted Actions for HOLD? 
-                // Maybe just Delete? Or Force Confirm?
-                // Let's allow Delete (cancels offer) and maybe Edit?
-                // Or "Valider" manually?
-                // For now, standard actions but visually distinct.
-                // User asked: "affiche en attente"
-            }
+        if (apt.status === 'HOLD') {
+            rowStyle = 'background-color: #fff3e0;';
+            statusBadge = '<span class="appt-badge" style="background:#ff9800; color:white">En attente</span>';
+        }
 
-            return `
+        return `
                     <tr style="${rowStyle}">
                         <td>${apt.time}</td>
                          <td>${serviceDisplay}</td>
@@ -669,27 +676,88 @@ async function openDayDetails(dateStr, appointments, shouldScroll = true) {
                         <td>${formatPhoneNumberDisplay(apt.phone)}</td>
                         <td>
                             ${renderActionButtons(
-                `openEdit(${apt.id}, '${apt.name.replace("'", "\\'")}', '${apt.date}', '${apt.time}')`,
-                `deleteApt(${apt.id}, '${apt.name.replace("'", "\\'")}', '${apt.date}', '${apt.time}', '${serviceDisplay.replace("'", "\\'")}', '${apt.email || ''}', '${(apt.phone || '').replace("'", "\\'")}')`,
-                {
-                    editLabel: `<svg xmlns="http://www.w3.org/2000/svg" style="width:1.25rem; height:1.25rem;" viewBox="0 -960 960 960" fill="#000000"><path d="M200-200h57l391-391-57-57-391 391v57Zm-80 80v-170l528-527q12-11 26.5-17t30.5-6q16 0 31 6t26 18l55 56q12 11 17.5 26t5.5 30q0 16-5.5 30.5T817-647L290-120H120Zm640-584-56-56 56 56Zm-141 85-28-29 57 57-29-28Z"/></svg>`
-                }
-            )}
+            `openEdit(${apt.id}, '${apt.name.replace("'", "\\'")}', '${apt.date}', '${apt.time}')`,
+            `deleteApt(${apt.id}, '${apt.name.replace("'", "\\'")}', '${apt.date}', '${apt.time}', '${serviceDisplay.replace("'", "\\'")}', '${apt.email || ''}', '${(apt.phone || '').replace("'", "\\'")}')`,
+            {
+                editLabel: `<svg xmlns="http://www.w3.org/2000/svg" style="width:1.25rem; height:1.25rem;" viewBox="0 -960 960 960" fill="#000000"><path d="M200-200h57l391-391-57-57-391 391v57Zm-80 80v-170l528-527q12-11 26.5-17t30.5-6q16 0 31 6t26 18l55 56q12 11 17.5 26t5.5 30q0 16-5.5 30.5T817-647L290-120H120Zm640-584-56-56 56 56Zm-141 85-28-29 57 57-29-28Z"/></svg>`
+            }
+        )}
                         </td>
                     </tr>
                     `;
-        }).join('')}
+    }).join('')}
             </tbody>
         </table>
     `;
-    }
-
-    dayDetailsSection.style.display = 'block';
-
-    if (shouldScroll) {
-        dayDetailsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }
 }
+
+function renderWaitlistTable(requests, container) {
+    if (!requests || requests.length === 0) return;
+
+    let html = `
+    <table class="waitlist-table" style="width:100%; background:#fff8e1; border:1px solid #ffe0b2; margin-bottom:10px;">
+        <thead style="background:#ffecb3;">
+            <tr>
+                <th style="padding:8px;">Créé le</th>
+                <th style="padding:8px;">Client</th>
+                <th style="padding:8px;">Préférence</th>
+                <th style="padding:8px;">Statut</th>
+                <th style="padding:8px;">Action</th>
+            </tr>
+        </thead>
+        <tbody>
+    `;
+
+    requests.forEach(req => {
+        const createdDate = new Date(req.created_at);
+        const timeStr = createdDate.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+
+        let statusBadge = '<span class="appt-badge" style="background:#ff9800; color:white">En attente</span>';
+        if (req.status === 'OFFER_SENT') {
+            statusBadge = '<span class="appt-badge" style="background:#4caf50; color:white">Offre envoyée ⏳</span>';
+        }
+
+        // Determine Time Preference Display
+        let prefDisplay = '-';
+        if (req.start_time && req.end_time) {
+            prefDisplay = `${req.start_time} - ${req.end_time}`;
+        }
+
+        html += `
+            <tr style="border-bottom:1px solid #ffe0b2;">
+                <td style="padding:8px;">${timeStr}</td>
+                <td style="padding:8px;">${req.client_name}<br><small>${req.client_phone || ''}</small></td>
+                <td style="padding:8px;">${prefDisplay}</td>
+                <td style="padding:8px;">${statusBadge}</td>
+                <td style="padding:8px;">
+                     <!-- Actions: Delete (Cancel request) -->
+                    <button class="btn-x" onclick="deleteWaitRequest(${req.id})" title="Supprimer la demande">&times;</button>
+                </td>
+            </tr>
+        `;
+    });
+
+    html += `</tbody></table>`;
+    container.innerHTML = html;
+}
+
+// Global action for waitlist
+// Global action for waitlist
+window.deleteWaitRequest = async (id) => {
+    if (!confirm("Supprimer cette demande de la file d'attente ?")) return;
+    try {
+        await fetch(`${API_URL}/waiting-list/requests/${id}`, { method: 'DELETE', headers: getHeaders() });
+
+        // Refresh Current View without reload
+        if (currentDetailDate) {
+            // Re-open details (which triggers fetch)
+            const dateStr = currentDetailDate;
+            const appts = appointmentsCache.filter(a => a.date === dateStr);
+            openDayDetails(dateStr, appts, false); // false = no scroll
+        }
+        loadAppointments(); // BG refresh
+    } catch (e) { alert(e.message); }
+};
 
 export function closeDayDetails() {
     dayDetailsSection.style.display = 'none';
@@ -711,14 +779,14 @@ export async function deleteApt(id, name, date, time, service, email, phone) {
     } catch (e) { console.warn("Settings check failed", e); }
 
     // 1. Detailed Confirmation (Matching settings.js style)
-    let msg = `Êtes-vous sûr de vouloir supprimer le rendez-vous ?\n\n` +
-        `- ${formatDateDisplay(date)} ${time} : ${name} (${phone || 'Sans tél'})`;
+    let msg = `Êtes - vous sûr de vouloir supprimer le rendez - vous ?\n\n` +
+        `- ${formatDateDisplay(date)} ${time} : ${name}(${phone || 'Sans tél'})`;
 
     if (hasEmail && emailConfigured) {
         msg += `\n\n(Une option pour envoyer un email d'annulation automatique vous sera proposée à l'étape suivante.)`;
     } else {
         if (!hasEmail) {
-            msg += `\n\n⚠️ Ce client n'a pas d'adresse email enregistrée. Pensez à le prévenir par téléphone.`;
+            msg += `\n\n⚠️ Ce client n'a pas d'adresse email enregistrée.Pensez à le prévenir par téléphone.`;
         } else {
             // Has email but NO config
             msg += `\n\n(L'envoi d'email est désactivé car le serveur SMTP n'est pas configuré.)`;

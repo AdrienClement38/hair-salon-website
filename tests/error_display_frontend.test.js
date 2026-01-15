@@ -162,7 +162,11 @@ describe('Frontend Error Display', () => {
             document.getElementById('selected-time').value = '10:00';
         });
 
-        await page.click('#booking-form button[type="submit"]');
+        // Use evaluate to click to avoid "Node is not clickable" (e.g. cookie banner overlay)
+        await page.evaluate(() => {
+            const btn = document.querySelector('#booking-form button[type="submit"]');
+            if (btn) btn.click();
+        });
 
         await page.waitForFunction(() => {
             const el = document.querySelector('#form-message');

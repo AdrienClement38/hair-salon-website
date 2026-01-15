@@ -11,8 +11,20 @@ exports.update = async (req, res) => {
         if (holidayRanges) await db.setSetting('holidayRanges', holidayRanges);
         if (home_content) await db.setSetting('home_content', home_content);
         if (services) await db.setSetting('services', services);
+        if (services) await db.setSetting('services', services);
         if (contact_info) await db.setSetting('contact_info', contact_info);
-        if (email_config !== undefined) await db.setSetting('email_config', email_config);
+
+        if (email_config !== undefined) {
+            // Smart Merge for Password Security
+            if (email_config && !email_config.pass) {
+                const oldConfig = await db.getSetting('email_config');
+                if (oldConfig && oldConfig.pass) {
+                    email_config.pass = oldConfig.pass;
+                }
+            }
+            await db.setSetting('email_config', email_config);
+        }
+
         if (salon_identity) await db.setSetting('salon_identity', salon_identity);
         if (products) {
             // Check for orphan images before saving new list
@@ -44,7 +56,18 @@ exports.update = async (req, res) => {
 };
 
 exports.testEmail = async (req, res) => {
-    const { user, pass, host, port } = req.body;
+    let { user, pass, host, port } = req.body;
+
+    // Merge stored pass if missing (for testing saved config)
+    if (!pass && user) {
+        try {
+            const oldConfig = await db.getSetting('email_config');
+            if (oldConfig && oldConfig.pass) {
+                pass = oldConfig.pass;
+            }
+        } catch (e) { }
+    }
+
     try {
         const emailService = require('../services/emailService');
         await emailService.testConnection({ user, pass, host, port });

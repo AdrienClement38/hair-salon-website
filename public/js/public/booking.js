@@ -68,10 +68,10 @@ export function initBooking() {
                 slotsContainer.innerHTML = '';
                 selectedTimeInput.value = '';
 
-                // Auto-hide message after 20 seconds
+                // Auto-hide message after 5 seconds
                 setTimeout(() => {
                     showMessage('', '');
-                }, 20000);
+                }, 5000);
             } else {
                 showMessage(result.error || 'Erreur lors de la réservation.', 'error');
             }

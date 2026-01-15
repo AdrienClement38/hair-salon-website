@@ -410,7 +410,7 @@ const getAppointmentsForWorker = async (date, workerId) => {
   }
 };
 
-const getDailyGaps = async (date, workerId) => {
+const getDailyGaps = async (date, workerId, _injectedOpeningHours = null) => {
   // 1. Get Opening Hours
   // Fallback defaults if settings are completely missing
   let dayStart = 9 * 60 + 30; // 09:30 default
@@ -418,13 +418,28 @@ const getDailyGaps = async (date, workerId) => {
   let breakInterval = null;
 
   try {
-    const openingHoursStr = await getSetting('opening_hours');
-    if (openingHoursStr) {
-      const openingHours = JSON.parse(openingHoursStr);
+    // getSetting returns parsed object. _injected is object.
+    const openingHours = _injectedOpeningHours || await getSetting('opening_hours');
+
+    if (openingHours) {
       const dayIndex = new Date(date).getDay();
+
       // Adjust day index if needed (DB vs JS matching)
       // Assuming standard JS 0-6.
-      const dayConfig = openingHours[dayIndex] || openingHours[String(dayIndex)];
+      let dayConfig;
+      if (Array.isArray(openingHours)) {
+        // Robust Lookup: Find object with matching 'day' property
+        // Because array order might not match 0-6 index
+        dayConfig = openingHours.find(d => d.day === dayIndex || String(d.day) === String(dayIndex));
+
+        // Fallback: If not found or 'day' prop missing, try index (legacy array structure)
+        if (!dayConfig && openingHours[dayIndex]) {
+          dayConfig = openingHours[dayIndex];
+        }
+      } else {
+        // Object Map structure
+        dayConfig = openingHours[dayIndex] || openingHours[String(dayIndex)];
+      }
 
       // If dayConfig exists and isOpen is false (or not open), treat as closed (00:00-00:00 or skip?)
       // Actually if closed, dayStart=dayEnd is best to prevent slots.
@@ -432,13 +447,21 @@ const getDailyGaps = async (date, workerId) => {
         if (dayConfig.isOpen === false) {
           dayStart = 0;
           dayEnd = 0;
-        } else if (dayConfig.open && dayConfig.close) {
-          const [sh, sm] = dayConfig.open.split(':').map(Number);
-          const [eh, em] = dayConfig.close.split(':').map(Number);
+        } else if (dayConfig.start && dayConfig.end) {
+          const [sh, sm] = dayConfig.start.split(':').map(Number);
+          const [eh, em] = dayConfig.end.split(':').map(Number);
           dayStart = sh * 60 + sm;
           dayEnd = eh * 60 + em;
 
-          if (dayConfig.breakStart && dayConfig.breakEnd) {
+          // Log what we found
+          // console.log(`[GapDebug] Day ${dayIndex} Config (Matched):`, dayConfig);
+
+          if (dayConfig.pause_start && dayConfig.pause_end) {
+            const [bsh, bsm] = dayConfig.pause_start.split(':').map(Number);
+            const [beh, bem] = dayConfig.pause_end.split(':').map(Number);
+            breakInterval = { start: bsh * 60 + bsm, end: beh * 60 + bem };
+          } else if (dayConfig.breakStart && dayConfig.breakEnd) {
+            // Fallback for legacy keys
             const [bsh, bsm] = dayConfig.breakStart.split(':').map(Number);
             const [beh, bem] = dayConfig.breakEnd.split(':').map(Number);
             breakInterval = { start: bsh * 60 + bsm, end: beh * 60 + bem };
@@ -490,12 +513,39 @@ const getDailyGaps = async (date, workerId) => {
   // Sort by start to handle mixed inputs
   busyIntervals.sort((a, b) => a.start - b.start);
 
+  // MERGE OVERLAPPING INTERVALS
+  const mergedIntervals = [];
+  if (busyIntervals.length > 0) {
+    let current = busyIntervals[0];
+    for (let i = 1; i < busyIntervals.length; i++) {
+      const next = busyIntervals[i];
+      if (next.start <= current.end) {
+        // Overlap or touch: extend current end if needed
+        current.end = Math.max(current.end, next.end);
+      } else {
+        // No overlap: push current and move to next
+        mergedIntervals.push(current);
+        current = next;
+      }
+    }
+    mergedIntervals.push(current);
+  }
+
+  // DEBUG LOG
+  try {
+    console.log(`[getDailyGaps] Date: ${date} Worker: ${workerId}`);
+    console.log('[getDailyGaps] Busy Raw:', busyIntervals.map(b => `${minsToTime(b.start)}-${minsToTime(b.end)}`));
+    console.log('[getDailyGaps] Merged:', mergedIntervals.map(b => `${minsToTime(b.start)}-${minsToTime(b.end)}`));
+  } catch (e) { console.log('Log Error', e); }
+
   const gaps = [];
   let currentPointer = dayStart;
 
-  for (const busy of busyIntervals) {
+  for (const busy of mergedIntervals) {
     const bStart = Math.max(busy.start, dayStart);
     const bEnd = Math.min(busy.end, dayEnd);
+
+    // console.log(`Busy: ${minsToTime(bStart)} - ${minsToTime(bEnd)}`);
 
     if (bStart >= bEnd) continue; // Invalid or out of bounds
 
@@ -517,6 +567,7 @@ const getDailyGaps = async (date, workerId) => {
     }
   }
 
+
   // Check final gap
   if (currentPointer < dayEnd) {
     gaps.push({
@@ -526,7 +577,26 @@ const getDailyGaps = async (date, workerId) => {
     });
   }
 
-  return gaps;
+  // SAFETY NET: Critical Boundary Check
+  // Filter gaps against Day Limits AND Break Limits
+  return gaps.filter(g => {
+    const gStart = timeToMins(g.start);
+    const gEnd = timeToMins(g.end);
+
+    // 1. Day Boundaries
+    if (gStart < dayStart) return false; // Starts before opening
+    if (gEnd > dayEnd) return false;     // Ends after closing
+
+    // 2. Break Boundaries (if defined)
+    if (breakInterval) {
+      const isBefore = gEnd <= breakInterval.start;
+      const isAfter = gStart >= breakInterval.end;
+
+      if (!isBefore && !isAfter) return false; // Overlaps break
+    }
+
+    return true;
+  });
 };
 
 const getAllAppointments = async (forceAdminId = null) => {
@@ -971,10 +1041,10 @@ const getExpiredOffers = async () => {
 const getWaitingListCounts = async (date) => {
   // Returns counts of WAITING requests grouped by desired_worker_id
   if (type === 'pg') {
-    const sql = "SELECT desired_worker_id, COUNT(*) as count FROM waiting_list_requests WHERE target_date = $1 AND status = 'WAITING' GROUP BY desired_worker_id";
+    const sql = "SELECT desired_worker_id, COUNT(*) as count FROM waiting_list_requests WHERE target_date = $1 AND status IN ('WAITING', 'OFFER_SENT') GROUP BY desired_worker_id";
     return await query(sql, [date]);
   } else {
-    const sql = "SELECT desired_worker_id, COUNT(*) as count FROM waiting_list_requests WHERE target_date = ? AND status = 'WAITING' GROUP BY desired_worker_id";
+    const sql = "SELECT desired_worker_id, COUNT(*) as count FROM waiting_list_requests WHERE target_date = ? AND status IN ('WAITING', 'OFFER_SENT') GROUP BY desired_worker_id";
     return await query(sql, [date]);
   }
 };
@@ -984,9 +1054,9 @@ const getWaitingRequestsForDate = async (date) => {
   let sql;
   const params = [date];
   if (type === 'pg') {
-    sql = "SELECT * FROM waiting_list_requests WHERE target_date = $1 AND status = 'WAITING' ORDER BY created_at ASC";
+    sql = "SELECT * FROM waiting_list_requests WHERE target_date = $1 AND status IN ('WAITING', 'OFFER_SENT') ORDER BY created_at ASC";
   } else {
-    sql = "SELECT * FROM waiting_list_requests WHERE target_date = ? AND status = 'WAITING' ORDER BY created_at ASC";
+    sql = "SELECT * FROM waiting_list_requests WHERE target_date = ? AND status IN ('WAITING', 'OFFER_SENT') ORDER BY created_at ASC";
   }
   return await query(sql, params);
 };
@@ -1062,6 +1132,19 @@ module.exports = {
   deleteHoldAppointment,
   getWaitingListCounts,
   getWaitingRequestsForDate,
+  expirePastWaitingRequests: async () => {
+    // Expire WAITING or OFFER_SENT requests where target_date < today
+    // SQLite YYYY-MM-DD comparison works alphabetically
+    const today = new Date().toISOString().split('T')[0];
+    const sql = `UPDATE waiting_list_requests SET status = 'EXPIRED' WHERE target_date < ? AND status IN ('WAITING', 'OFFER_SENT')`;
+    if (type === 'pg') {
+      // PG might need explicit date cast if column is text? usually date column handles it.
+      // Assuming text or date column.
+      return await query(sql, [today]);
+    } else {
+      return await query(sql, [today]);
+    }
+  },
 
   type,
   initPromise,

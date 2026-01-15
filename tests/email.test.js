@@ -42,9 +42,16 @@ describe('Email Service (TDD)', () => {
             to: 'client@example.com'
         };
 
-        await emailService.sendConfirmation(bookingData);
+        // TEMPORARY: Override NODE_ENV to 'development' to bypass "suppress in test" check.
+        // We want to verify that SendMail IS called (mocked).
+        const originalEnv = process.env.NODE_ENV;
+        process.env.NODE_ENV = 'development';
 
-
+        try {
+            await emailService.sendConfirmation(bookingData);
+        } finally {
+            process.env.NODE_ENV = originalEnv;
+        }
 
         expect(nodemailer.createTransport).toHaveBeenCalledTimes(1);
         const transportConfig = nodemailer.createTransport.mock.calls[0][0];

@@ -40,6 +40,11 @@ class EmailService {
             text: 'Ceci est un email de test pour confirmer que la configuration SMTP fonctionne correctement.'
         };
 
+        if (process.env.NODE_ENV === 'test') {
+            console.log('[EmailService] TEST MODE: Email suppressed', mailOptions);
+            return true;
+        }
+
         await transporter.sendMail(mailOptions);
         return true;
     }
@@ -127,8 +132,12 @@ class EmailService {
         };
 
         try {
-            await transporter.sendMail(mailOptions);
-            console.log(`Email sent to ${data.to}`);
+            if (process.env.NODE_ENV === 'test') {
+                console.log(`[EmailService] TEST MODE: Email suppressed to ${data.to}`);
+            } else {
+                await transporter.sendMail(mailOptions);
+                console.log(`Email sent to ${data.to}`);
+            }
         } catch (error) {
             console.error('EmailService Error:', error);
             // Don't throw, we don't want to break the booking flow if email fails
@@ -191,8 +200,12 @@ class EmailService {
         };
 
         try {
-            await transporter.sendMail(mailOptions);
-            console.log(`Reset email sent to ${to}`);
+            if (process.env.NODE_ENV === 'test') {
+                console.log(`[EmailService] TEST MODE: Email suppressed to ${to}`);
+            } else {
+                await transporter.sendMail(mailOptions);
+                console.log(`Reset email sent to ${to}`);
+            }
         } catch (error) {
             console.error('EmailService Reset Error:', error);
             throw error; // Re-throw for controller to handle logging if needed
@@ -303,8 +316,12 @@ END:VCALENDAR`.replace(/\n/g, '\r\n');
         };
 
         try {
-            await transporter.sendMail(mailOptions);
-            console.log(`Cancellation email sent to ${appointment.email}`);
+            if (process.env.NODE_ENV === 'test') {
+                console.log(`[EmailService] TEST MODE: Email suppressed to ${appointment.email}`);
+            } else {
+                await transporter.sendMail(mailOptions);
+                console.log(`Cancellation email sent to ${appointment.email}`);
+            }
         } catch (error) {
             console.error('EmailService Cancellation Error:', error);
         }
@@ -348,6 +365,12 @@ END:VCALENDAR`.replace(/\n/g, '\r\n');
                 </div>
             `
         };
+
+        if (process.env.NODE_ENV === 'test') {
+            console.log(`[EmailService] TEST MODE: Email suppressed to ${to}`);
+            return;
+        }
+
         await transporter.sendMail(mailOptions);
     }
 
@@ -407,6 +430,12 @@ END:VCALENDAR`.replace(/\n/g, '\r\n');
                 </div>
             `
         };
+
+        if (process.env.NODE_ENV === 'test') {
+            console.log(`[EmailService] TEST MODE: Email suppressed to ${to}`);
+            return;
+        }
+
         await transporter.sendMail(mailOptions);
     }
 }

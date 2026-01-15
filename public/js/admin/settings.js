@@ -62,6 +62,9 @@ export const loadSettings = async () => {
             if (document.getElementById('email-config-user')) document.getElementById('email-config-user').value = settings.email_config.user || '';
             if (document.getElementById('email-config-host')) document.getElementById('email-config-host').value = settings.email_config.host || '';
             if (document.getElementById('email-config-port')) document.getElementById('email-config-port').value = settings.email_config.port || '';
+            if (document.getElementById('email-config-pass') && settings.email_config.pass) {
+                document.getElementById('email-config-pass').value = settings.email_config.pass;
+            }
         }
 
         // 6. Restore Services & Products Rendering
@@ -348,6 +351,75 @@ window.saveEmailConfig = async () => {
     try {
         await saveSetting('email_config', config);
         alert('Configuration Email enregistrée');
+    } catch (e) {
+        alert('Erreur: ' + e.message);
+    }
+};
+
+window.testEmailConfig = async () => {
+    const config = {
+        user: document.getElementById('email-config-user').value,
+        host: document.getElementById('email-config-host').value,
+        port: document.getElementById('email-config-port').value,
+        pass: document.getElementById('email-config-pass').value
+    };
+
+    // If pass is empty, we might need to tell backend to use stored pass?
+    // The test endpoint usually expects the full config to test WHAT IS IN THE FORM.
+    // BUT if the user didn't re-enter the pass, we can't test it from client side values alone unless backend supports "use stored pass".
+    // Let's assume for TEST purposes, if pass is empty, we send what we have, 
+    // AND we update the backend test endpoint to also merge? 
+    // OR we just alert the user "Veuillez entrer le mot de passe pour tester".
+    // Actually, easier: Update backend testEmail to also merge if pass is missing but user provided?
+    // Let's keep it simple: Try to test. If fail, maybe pass was missing.
+    // Ideally: The user should Save first (which merges), then Test.
+    // So let's encourage "Save" before "Test" or assume "Saved" state?
+    // The UI has "Save" and "Test".
+
+    // User expectation: I just saved (pass is hidden/merged). I click Test. 
+    // The inputs are empty of pass.
+    // So we invoke a test endpoint that uses the *Stored* config? 
+    // "Tester la connexion" usually tests the STORED config if fields match?
+    // Let's allow testing the *stored* config if no args provided?
+    // No, usually it tests the FORM values to validate before saving.
+
+    // Compromise: We send the values. If pass is empty, we assume they want to test the current form.
+    // Backend `testEmail` should probably ALSO support the merge or reading from DB if `pass` is null/empty?
+    // Let's update backend `testEmail` too?
+    // Actually, `server/controllers/settings.js` exports.testEmail takes body props.
+    // I should update it to fallback to DB pass if missing.
+
+    const token = localStorage.getItem('auth');
+    try {
+        const res = await fetch('/api/admin/settings/test-email', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': 'Bearer ' + token
+            },
+            body: JSON.stringify(config)
+        });
+        const data = await res.json();
+        if (res.ok) {
+            alert('Connexion réussie ! ✅');
+        } else {
+            throw new Error(data.error || 'Erreur inconnue');
+        }
+    } catch (e) {
+        alert('Echec connexion: ' + e.message);
+    }
+};
+
+window.deleteEmailConfig = async () => {
+    if (!confirm('Voulez-vous vraiment supprimer la configuration email ?')) return;
+
+    try {
+        await saveSetting('email_config', {}); // Empty object
+        document.getElementById('email-config-user').value = '';
+        document.getElementById('email-config-host').value = '';
+        document.getElementById('email-config-port').value = '';
+        document.getElementById('email-config-pass').value = '';
+        alert('Configuration supprimée.');
     } catch (e) {
         alert('Erreur: ' + e.message);
     }

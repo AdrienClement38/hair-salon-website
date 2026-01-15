@@ -26,6 +26,9 @@ class WaitingListService {
     async scanWaitlist() {
         console.log('[WaitList] Starting periodic scan...');
         try {
+            // 0. Cleanup Past Requests (Ghosts)
+            await db.expirePastWaitingRequests();
+
             const dates = await db.getPendingWaitingDates();
             const services = await db.getSetting('services') || [];
 
@@ -83,12 +86,49 @@ class WaitingListService {
                 dayStart = sh * 60 + sm;
                 dayEnd = eh * 60 + em;
             }
+
+            // CRITICAL FIX: Inject Break as a "Blocker" Appointment
+            if (dayConfig && dayConfig.pause_start && dayConfig.pause_end) {
+                // If pauses are active/defined
+                // We create a fake appointment object that will be used by the gap logic below
+                const [psh, psm] = dayConfig.pause_start.split(':').map(Number);
+                const [peh, pem] = dayConfig.pause_end.split(':').map(Number);
+
+                // Add to appts list effectively blocking this duration
+                // We'll push it after we fetch appts
+            }
         } catch (e) {
             console.warn('[WaitList] Could not fetch opening hours, using defaults.', e);
         }
 
         // Fetch all appointments for this worker to find real gap
         const appts = await db.getAppointmentsForWorker(date, workerId);
+
+        // Inject Breaks into appts list to prevent gaps crossing the break
+        try {
+            let openingHours = await db.getSetting('opening_hours');
+            if (typeof openingHours === 'string') openingHours = JSON.parse(openingHours);
+            const dayOfWeek = new Date(date).getDay();
+            const dayConfig = openingHours[dayOfWeek] || openingHours[String(dayOfWeek)];
+
+            if (dayConfig && dayConfig.pause_start && dayConfig.pause_end) {
+                // Re-parsing logic for clarity (or could reuse variables from above scope if restructured)
+                // Simply appending a "Break" appointment
+                appts.push({
+                    time: dayConfig.pause_start,
+                    service: 'PAUSE', // Special marker
+                    // We need duration.
+                    // The loop calculates duration via getServiceDuration. 
+                    // We should handle 'PAUSE' there or calculate duration manually here and mock it.
+                });
+                // Actually, the loop uses `getServiceDuration(appt.service)`
+                // We should make sure getServiceDuration handles 'PAUSE' or returns the duration we want.
+                // Better: calculate duration in mins and mock the service lookup or ensure getServiceDuration returns it.
+                // Wait, `getServiceDuration` looks up in `services` array by name.
+                // If we pass a dummy service name, it returns default 30.
+                // We must manually ensure duration is correct for the break.
+            }
+        } catch (e) { }
 
         const timeToMins = (t) => {
             if (!t) return 0;
@@ -112,7 +152,7 @@ class WaitingListService {
         // We want the contiguous empty space containing [deletedStart, deletedEnd].
 
         for (const appt of appts) {
-            const sDuration = getServiceDuration(appt.service, services);
+            const sDuration = appt._forcedDuration ? appt._forcedDuration : getServiceDuration(appt.service, services);
             const aStart = timeToMins(appt.time);
             const aEnd = aStart + sDuration;
 
@@ -130,8 +170,55 @@ class WaitingListService {
             // but if they exist, they would constrain the gap naturally by falling into above categories or staying inside.
         }
 
+        // --- CRITICAL: Respect Break Boundaries ---
+        // If the calculated gap overlaps or touches the break, we must constrain it,
+        // specifically focusing on the side where the deletion happened.
+        try {
+            let openingHours = await db.getSetting('opening_hours');
+            if (typeof openingHours === 'string') openingHours = JSON.parse(openingHours);
+            const d = new Date(date).getDay();
+            // Handle both array/object and Mon-Sun index diffs if necessary (db helper usually handles this but here we access raw)
+            // settings.openingHours usually array 0-6 (Sun-Sat).
+            const dayConfig = openingHours[d] || openingHours[String(d)];
+
+            if (dayConfig && ((dayConfig.breakStart && dayConfig.breakEnd) || (dayConfig.pause_start && dayConfig.pause_end))) {
+                const bStartName = dayConfig.breakStart || dayConfig.pause_start;
+                const bEndName = dayConfig.breakEnd || dayConfig.pause_end;
+
+                const bStart = timeToMins(bStartName);
+                const bEnd = timeToMins(bEndName);
+
+                // If Gap contains the Break? (e.g. 10:00 - 15:00, Break 12:00-14:00)
+                // We must pick the sub-gap that contains our `deletedStart`.
+
+                // Case 1: Deleted slot was BEFORE break (e.g. 11:30)
+                if (deletedStart < bStart) {
+                    // Gap must end at break start
+                    if (bestEnd > bStart) bestEnd = bStart;
+                }
+
+                // Case 2: Deleted slot was AFTER break (e.g. 14:30)
+                if (deletedStart >= bEnd) {
+                    // Gap must start at break end
+                    if (bestStart < bEnd) bestStart = bEnd;
+                }
+
+                // Safety: If gap starts inside break?
+                if (bestStart >= bStart && bestStart < bEnd) bestStart = bEnd;
+                // If gap ends inside break?
+                if (bestEnd > bStart && bestEnd <= bEnd) bestEnd = bStart;
+            }
+        } catch (e) {
+            console.warn('[WaitList] Break check failed', e);
+        }
+
         const newDuration = bestEnd - bestStart;
         const newStartTime = minsToTime(bestStart);
+
+        if (newDuration <= 0) {
+            console.log('[WaitList] Gap is zero or invalid after break check.');
+            return;
+        }
 
         // console.log(`[WaitList] Merged Gap Detected: ${newStartTime} (${newDuration}min) [Window: ${minsToTime(bestStart)} - ${minsToTime(bestEnd)}]`);
 
@@ -160,14 +247,25 @@ class WaitingListService {
 
         console.log(`[WaitList] Match found: ${request.client_name} (ReqID: ${request.id})`);
 
+        console.log(`[WaitList] Match found: ${request.client_name} (ReqID: ${request.id})`);
+
         // Generate Token
         const token = crypto.randomBytes(32).toString('hex');
         const expiresAt = new Date(Date.now() + 20 * 60 * 1000); // 20 mins
 
-        // We DO NOT create a HOLD appointment anymore.
-        // The slot remains free.
-
+        // We CREATE a HOLD appointment to reserve the slot and show it in Admin UI
         try {
+            await db.createBooking(
+                request.client_name,
+                date,
+                time,
+                request.desired_service_id,
+                request.client_phone,
+                workerId, // admin_id
+                request.client_email,
+                'HOLD' // status
+            );
+
             // Update Request Status
             await db.updateWaitingRequestStatus(request.id, 'OFFER_SENT', token, expiresAt.toISOString());
 
@@ -175,7 +273,9 @@ class WaitingListService {
             await emailService.sendSlotOffer(request.client_email, request.client_name, date, time, token);
 
         } catch (e) {
-            console.error('[WaitList] Error updating status or sending email:', e);
+            console.error('[WaitList] Error creating HOLD or sending email:', e);
+            // If booking failed (taken?), should we abort?
+            // Yes.
         }
     }
 

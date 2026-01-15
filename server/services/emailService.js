@@ -423,7 +423,7 @@ END:VCALENDAR`.replace(/\n/g, '\r\n');
                     <p style="text-align: center;"><strong>Ce créneau vous est réservé pendant 20 minutes !</strong><br>Passé ce délai, il sera proposé à la personne suivante.</p>
                     
                     <p style="text-align: center; margin: 30px 0;">
-                        <a href="${link}" style="background-color: #000; color: #fff; padding: 15px 30px; text-decoration: none; border-radius: 50px; font-weight: bold; font-size: 1.1em;">RÉSERVER CE CRÉNEAU</a>
+                        <a href="${link}" style="background-color: #000; color: #fff; padding: 15px 30px; text-decoration: none; border-radius: 50px; font-weight: bold; font-size: 1.1em;">DONNER MA RÉPONSE</a>
                     </p>
                     
                     <p style="font-size: 12px; color: #777; text-align: center;">Si ce lien ne fonctionne pas : <br> ${link}</p>

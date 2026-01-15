@@ -3,6 +3,7 @@ const emailService = require('./emailService');
 const crypto = require('crypto');
 
 // Helper for duration
+// Helper for duration
 const getServiceDuration = (serviceName, allServices) => {
     const s = allServices.find(s => s.name === serviceName);
     return s ? s.duration : 30; // default safety
@@ -13,6 +14,10 @@ const getServicesFittingInDuration = (durationAvailable, allServices) => {
     // We interpret "desired_service_id" as "desired_service_name" for consistency.
     return allServices.filter(s => s.duration <= durationAvailable).map(s => s.name);
 };
+
+// ... (lines 10-230)
+
+
 
 class WaitingListService {
 
@@ -45,9 +50,8 @@ class WaitingListService {
                             // Check compatibility
                             const compatible = getServicesFittingInDuration(gap.duration, services);
                             if (compatible.length > 0) {
-                                // Try match
-                                // Note: matchAndOffer will check if request is for this worker
-                                await this.matchAndOffer(date, gap.start, admin.id, compatible, services);
+                                // Recursive Fill
+                                await this.attemptToFillGap(date, gap.start, gap.duration, admin.id, services);
                             }
                         }
                     }
@@ -223,29 +227,63 @@ class WaitingListService {
         // console.log(`[WaitList] Merged Gap Detected: ${newStartTime} (${newDuration}min) [Window: ${minsToTime(bestStart)} - ${minsToTime(bestEnd)}]`);
 
         // 2. Identify services that fit in this NEW merged slot
-        const compatibleServiceNames = getServicesFittingInDuration(newDuration, services);
+        // LOGIC CHANGE: We want to fill the gap RECURSIVELY.
+        // If we have 30 mins, and find a 15 min match, we have 15 mins left.
+
+        await this.attemptToFillGap(date, newStartTime, newDuration, workerId, services);
+    }
+
+    async attemptToFillGap(date, startTime, durationAvailable, workerId, allServices) {
+        if (durationAvailable < 15) return; // Minimum viable slot
+
+
+        const minsToTime = (m) => {
+            const h = Math.floor(m / 60);
+            const min = m % 60;
+            return `${String(h).padStart(2, '0')}:${String(min).padStart(2, '0')}`;
+        };
+        const timeToMins = (t) => {
+            const [h, m] = t.split(':').map(Number);
+            return h * 60 + m;
+        };
+
+        const compatibleServiceNames = getServicesFittingInDuration(durationAvailable, allServices);
 
         if (compatibleServiceNames.length === 0) {
-            console.log('[WaitList] No services fit in this slot.');
+            // console.log(`[WaitList] No services fit in ${durationAvailable}min at ${startTime}.`);
             return;
         }
 
-        // 3. Find Candidate using the MERGED gap
-        await this.matchAndOffer(date, newStartTime, workerId, compatibleServiceNames, services);
+        // Try to match ONE
+        const matchedRequest = await this.matchAndOffer(date, startTime, workerId, compatibleServiceNames, allServices);
+
+        if (matchedRequest) {
+            // We filled some time!
+            // Calculate what is left
+            const usedDuration = getServiceDuration(matchedRequest.desired_service_id, allServices);
+            const remainingDuration = durationAvailable - usedDuration;
+
+            if (remainingDuration >= 15) {
+                const startMins = timeToMins(startTime);
+                const nextStartMins = startMins + usedDuration;
+                const nextStartTime = minsToTime(nextStartMins);
+
+                // RECURSE
+                await this.attemptToFillGap(date, nextStartTime, remainingDuration, workerId, allServices);
+            }
+        }
     }
 
-    // Recursive-like function to find next match
+    // Returns the matched request object if successful, null otherwise
     async matchAndOffer(date, time, workerId, compatibleServiceNames, allServices) {
 
         // Find oldest request provided it matches worker requirement and service duration
         const request = await db.findNextWaitingRequest(date, compatibleServiceNames, workerId);
 
         if (!request) {
-            console.log('[WaitList] No matching requests found.');
-            return;
+            // console.log('[WaitList] No matching requests found.');
+            return null;
         }
-
-        console.log(`[WaitList] Match found: ${request.client_name} (ReqID: ${request.id})`);
 
         console.log(`[WaitList] Match found: ${request.client_name} (ReqID: ${request.id})`);
 
@@ -272,10 +310,11 @@ class WaitingListService {
             // Send Email
             await emailService.sendSlotOffer(request.client_email, request.client_name, date, time, token);
 
+            return request; // Return request to indicate success and allow duration calc
+
         } catch (e) {
             console.error('[WaitList] Error creating HOLD or sending email:', e);
-            // If booking failed (taken?), should we abort?
-            // Yes.
+            return null;
         }
     }
 
@@ -425,46 +464,7 @@ class WaitingListService {
         // Let's do that in `matchAndOffer`.
     }
 
-    // Recursive-like function to find next match
-    async matchAndOffer(date, time, workerId, compatibleServiceNames, allServices) {
 
-        // Find oldest request provided it matches worker requirement and service duration
-        const request = await db.findNextWaitingRequest(date, compatibleServiceNames, workerId);
-
-        if (!request) {
-            console.log('[WaitList] No matching requests found.');
-            return;
-        }
-
-        console.log(`[WaitList] Match found: ${request.client_name} (ReqID: ${request.id})`);
-        // Use simpler token because we rely on the HOLD appt for data now
-        // But keeping it unique is fine.
-        const token = crypto.randomBytes(32).toString('hex');
-        const expiresAt = new Date(Date.now() + 20 * 60 * 1000); // 20 mins
-
-        try {
-            // 1. Create HOLD appointment (Reserved Slot)
-            await db.createBooking(
-                request.client_name,
-                date,
-                time,
-                request.desired_service_id,
-                request.client_phone,
-                workerId,
-                request.client_email,
-                'HOLD'
-            );
-
-            // 2. Update Request Status
-            await db.updateWaitingRequestStatus(request.id, 'OFFER_SENT', token, expiresAt.toISOString());
-
-            // 3. Send Email
-            await emailService.sendSlotOffer(request.client_email, request.client_name, date, time, token);
-
-        } catch (e) {
-            console.error('[WaitList] Error creating HOLD or sending email:', e);
-        }
-    }
 
     async confirmRequest(token) {
         const req = await db.getWaitingRequestByToken(token);

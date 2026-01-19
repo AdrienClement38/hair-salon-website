@@ -119,6 +119,7 @@ router.delete('/admin/portfolio/:id', checkAuth, portfolioController.delete);
 
 // --- Waiting List ---
 router.post('/waiting-list', waitingListController.join);
+router.get('/waiting-list/access', waitingListController.access); // Secure Cookie Entry
 router.get('/waiting-list/claim', waitingListController.claim); // Returns HTML or Redirect
 router.get('/waiting-list/details', waitingListController.getDetails); // JSON details for the claim page
 

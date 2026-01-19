@@ -180,6 +180,11 @@
                 return;
             }
 
+            // Hide token from URL for security/cleanliness
+            const url = new URL(window.location);
+            url.searchParams.delete('token');
+            window.history.replaceState({}, '', url);
+
             try {
                 const res = await fetch(`/api/waiting-list/details?token=${token}`);
                 const data = await res.json();

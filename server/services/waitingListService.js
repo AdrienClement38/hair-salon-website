@@ -308,7 +308,7 @@ class WaitingListService {
             await db.updateWaitingRequestStatus(request.id, 'OFFER_SENT', token, expiresAt.toISOString());
 
             // Send Email
-            await emailService.sendSlotOffer(request.client_email, request.client_name, date, time, token);
+            await emailService.sendSlotOffer(request.client_email, request.client_name, date, time, token, request.desired_service_id, workerId);
 
             return request; // Return request to indicate success and allow duration calc
 

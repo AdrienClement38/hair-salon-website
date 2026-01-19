@@ -19,7 +19,7 @@ exports.join = async (req, res) => {
         });
 
         // Confirmation email
-        await emailService.sendWaitlistJoin(email, name, target_date, desired_service_id);
+        await emailService.sendWaitlistJoin(email, name, target_date, desired_service_id, desired_worker_id);
 
         res.json({ success: true });
     } catch (e) {
@@ -28,44 +28,56 @@ exports.join = async (req, res) => {
     }
 };
 
-exports.claim = async (req, res) => {
+exports.access = async (req, res) => {
     try {
         const { token } = req.query;
-        // Verify token existence
-        // We could render a nice HTML page here directly or redirect to a static HTML that fetches details.
-        // For simplicity and security, let's render text/html directly or redirect to a simple claim page
-        // that will POST to confirm.
+        if (!token) return res.status(400).send("Lien invalide.");
 
-        // Actually, the easiest is to serve a static HTML file that reads the token from URL
-        // and calls an API to get details.
-        // But for "One Click" experience, we want to show details immediately.
-        // Let's redirect to /claim.html?token=... and let that page fetch details via a verify endpoint?
-        // Or cleaner: This endpoint returns HTML.
+        // Verify token existence (optional here, but good for fail-fast)
+        const db = require('../models/database');
+        const reqData = await db.getWaitingRequestByToken(token);
 
-        // Let's return a simple HTML string for now or redirect to frontend route.
-        // The user asked for a "validation" page.
+        if (!reqData || reqData.status !== 'OFFER_SENT') {
+            return res.status(400).send("Ce lien a expiré ou est invalide.");
+        }
 
-        res.redirect(`/claim.html?token=${token}`);
+        // Set HttpOnly Cookie
+        res.cookie('wl_token', token, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            maxAge: 20 * 60 * 1000 // 20 mins match expiry
+        });
+
+        // Redirect to claim page (clean URL)
+        res.redirect('/claim.html');
     } catch (e) {
-        res.status(400).send("Lien invalide ou expiré.");
+        console.error("Access Error", e);
+        res.status(400).send("Erreur serveur.");
     }
 };
 
+exports.claim = async (req, res) => {
+    // Legacy support or direct link? 
+    // Let's redirect to access to force cookie flow if token is present
+    if (req.query.token) {
+        return exports.access(req, res);
+    }
+    res.redirect('/claim.html');
+};
+
 exports.getDetails = async (req, res) => {
-    // Endpoint for claim.html to fetch details about the offer using token
-    // NOT IMPLEMENTED yet in Service to "get details without confirming".
-    // We need `getWaitingRequestByToken`.
+    // Priority: Query Token -> Cookie Token
+    const token = req.query.token || req.cookies.wl_token;
+
+    if (!token) return res.status(400).json({ error: "Token manquant." });
+
     const db = require('../models/database');
-    const reqData = await db.getWaitingRequestByToken(req.query.token);
+    const reqData = await db.getWaitingRequestByToken(token);
 
     if (!reqData || reqData.status !== 'OFFER_SENT') {
         return res.status(400).json({ error: 'C\'est trop tard, votre réservation n\'est plus valide.' });
     }
 
-    // We also want to know the "Hold" appointment time to display it.
-    // It's linked to this request.
-    // We have target_date, but not time in request table.
-    // We need to find the hold appt.
     let holdAppt;
     const findSql = (db.type === 'pg')
         ? "SELECT * FROM appointments WHERE email = $1 AND date = $2 AND status = 'HOLD'"
@@ -76,7 +88,7 @@ exports.getDetails = async (req, res) => {
 
     res.json({
         client_name: reqData.client_name,
-        service: reqData.desired_service_id, // Name
+        service: reqData.desired_service_id,
         date: reqData.target_date,
         time: holdAppt.time,
         worker_id: holdAppt.admin_id
@@ -85,8 +97,11 @@ exports.getDetails = async (req, res) => {
 
 exports.confirm = async (req, res) => {
     try {
-        const { token } = req.body;
+        const token = req.body.token || req.cookies.wl_token;
+        if (!token) throw new Error("Token manquant");
+
         await waitingListService.confirmRequest(token);
+        res.clearCookie('wl_token'); // Clear cookie on success
         res.json({ success: true });
     } catch (e) {
         console.error('Confirm Error:', e);
@@ -96,8 +111,11 @@ exports.confirm = async (req, res) => {
 
 exports.refuse = async (req, res) => {
     try {
-        const { token } = req.body;
+        const token = req.body.token || req.cookies.wl_token;
+        if (!token) throw new Error("Token manquant");
+
         await waitingListService.refuseRequest(token);
+        res.clearCookie('wl_token'); // Clear cookie
         res.json({ success: true });
     } catch (e) {
         console.error('Refuse Error:', e);

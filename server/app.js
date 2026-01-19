@@ -36,6 +36,8 @@ const corsOptions = {
 };
 app.use(cors(corsOptions));
 
+const cookieParser = require('cookie-parser');
+app.use(cookieParser());
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true })); // Handle form submissions
 app.use(express.static(path.join(__dirname, '../public')));

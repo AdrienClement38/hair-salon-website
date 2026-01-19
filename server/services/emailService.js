@@ -455,7 +455,7 @@ END:VCALENDAR`.replace(/\n/g, '\r\n');
     /**
      * Send confirmation of joining waiting list
      */
-    async sendWaitlistJoin(to, name, date) {
+    async sendWaitlistJoin(to, name, date, serviceId, workerId) {
         if (!to) return;
 
         // Helper to get transport... DRY this up?
@@ -464,6 +464,36 @@ END:VCALENDAR`.replace(/\n/g, '\r\n');
         let settings;
         try { settings = typeof config === 'string' ? JSON.parse(config) : config; } catch (e) { settings = null; }
         if (!settings || !settings.user || !settings.pass) return;
+
+        // Resolve Service Name & Duration
+        let serviceName = 'Prestation indéfinie';
+        let serviceDuration = '?';
+        try {
+            const servicesConfig = await db.getSetting('services');
+            const services = typeof servicesConfig === 'string' ? JSON.parse(servicesConfig) : servicesConfig;
+            if (Array.isArray(services)) {
+                // Support Name OR ID because frontend sends Name
+                const svc = services.find(s => s.id == serviceId || s.name === serviceId);
+                if (svc) {
+                    serviceName = svc.name;
+                    serviceDuration = svc.duration + ' min';
+                } else if (typeof serviceId === 'string' && serviceId.length > 0 && !serviceId.startsWith('svc-')) {
+                    serviceName = serviceId;
+                }
+            }
+        } catch (e) { console.warn('EmailService: Failed to resolve service name', e); }
+
+        // Resolve Worker Name
+        let workerName = 'Indifférent';
+        if (workerId && workerId != 1) { // Assuming 1 is "Any/Salon" or check valid ID
+            try {
+                // We can't easily access admins table from here without model, 
+                // but we can try getAdminById from db model if available or query directly.
+                // emailService requires db model at top? Yes `const db = require('../models/database');`
+                const worker = await db.getAdminById(workerId);
+                if (worker) workerName = worker.display_name || worker.username;
+            } catch (e) { console.warn('EmailService: Failed to resolve worker name', e); }
+        }
 
         const transportConfig = {
             host: settings.host || 'smtp.gmail.com',
@@ -483,6 +513,13 @@ END:VCALENDAR`.replace(/\n/g, '\r\n');
                     <h2 style="color: #333;">Vous êtes sur liste d'attente 🕒</h2>
                     <p>Bonjour ${name},</p>
                     <p>Nous avons bien noté votre souhait de rendez-vous pour le <strong>${date.split('-').reverse().join('/')}</strong>.</p>
+                    
+                    <div style="background-color: #f9f9f9; padding: 15px; border-radius: 5px; margin: 20px 0;">
+                        <p style="margin: 5px 0;"><strong>Prestation :</strong> ${serviceName}</p>
+                        <p style="margin: 5px 0;"><strong>Durée estimate :</strong> ${serviceDuration}</p>
+                        <p style="margin: 5px 0;"><strong>Coiffeur souhaité :</strong> ${workerName}</p>
+                    </div>
+
                     <p>Si un créneau se libère, vous recevrez immédiatement un email pour vous le proposer.</p>
                     <p><strong>⚠️ Attention :</strong> Vous aurez alors <strong>20 minutes</strong> pour confirmer votre réservation via le lien reçu, sinon le créneau sera proposé à la personne suivante.</p>
                     <p>Soyez réactif, les places partent vite !</p>
@@ -502,12 +539,42 @@ END:VCALENDAR`.replace(/\n/g, '\r\n');
     /**
      * Send Offer (Golden Ticket)
      */
-    async sendSlotOffer(to, name, date, time, token) {
+    /**
+     * Send Offer (Golden Ticket)
+     */
+    async sendSlotOffer(to, name, date, time, token, serviceId, workerId) {
         if (!to) return;
         const config = await db.getSetting('email_config');
         let settings;
         try { settings = typeof config === 'string' ? JSON.parse(config) : config; } catch (e) { settings = null; }
         if (!settings || !settings.user || !settings.pass) return;
+
+        // Resolve Service Name & Duration
+        let serviceName = 'Prestation indéfinie';
+        let serviceDuration = '?';
+        try {
+            const servicesConfig = await db.getSetting('services');
+            const services = typeof servicesConfig === 'string' ? JSON.parse(servicesConfig) : servicesConfig;
+            if (Array.isArray(services)) {
+                // Support Name OR ID
+                const svc = services.find(s => s.id == serviceId || s.name === serviceId);
+                if (svc) {
+                    serviceName = svc.name;
+                    serviceDuration = svc.duration + ' min';
+                } else if (typeof serviceId === 'string' && serviceId.length > 0 && !serviceId.startsWith('svc-')) {
+                    serviceName = serviceId;
+                }
+            }
+        } catch (e) { console.warn('EmailService: Failed to resolve service name', e); }
+
+        // Resolve Worker Name
+        let workerName = 'Un coiffeur du salon';
+        if (workerId && workerId != 1) {
+            try {
+                const worker = await db.getAdminById(workerId);
+                if (worker) workerName = worker.display_name || worker.username;
+            } catch (e) { console.warn('EmailService: Failed to resolve worker name', e); }
+        }
 
         const transportConfig = {
             host: settings.host || 'smtp.gmail.com',
@@ -518,23 +585,13 @@ END:VCALENDAR`.replace(/\n/g, '\r\n');
         };
         const transporter = nodemailer.createTransport(transportConfig);
 
-        // Host should be dynamic ideally.
-        // Assuming we are running on localhost for dev or typical production.
-        // We will Use a relative link in text or try to guess.
-        // For robustness, let's hardcode / relative if user clicks from same device? No.
-        // We need a BASE URL.
-        // Let's assume standard port 3000 or inferred.
-        // HACK: Use simple endpoint path, user might need to ensure domain matches.
-
-        // Better: Pass full URL from Service if possible, but Service doesn't know domain.
-        // Let's assume a default production URL or localhost.
         const baseUrl = process.env.BASE_URL || 'http://localhost:3000';
-        const link = `${baseUrl}/api/waiting-list/claim?token=${token}`;
+        const link = `${baseUrl}/api/waiting-list/access?token=${token}`;
 
         const mailOptions = {
             from: `"La Base Coiffure" <${settings.user}>`,
             to: to,
-            subject: '⚡ Une place s\'est libérée !',
+            subject: 'Une place s\'est libérée !',
             html: `
                 <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; border: 2px solid #eeba30; padding: 20px; border-radius: 8px;">
                     <h2 style="color: #eeba30; text-align: center;">Une opportunité pour vous !</h2>
@@ -543,6 +600,12 @@ END:VCALENDAR`.replace(/\n/g, '\r\n');
                     
                     <div style="background-color: #fff8e1; padding: 15px; text-align: center; font-size: 1.2em; margin: 20px 0;">
                         <strong>${date.split('-').reverse().join('/')}</strong> à <strong>${time}</strong>
+                    </div>
+
+                    <div style="background-color: #f9f9f9; padding: 15px; border-radius: 5px; margin: 20px 0;">
+                        <p style="margin: 5px 0;"><strong>Prestation :</strong> ${serviceName}</p>
+                         <p style="margin: 5px 0;"><strong>Durée :</strong> ${serviceDuration}</p>
+                        <p style="margin: 5px 0;"><strong>Coiffeur :</strong> ${workerName}</p>
                     </div>
 
                     <p style="text-align: center;"><strong>Ce créneau vous est réservé pendant 20 minutes !</strong><br>Passé ce délai, il sera proposé à la personne suivante.</p>

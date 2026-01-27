@@ -138,14 +138,23 @@ export function renderOpeningHours(openingHours) {
     });
     if (currentGroup) groups.push(currentGroup);
 
+    // Attempt to merge Sunday (last) and Monday (first) if both are Closed
+    if (groups.length > 1) {
+        const first = groups[0];
+        const last = groups[groups.length - 1];
+        // Check if both are closed. First starts with Lun, Last ends with Dim.
+        if (first.time === 'Fermé' && last.time === 'Fermé' && first.startDay === 'Lun' && last.endDay === 'Dim') {
+            last.overrideLabel = "Dim & Lun";
+            groups.shift(); // Remove Monday group
+        }
+    }
+
     let html = '';
     groups.forEach(g => {
-        let label = g.startDay;
-        if (g.count > 1) {
-            if (g.count > 2) label += ` - ${g.endDay}`; // e.g. Lun - Mer
-            else if (g.count === 2) label += ` & ${g.endDay}`; // e.g. Jeu & Ven (Wait, standard is usually comma or just range if contiguous)
-            // Let's stick to simple logic: Contiguous days usually use " - ".
-            // But here we rely on the loop order, so if they are contiguous in uiOrder, they are contiguous days.
+        let label = g.overrideLabel || g.startDay;
+        if (!g.overrideLabel && g.count > 1) {
+            if (g.count > 2) label += ` - ${g.endDay}`;
+            else if (g.count === 2) label += ` & ${g.endDay}`;
         }
         html += `<div><strong>${label} :</strong> ${g.time}</div>`;
     });
@@ -153,11 +162,31 @@ export function renderOpeningHours(openingHours) {
     container.innerHTML = html;
 }
 
-export function renderHomeContent(content) {
+export function renderHomeContent(content, identity) {
     if (!content) return;
 
-    if (content.title) document.getElementById('hero-title').textContent = content.title;
-    if (content.subtitle) document.getElementById('hero-subtitle').textContent = content.subtitle;
+    const titleEl = document.getElementById('hero-title');
+    const subtitleEl = document.getElementById('hero-subtitle');
+
+    if (identity && identity.logo) {
+        // Show Logo instead of Text
+        if (titleEl) {
+            titleEl.innerHTML = `<img src="/images/${identity.logo}?t=${Date.now()}" alt="${identity.name}" class="hero-logo">`;
+            // Ensure no residual styles affect the image layout weirdly, though class handles most.
+        }
+        if (subtitleEl) subtitleEl.style.display = 'none';
+    } else {
+        // Show Text
+        if (titleEl) {
+            titleEl.textContent = content.title || 'Salon';
+            // Restore default display if it was hidden (though h1 is block by default)
+        }
+        if (subtitleEl) {
+            subtitleEl.textContent = content.subtitle || '';
+            subtitleEl.style.display = 'block';
+        }
+    }
+
     if (content.philosophy && document.getElementById('philosophy-text')) {
         const pTags = content.philosophy.split('\n').filter(line => line.trim() !== '').map(line => `<p>${line}</p>`).join('');
         document.getElementById('philosophy-text').innerHTML = pTags;
@@ -199,7 +228,6 @@ export function renderIdentity(identity) {
         logoLink.style.gap = '10px';
 
         logoLink.innerHTML = `
-            <img src="/images/${identity.logo}?t=${Date.now()}" alt="${identity.name}" style="height: 40px; width: auto; object-fit: contain;">
             <span>${identity.name}</span>
         `;
     } else {

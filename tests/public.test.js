@@ -13,7 +13,8 @@ describe('Public Interface Tests', () => {
         const res = await request(app).get('/api/settings');
         expect(res.statusCode).toBe(200);
         expect(res.body).toHaveProperty('home_content');
-        expect(res.body.home_content).toHaveProperty('title');
+        // title is optional now that logo can replace it
+        // expect(res.body.home_content).toHaveProperty('title');
     });
 
     // US-1.2: Discovery - Services

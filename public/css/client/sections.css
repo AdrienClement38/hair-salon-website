@@ -15,7 +15,7 @@
 
 .hero h1 {
     font-size: 3.5rem;
-    margin-bottom: 1rem;
+    margin-bottom: 0;
     color: var(--primary);
 }
 
@@ -24,16 +24,24 @@
     margin-bottom: 2rem;
 }
 
+.hero-logo {
+    height: auto;
+    max-height: 280px;
+    object-fit: contain;
+    filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.5));
+}
+
+
 .hero-hours {
-    margin-bottom: 1.5rem;
+    margin-bottom: 1rem;
     color: var(--white);
-    font-size: 1.1rem;
+    font-size: 1rem;
     text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8);
     background-color: rgba(0, 0, 0, 0.3);
     display: block;
     width: fit-content;
-    margin: 0 auto 1.5rem auto;
-    padding: 1rem 2rem;
+    margin: 0 auto 1rem auto;
+    padding: 0.8rem 1.5rem;
     border-radius: 8px;
 }
 
@@ -62,8 +70,8 @@
 
     .hero-hours {
         width: 90%;
-        font-size: 0.9rem;
-        padding: 1rem;
+        font-size: 0.85rem;
+        padding: 0.8rem;
     }
 }
 

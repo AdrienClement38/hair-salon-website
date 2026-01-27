@@ -50,7 +50,7 @@ async function loadSettings() {
 
         renderOpeningHours(openingHours);
         renderHolidays(holidayRanges);
-        renderHomeContent(home_content);
+        renderHomeContent(home_content, salon_identity);
         renderServices(services);
         renderContactInfo(contact_info);
         renderProducts(products);

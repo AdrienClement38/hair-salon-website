@@ -68,7 +68,10 @@ function updateThumbnails() {
 
     if (heroThumb) heroThumb.src = `/images/hero-bg?t=${ts}`;
     if (philoThumb) philoThumb.src = `/images/philosophy-bg?t=${ts}`;
-    if (logoThumb) logoThumb.src = `/images/salon-logo?t=${ts}`; // Added Logo
+    if (logoThumb) {
+        logoThumb.style.display = 'block'; // Force visibility
+        logoThumb.src = `/images/salon-logo?t=${ts}`;
+    }
 }
 
 function handleImageUpload(formId, fileName) {

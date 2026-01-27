@@ -6,3 +6,14 @@
 
 // Suppress console logs during tests to keep output clean, optionally
 
+
+const db = require('../server/models/database');
+
+beforeAll(async () => {
+    // Ensure DB is initialized before tests start to avoid race conditions (logging after teardown)
+    try {
+        await db.initPromise;
+    } catch (e) {
+        console.error('Failed to initialize DB in setup:', e);
+    }
+});

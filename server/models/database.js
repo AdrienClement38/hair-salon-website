@@ -122,9 +122,9 @@ const initDB = async () => {
       try {
         const filebuffer = fs.readFileSync(dbPath);
         db = new SQL.Database(filebuffer);
-        console.log('TEST MODE: Loaded production DB clone.');
+        // console.log('TEST MODE: Loaded production DB clone.');
       } catch (e) {
-        console.warn('TEST MODE: Failed to load production DB, starting empty.', e);
+        // console.warn('TEST MODE: Failed to load production DB, starting empty.', e);
         db = new SQL.Database();
       }
     } else {

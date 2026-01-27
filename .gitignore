@@ -1,6 +1,13 @@
 node_modules/
 .env
 salon.db
-test_output*
-test_image.txt
 .DS_Store
+
+# Maintenance/Debug Scripts
+maintenance/
+
+# Logs and random dumps
+*_dump.txt
+*.log
+*.tmp
+*.txt

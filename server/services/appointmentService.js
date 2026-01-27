@@ -59,7 +59,7 @@ class AppointmentService {
         }
 
         // 3. Get Opening Hours
-        let openingHours = await db.getSetting('openingHours');
+        let openingHours = await db.getSetting('opening_hours') || await db.getSetting('openingHours');
         const dayOfWeek = new Date(date).getDay();
         let daySettings = null;
 
@@ -255,6 +255,63 @@ class AppointmentService {
         const [bh, bm] = time.split(':').map(Number);
         const newStart = bh * 60 + bm;
         const newEnd = newStart + serviceDuration;
+
+        // 1. Check constraints against Opening Hours & Breaks
+        const openingHours = await db.getSetting('opening_hours');
+        let dayConfig;
+        if (typeof openingHours === 'object') { // Already parsed usually?
+            // db.getSetting returns parsed JSON if handled? No, usually string?
+            // Let's safe parse. 
+            // Actually getSetting relies on generic DB, usually string.
+            // But previous code (getAvailableSlots) calls `db.getSetting('openingHours')` (CamelCase?).
+            // DB key is likely `opening_hours`.
+        }
+
+        let allHours;
+        try {
+            const raw = await db.getSetting('opening_hours');
+            allHours = (typeof raw === 'string') ? JSON.parse(raw) : raw;
+        } catch (e) { }
+
+        if (allHours) {
+            const dayOfWeek = new Date(date).getDay();
+            const dc = allHours[dayOfWeek] || allHours[String(dayOfWeek)];
+
+            if (!dc || !dc.isOpen) {
+                throw new Error('Le salon est fermé ce jour-là.');
+            }
+
+            // Normalize Keys (Fix for DB open/close vs start/end)
+            const openTime = dc.open || dc.start;
+            const closeTime = dc.close || dc.end;
+            const breakTimeStart = dc.breakStart || dc.pause_start;
+            const breakTimeEnd = dc.breakEnd || dc.pause_end;
+
+            if (openTime && closeTime) {
+                const [oh, om] = openTime.split(':').map(Number);
+                const [ch, cm] = closeTime.split(':').map(Number);
+                const dayStartMin = oh * 60 + om;
+                const dayEndMin = ch * 60 + cm;
+
+                if (newStart < dayStartMin || newEnd > dayEndMin) {
+                    throw new Error('Le rendez-vous est en dehors des horaires d\'ouverture.');
+                }
+            }
+
+            if (breakTimeStart && breakTimeEnd) {
+                const [bsh, bsm] = breakTimeStart.split(':').map(Number);
+                const [beh, bem] = breakTimeEnd.split(':').map(Number);
+                const bStartMin = bsh * 60 + bsm;
+                const bEndMin = beh * 60 + bem;
+
+                // Overlap Check with Break
+                // Gap [bStart, bEnd]
+                // New [newStart, newEnd]
+                if (newStart < bEndMin && newEnd > bStartMin) {
+                    throw new Error('Le rendez-vous tombe pendant la pause.');
+                }
+            }
+        }
 
         // Check against existing bookings
         const booked = await db.getBookingsForDate(date, adminId);

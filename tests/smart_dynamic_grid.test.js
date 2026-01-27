@@ -21,7 +21,12 @@ describe('Smart Dynamic Grid (Anchor-Based)', () => {
         await db.setSetting('services', services);
 
         // 3. Setup Opening Hours: 09:00 - 12:00
-        await db.setSetting('openingHours', { start: '09:00', end: '12:00', closedDays: [] });
+        // 3. Setup Opening Hours: 09:00 - 12:00 for ALL days (including Sunday)
+        const hours = [];
+        for (let i = 0; i < 7; i++) {
+            hours.push({ isOpen: true, open: '09:00', close: '12:00' });
+        }
+        await db.setSetting('opening_hours', hours);
     });
 
     beforeEach(async () => {

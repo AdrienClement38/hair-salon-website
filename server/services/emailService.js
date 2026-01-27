@@ -236,7 +236,7 @@ class EmailService {
                     <div style="background-color: #f9f9f9; padding: 15px; border-radius: 5px; margin: 20px 0;">
                         <p style="margin: 5px 0;"><strong>Prestation :</strong> ${service}</p>
                         <p style="margin: 5px 0;"><strong>Coiffeur :</strong> ${workerName}</p>
-                        <p style="margin: 5px 0;"><strong>Date :</strong> ${date}</p>
+                        <p style="margin: 5px 0;"><strong>Date :</strong> ${date.split('-').reverse().join('-')}</p>
                         <p style="margin: 5px 0;"><strong>Heure :</strong> ${time}</p>
                     </div>
 
@@ -484,14 +484,14 @@ END:VCALENDAR`.replace(/\n/g, '\r\n');
         } catch (e) { console.warn('EmailService: Failed to resolve service name', e); }
 
         // Resolve Worker Name
+        // Resolve Worker Name
         let workerName = 'Indifférent';
-        if (workerId && workerId != 1) { // Assuming 1 is "Any/Salon" or check valid ID
+        if (workerId) {
             try {
-                // We can't easily access admins table from here without model, 
-                // but we can try getAdminById from db model if available or query directly.
-                // emailService requires db model at top? Yes `const db = require('../models/database');`
                 const worker = await db.getAdminById(workerId);
-                if (worker) workerName = worker.display_name || worker.username;
+                if (worker) {
+                    workerName = worker.display_name || worker.username;
+                }
             } catch (e) { console.warn('EmailService: Failed to resolve worker name', e); }
         }
 
@@ -510,14 +510,13 @@ END:VCALENDAR`.replace(/\n/g, '\r\n');
             subject: 'Liste d\'attente - Confirmation',
             html: `
                 <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-                    <h2 style="color: #333;">Vous êtes sur liste d'attente 🕒</h2>
-                    <p>Bonjour ${name},</p>
-                    <p>Nous avons bien noté votre souhait de rendez-vous pour le <strong>${date.split('-').reverse().join('/')}</strong>.</p>
+                    <h2 style="color: #333;">Bonjour ${name},</h2>
+                    <p>Nous avons bien noté votre souhait de rendez-vous.</p>
                     
                     <div style="background-color: #f9f9f9; padding: 15px; border-radius: 5px; margin: 20px 0;">
                         <p style="margin: 5px 0;"><strong>Prestation :</strong> ${serviceName}</p>
-                        <p style="margin: 5px 0;"><strong>Durée estimate :</strong> ${serviceDuration}</p>
-                        <p style="margin: 5px 0;"><strong>Coiffeur souhaité :</strong> ${workerName}</p>
+                        <p style="margin: 5px 0;"><strong>Coiffeur :</strong> ${workerName}</p>
+                        <p style="margin: 5px 0;"><strong>Date :</strong> ${date.split('-').reverse().join('-')}</p>
                     </div>
 
                     <p>Si un créneau se libère, vous recevrez immédiatement un email pour vous le proposer.</p>
@@ -569,7 +568,7 @@ END:VCALENDAR`.replace(/\n/g, '\r\n');
 
         // Resolve Worker Name
         let workerName = 'Un coiffeur du salon';
-        if (workerId && workerId != 1) {
+        if (workerId) {
             try {
                 const worker = await db.getAdminById(workerId);
                 if (worker) workerName = worker.display_name || worker.username;
@@ -598,14 +597,11 @@ END:VCALENDAR`.replace(/\n/g, '\r\n');
                     <p>Bonjour ${name},</p>
                     <p>Suite à un désistement, un créneau est disponible :</p>
                     
-                    <div style="background-color: #fff8e1; padding: 15px; text-align: center; font-size: 1.2em; margin: 20px 0;">
-                        <strong>${date.split('-').reverse().join('/')}</strong> à <strong>${time}</strong>
-                    </div>
-
                     <div style="background-color: #f9f9f9; padding: 15px; border-radius: 5px; margin: 20px 0;">
                         <p style="margin: 5px 0;"><strong>Prestation :</strong> ${serviceName}</p>
-                         <p style="margin: 5px 0;"><strong>Durée :</strong> ${serviceDuration}</p>
                         <p style="margin: 5px 0;"><strong>Coiffeur :</strong> ${workerName}</p>
+                        <p style="margin: 5px 0;"><strong>Date :</strong> ${date.split('-').reverse().join('-')}</p>
+                        <p style="margin: 5px 0;"><strong>Heure :</strong> ${time}</p>
                     </div>
 
                     <p style="text-align: center;"><strong>Ce créneau vous est réservé pendant 20 minutes !</strong><br>Passé ce délai, il sera proposé à la personne suivante.</p>

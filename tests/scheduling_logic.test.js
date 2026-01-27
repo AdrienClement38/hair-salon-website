@@ -30,14 +30,15 @@ describe('Smart Scheduling Logic', () => {
             { id: 'svc-60', name: 'Long Cut', price: '40', duration: 60 }
         ];
 
-        const openingHours = {
-            start: '09:00',
-            end: '12:00',
-            closedDays: [] // Open every day for this test
-        };
+        const schedule = [];
+        for (let i = 0; i < 7; i++) {
+            schedule.push({ isOpen: true, open: '09:00', close: '12:00' });
+        }
 
         await db.setSetting('services', services);
-        await db.setSetting('openingHours', openingHours);
+        // Clear conflicting keys
+        await db.setSetting('openingHours', null);
+        await db.setSetting('opening_hours', schedule);
 
         // Clear bookings for test date
         await db.run('DELETE FROM appointments WHERE date = ?', [TEST_DATE]);
@@ -119,20 +120,13 @@ describe('Smart Scheduling Logic', () => {
             adminId: ADMIN_ID
         });
 
-        expect(res.status).toBe(500); // Or 409 depending on implementation, currently 500 or Error string
+        expect(res.status).toBe(409); // Updated to 409 (Conflict)
         expect(res.body.error).toMatch(/overlap|booked/i);
     });
 
     test('Should respect lunch breaks', async () => {
         // Setup: Open 09:00 - 18:00, lunch 12:00 - 14:00
-        const openingHours = {
-            start: '09:00',
-            end: '18:00',
-            breakStart: '12:00',
-            breakEnd: '14:00',
-            closedDays: []
-        };
-        await db.setSetting('openingHours', openingHours);
+        // Setup: Open 09:00 - 18:00, lunch 12:00 - 14:00
 
         // Need to recreate opening hours as Array if the new logic expects array for break times?
         // Actually the code handles legacy object vs array.
@@ -157,7 +151,7 @@ describe('Smart Scheduling Logic', () => {
                 breakEnd: '14:00'
             });
         }
-        await db.setSetting('openingHours', schedule);
+        await db.setSetting('opening_hours', schedule);
 
         // Service 30 mins
         const res = await request(app)

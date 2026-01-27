@@ -46,6 +46,9 @@ describe('Public Interface Tests', () => {
         targetDate.setDate(targetDate.getDate() + 10);
         const validDate = targetDate.toISOString().split('T')[0];
 
+        // Cleanup
+        await db.query('DELETE FROM appointments WHERE date = ?', [validDate]);
+
         const bookingData = {
             name: 'Test Client',
             phone: '0612345678',
@@ -74,7 +77,7 @@ describe('Public Interface Tests', () => {
         };
 
         const res = await request(app).post('/api/book').send(bookingData);
-        expect(res.statusCode).toBe(500); // Controller returns 500 on error throw
+        expect(res.statusCode).toBe(409); // Controller returns 409 on conflict
         expect(res.body).toHaveProperty('error');
     });
 

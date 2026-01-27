@@ -88,9 +88,10 @@ exports.createBooking = async (req, res) => {
         triggerUpdate();
         res.json({ success: true, id: result.lastInsertRowid });
     } catch (err) {
-        if (err.message === 'Slot already booked') {
+        if (err.message === 'Slot already booked' || err.message === 'Slot already booked or overlaps') {
             return res.status(409).json({ error: err.message });
         }
+        console.error('[CreateBooking Error]', err);
         res.status(500).json({ error: err.message });
     }
 };

@@ -1,4 +1,4 @@
-const { initPromise, deleteLeave, getAllLeaves, deleteAppointment, getAllAppointments, type } = require('../server/models/database');
+const { initPromise, deleteLeave, getAllLeaves, deleteAppointment, getAllAppointments, type, query } = require('../server/models/database');
 
 (async () => {
     try {
@@ -43,6 +43,14 @@ const { initPromise, deleteLeave, getAllLeaves, deleteAppointment, getAllAppoint
             console.log('Database is clean. No test artifacts found.');
         }
 
+        // 3. Cleanup Test Admins
+        try {
+            await query("DELETE FROM admins WHERE username LIKE 'manager_%' OR username LIKE 'todelete_%' OR username = 'staff1'");
+            console.log('Cleaned up test admins.');
+        } catch (e) {
+            console.warn('Failed to clean admins:', e.message);
+        }
+
         // 3. Cleanup File System Logs (test_result*.log)
         const fs = require('fs');
         const path = require('path');
@@ -71,7 +79,7 @@ const { initPromise, deleteLeave, getAllLeaves, deleteAppointment, getAllAppoint
         }, 500);
 
     } catch (e) {
-        console.error('Cleanup failed:', e);
-        process.exit(1);
+        console.error('Cleanup failed (warning only):', e.message);
+        process.exit(0);
     }
 })();

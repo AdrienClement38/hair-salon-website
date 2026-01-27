@@ -59,6 +59,7 @@ router.post('/auth/login', loginLimiter, validate(loginSchema), authController.l
 
 // --- Password Reset ---
 router.post('/auth/forgot-password', authController.requestPasswordReset);
+router.post('/auth/check-username', authController.checkUsername);
 router.get('/auth/verify-token/:token', authController.verifyResetToken);
 router.post('/auth/reset-password', authController.resetPassword);
 

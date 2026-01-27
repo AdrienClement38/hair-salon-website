@@ -4,17 +4,31 @@ const db = require('../server/models/database');
 
 describe('Phone Number Refactor (Backend)', () => {
 
+    let testDate;
+
     beforeAll(async () => {
         await db.initPromise;
-        // Clean appointments to ensure we check fresh data
-        // We can't delete all if concurrent tests run, but supertest runs sequentially in 'runInBand' or we assume isolation.
-        // We'll trust the unique time to identify our record.
+
+        // Ensure salon is OPEN
+        const hours = [];
+        for (let i = 0; i < 7; i++) {
+            hours.push({ isOpen: true, open: '09:00', close: '19:00' });
+        }
+        await db.setSetting('opening_hours', hours);
+
+        // Calculate a valid future date (tomorrow)
+        const d = new Date();
+        d.setDate(d.getDate() + 1);
+        testDate = d.toISOString().split('T')[0];
+
+        // Cleanup potential conflicts
+        await db.query('DELETE FROM appointments WHERE date = ?', [testDate]);
     });
 
     test('Should normalize phone number (remove spaces) when saving to database', async () => {
         const payload = {
             name: 'Refactor Test User',
-            date: '2025-12-28', // Future date
+            date: testDate,
             time: '10:00',
             service: 'Test Service',
             phone: '06 12 34 56 78', // With spaces
@@ -48,7 +62,7 @@ describe('Phone Number Refactor (Backend)', () => {
     test('Should normalize phone number with dashes/dots', async () => {
         const payload = {
             name: 'Refactor Test User 2',
-            date: '2025-12-28',
+            date: testDate,
             time: '11:00',
             service: 'Test Service',
             phone: '06.12.34.56.78',

@@ -84,22 +84,28 @@ class WaitingListService {
             // Let's assume standard JS index for now or string keys.
             // Safety: check if key exists.
             const dayConfig = openingHours[dayOfWeek] || openingHours[String(dayOfWeek)];
-            if (dayConfig && dayConfig.start && dayConfig.end) {
-                const [sh, sm] = dayConfig.start.split(':').map(Number);
-                const [eh, em] = dayConfig.end.split(':').map(Number);
+
+            // Fix: DB uses 'open'/'close', code used 'start'/'end'.
+            const startStr = dayConfig.start || dayConfig.open;
+            const endStr = dayConfig.end || dayConfig.close;
+
+            if (dayConfig && startStr && endStr) {
+                const [sh, sm] = startStr.split(':').map(Number);
+                const [eh, em] = endStr.split(':').map(Number);
                 dayStart = sh * 60 + sm;
                 dayEnd = eh * 60 + em;
             }
 
             // CRITICAL FIX: Inject Break as a "Blocker" Appointment
-            if (dayConfig && dayConfig.pause_start && dayConfig.pause_end) {
+            // DB uses 'breakStart'/'breakEnd' or 'pause_start'/'pause_end'
+            const pauseStartStr = dayConfig.breakStart || dayConfig.pause_start;
+            const pauseEndStr = dayConfig.breakEnd || dayConfig.pause_end;
+
+            if (dayConfig && pauseStartStr && pauseEndStr) {
                 // If pauses are active/defined
                 // We create a fake appointment object that will be used by the gap logic below
-                const [psh, psm] = dayConfig.pause_start.split(':').map(Number);
-                const [peh, pem] = dayConfig.pause_end.split(':').map(Number);
-
-                // Add to appts list effectively blocking this duration
-                // We'll push it after we fetch appts
+                // appts.push(...) logic is further down.
+                // We just need to know breaks exist here? Actually logic below handles it.
             }
         } catch (e) {
             console.warn('[WaitList] Could not fetch opening hours, using defaults.', e);
@@ -115,22 +121,23 @@ class WaitingListService {
             const dayOfWeek = new Date(date).getDay();
             const dayConfig = openingHours[dayOfWeek] || openingHours[String(dayOfWeek)];
 
-            if (dayConfig && dayConfig.pause_start && dayConfig.pause_end) {
-                // Re-parsing logic for clarity (or could reuse variables from above scope if restructured)
-                // Simply appending a "Break" appointment
-                appts.push({
-                    time: dayConfig.pause_start,
-                    service: 'PAUSE', // Special marker
-                    // We need duration.
-                    // The loop calculates duration via getServiceDuration. 
-                    // We should handle 'PAUSE' there or calculate duration manually here and mock it.
-                });
-                // Actually, the loop uses `getServiceDuration(appt.service)`
-                // We should make sure getServiceDuration handles 'PAUSE' or returns the duration we want.
-                // Better: calculate duration in mins and mock the service lookup or ensure getServiceDuration returns it.
-                // Wait, `getServiceDuration` looks up in `services` array by name.
-                // If we pass a dummy service name, it returns default 30.
-                // We must manually ensure duration is correct for the break.
+            if (dayConfig) {
+                const pauseStartStr = dayConfig.breakStart || dayConfig.pause_start;
+                const pauseEndStr = dayConfig.breakEnd || dayConfig.pause_end;
+
+                if (pauseStartStr && pauseEndStr) {
+                    appts.push({
+                        time: pauseStartStr,
+                        service: 'PAUSE', // Special marker
+                        _forcedDuration: 120 // 2 hours default? Or calc diff
+                    });
+
+                    // Calc duration
+                    const [h1, m1] = pauseStartStr.split(':').map(Number);
+                    const [h2, m2] = pauseEndStr.split(':').map(Number);
+                    const diff = (h2 * 60 + m2) - (h1 * 60 + m1);
+                    appts[appts.length - 1]._forcedDuration = diff;
+                }
             }
         } catch (e) { }
 
@@ -166,8 +173,18 @@ class WaitingListService {
             }
 
             // If appt is AFTER the deleted slot (or touches end)
-            if (aStart >= deletedEnd) {
+            else if (aStart >= deletedEnd) {
                 if (aStart < bestEnd) bestEnd = aStart;
+            }
+
+            // If appt OVERLAPS the deleted slot (CRITICAL for Pauses)
+            else {
+                // This means the deleted slot is actually NOT free because this appt covers it.
+                // e.g. Pause 12:00-14:00 covers Deleted 12:30-13:00.
+                // We should invalidate the gap.
+                console.log(`[WaitList] Conflict detected! Appt/Pause ${appt.time} overlaps deletion.`);
+                bestStart = 0;
+                bestEnd = 0;
             }
 
             // Note: Overlapping appointments shouldn't happen logic-wise if we just deleted one,
@@ -221,6 +238,15 @@ class WaitingListService {
 
         if (newDuration <= 0) {
             console.log('[WaitList] Gap is zero or invalid after break check.');
+            return;
+        }
+
+        // Validity Check: The gap MUST contain the deleted slot.
+        // If the gap we found (e.g. 09:30-12:00) does not cover the cancellation (e.g. 12:30-13:00),
+        // then the cancellation was likely outside valid hours or irrelevant.
+        // We shouldn't trigger fills for unrelated times here (Scanner does that).
+        if (deletedStart < bestStart || deletedEnd > bestEnd) {
+            console.log(`[WaitList] Cancellation (${time}) is outside valid gap (${minsToTime(bestStart)}-${minsToTime(bestEnd)}). Ignoring.`);
             return;
         }
 

@@ -18,6 +18,11 @@ describe('Synchronization Logic (Polling)', () => {
 
         const token = Buffer.from('sync_manager:password123').toString('base64');
         authHeader = `Basic ${token}`;
+
+        // RESET Opening Hours to ensure no breaks and known state
+        const defaultHours = [];
+        for (let i = 0; i < 7; i++) defaultHours.push({ isOpen: true, open: '09:00', close: '19:00' });
+        await db.setSetting('opening_hours', defaultHours);
     });
 
     afterAll(async () => {
@@ -48,7 +53,7 @@ describe('Synchronization Logic (Polling)', () => {
             phone: '0600000000',
             service: 'Sync Cut',
             date: dateStr,
-            time: '12:00',
+            time: '15:00',
             adminId: null
         };
         const bookRes = await request(app).post('/api/book').send(bookingData);

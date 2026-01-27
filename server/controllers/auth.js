@@ -241,3 +241,16 @@ exports.resetPassword = async (req, res) => {
         res.status(500).json({ success: false, error: 'Erreur serveur.' });
     }
 };
+
+exports.checkUsername = async (req, res) => {
+    try {
+        const { username } = req.body;
+        if (!username) return res.json({ exists: false });
+
+        const admin = await db.getAdmin(username);
+        res.json({ exists: !!admin });
+    } catch (e) {
+        console.error('Check Username Error:', e);
+        res.status(500).json({ error: 'Erreur serveur' });
+    }
+};

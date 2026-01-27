@@ -14,7 +14,9 @@ jest.mock('sql.js', () => {
                     // console.log('DEBUG: SQLite run called', args[0].substring(0, 20));
                     mockSqliteRun(...args);
                 },
-                exec: jest.fn(),
+                exec: jest.fn(() => []),
+                compile: jest.fn(),
+                getRowsModified: jest.fn(() => 0),
                 prepare: jest.fn(() => ({ run: jest.fn(), free: jest.fn(), bind: jest.fn(), step: jest.fn(), get: jest.fn() })),
                 export: jest.fn()
             }))

@@ -393,6 +393,8 @@ const initDB = async () => {
   }
 };
 
+const initPromise = initDB();
+
 const getBookingsForDate = async (date, adminId) => {
   if (adminId) {
     if (type === 'pg') return await query('SELECT time, service FROM appointments WHERE date = $1 AND admin_id = $2', [date, adminId]);
@@ -600,6 +602,11 @@ const getDailyGaps = async (date, workerId, _injectedOpeningHours = null) => {
 };
 
 const getAllAppointments = async (forceAdminId = null) => {
+  // If forceAdminId is 1 (Salon), we want ALL appointments, so treat as null.
+  if (forceAdminId && String(forceAdminId) === '1') {
+    forceAdminId = null;
+  }
+
   if (forceAdminId) {
     if (type === 'pg') return await query('SELECT * FROM appointments WHERE admin_id = $1 OR admin_id IS NULL ORDER BY date DESC, time ASC', [forceAdminId]);
     return await query('SELECT * FROM appointments WHERE admin_id = ? OR admin_id IS NULL ORDER BY date DESC, time ASC', [forceAdminId]);
@@ -753,8 +760,10 @@ const createWorker = async (username, email, phone, color, daysOff, password) =>
   return await createAdmin(username, password, username, daysOff);
 };
 
-const getAdmin = async (username) => {
+const findAdminInternal = async (username) => {
+  console.log(`[DB] findAdminInternal called for: '${username}'`);
   const admin = await getOne('SELECT * FROM admins WHERE username = ?', [username]);
+  console.log(`[DB] findAdminInternal result:`, admin ? 'Found' : 'Null');
   return admin;
 };
 
@@ -792,7 +801,7 @@ const updateAdminProfile = async (id, displayName, username) => {
 };
 
 const deleteAdmin = async (username) => {
-  const admin = await getAdmin(username);
+  const admin = await findAdminInternal(username);
   if (!admin) return;
 
   if (type === 'pg') {
@@ -826,6 +835,14 @@ const getLeaves = async (adminId = null) => {
 const getAllLeaves = async () => {
   return await query('SELECT l.*, a.username, a.display_name FROM leaves l LEFT JOIN admins a ON l.admin_id = a.id ORDER BY start_date');
 }
+
+const updateLeave = async (id, startDate, endDate, note) => {
+  if (type === 'pg') {
+    return await query('UPDATE leaves SET start_date = $1, end_date = $2, note = $3 WHERE id = $4', [startDate, endDate, note, id]);
+  } else {
+    return await query('UPDATE leaves SET start_date = ?, end_date = ?, note = ? WHERE id = ?', [startDate, endDate, note, id]);
+  }
+};
 
 const deleteLeave = async (id) => {
   if (type === 'pg') return await query('DELETE FROM leaves WHERE id = $1', [id]);
@@ -1075,81 +1092,97 @@ const deleteHoldAppointment = async (email, date, time) => {
   }
 };
 
-let initPromise = initDB().catch(e => console.error(e));
 
+
+// Consolidated Exports
 module.exports = {
-  getBookingsForDate,
-  getAppointmentsForWorker,
-  getDailyGaps,
-  getAllAppointments,
-  getAppointmentById,
-  createBooking,
-  deleteAppointment,
-  updateAppointment,
-  anonymizePastAppointments,
-  anonymizePastAppointments,
-  purgeOldAppointments,
-  createPortfolioItem,
-  getPortfolioItems,
-  getPortfolioItemIds,
-  getPortfolioItemsByIds,
-  deletePortfolioItem,
-  createResetToken,
-  getResetToken,
-  deleteResetToken,
+  // Core
+  init: initDB,
+  initPromise,
+  query,
+  run: query,
+  getOne,
+
   getSetting,
   setSetting,
-  saveImage,
-  getImage,
-  deleteImage,
-  checkAdminExists,
-  createAdmin,
-  createWorker,
-  getAdmin,
-  getAdminById,
+
+  // Admins
   getAllAdmins,
+  getAdminById,
+  getAdminByUsername: async (username) => {
+    if (type === 'pg') return await getOne("SELECT * FROM admins WHERE username = $1", [username]);
+    return await getOne("SELECT * FROM admins WHERE username = ?", [username]);
+  },
+  createAdmin,
+  checkAdminExists,
+  updateAdminDaysOff,
   updateAdminPassword,
   updateAdminProfile,
-  createLeave,
-  getLeaves,
-  getAllLeaves,
-  deleteLeave,
   deleteAdmin,
-  updateAdminDaysOff,
+
+  // Workers
+  createWorker: createAdmin, // Alias
+  getAdmin: findAdminInternal, // Restored to username lookup via internal function
+
+  // Bookings
+  createBooking,
+  getBookingsForDate,
+
+  getAppointmentsForWorker,
+  deleteAppointment,
+  getAllAppointments,
+  getAppointmentById,
+  updateAppointment,
+  anonymizePastAppointments,
+  purgeOldAppointments,
   checkAppointmentConflicts,
   checkDaysOffConflicts,
+  getDailyGaps,
 
-  // Waiting List Exports
+  // Waiting List
   addWaitingListRequest,
-  findNextWaitingRequest,
   getPendingWaitingDates,
+  getWaitingRequestsForDate,
+  findNextWaitingRequest,
   updateWaitingRequestStatus,
   getWaitingRequestByToken,
   getExpiredOffers,
-  getWaitingRequestByToken,
-  getExpiredOffers,
-  getExpiredOffers,
-  deleteHoldAppointment,
   getWaitingListCounts,
-  getWaitingRequestsForDate,
+
+  // Cleanup feature
   expirePastWaitingRequests: async () => {
-    // Expire WAITING or OFFER_SENT requests where target_date < today
-    // SQLite YYYY-MM-DD comparison works alphabetically
     const today = new Date().toISOString().split('T')[0];
-    const sql = `UPDATE waiting_list_requests SET status = 'EXPIRED' WHERE target_date < ? AND status IN ('WAITING', 'OFFER_SENT')`;
+    const sql = "UPDATE waiting_list_requests SET status = 'EXPIRED' WHERE target_date < ? AND status IN ('WAITING', 'OFFER_SENT')";
+
     if (type === 'pg') {
-      // PG might need explicit date cast if column is text? usually date column handles it.
-      // Assuming text or date column.
-      return await query(sql, [today]);
+      return await query("UPDATE waiting_list_requests SET status = 'EXPIRED' WHERE target_date < $1 AND status IN ('WAITING', 'OFFER_SENT')", [today]);
     } else {
       return await query(sql, [today]);
     }
   },
 
-  type,
-  initPromise,
-  // For testing
-  init: () => initPromise,
-  run: query,
-  getOne: getOne
+  // Portfolio
+  saveImage,
+  getImage,
+  deleteImage,
+  createPortfolioItem,
+  getPortfolioItemIds,
+  getPortfolioItems,
+  getPortfolioItemsByIds,
+  deletePortfolioItem,
+
+  // Auth / Tokens
+  createResetToken,
+  getResetToken,
+  deleteResetToken,
+
+  // Leaves
+  getAllLeaves,
+  addLeave: createLeave, // Alias
+  createLeave,
+  getLeaves,
+  updateLeave,
+  deleteLeave,
+
+  // Legacy / Aliases (if needed)
 };

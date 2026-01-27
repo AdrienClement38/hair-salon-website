@@ -175,18 +175,19 @@
         const token = params.get('token');
 
         async function init() {
-            if (!token) {
-                showError("Lien invalide.");
-                return;
+            // Remove explicit token check. We support Cookies now.
+            
+            // Hide token from URL for security/cleanliness if present
+            const url = new URL(window.location);
+            if (token) {
+                url.searchParams.delete('token');
+                window.history.replaceState({}, '', url);
             }
 
-            // Hide token from URL for security/cleanliness
-            const url = new URL(window.location);
-            url.searchParams.delete('token');
-            window.history.replaceState({}, '', url);
-
             try {
-                const res = await fetch(`/api/waiting-list/details?token=${token}`);
+                // If token exists in URL, use it. Otherwise backend checks Cookie.
+                const endpoint = token ? `/api/waiting-list/details?token=${token}` : `/api/waiting-list/details`;
+                const res = await fetch(endpoint);
                 const data = await res.json();
 
                 if (res.ok) {

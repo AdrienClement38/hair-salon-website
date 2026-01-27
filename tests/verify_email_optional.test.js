@@ -32,15 +32,37 @@ describe('Booking without Email Config', () => {
     });
 
     it('should accept a booking with empty email', async () => {
-        // Ensure we have a valid test worker/service/date
-        const workers = await db.getAllAdmins();
+        // Ensure we have a valid test worker/service
+        let workers = await db.getAllAdmins();
+        if (workers.length === 0) {
+            await db.createAdmin('worker_test_email', 'pass', 'Worker');
+            workers = await db.getAllAdmins();
+        }
         const testWorker = workers[0];
-        const services = await db.getSetting('services');
+
+        let services = await db.getSetting('services');
+        if (!services || services.length === 0) {
+            await db.setSetting('services', [{ name: 'Coupe Homme', duration: 30 }]);
+            services = await db.getSetting('services');
+        }
         const testService = services[0];
 
-        // Find a slot? Or just try to book (mocking slots check or using a future date)
-        const date = '2025-06-01'; // Future date
+        // Use a fixed future date: tomorrow
+        const tomorrow = new Date();
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        const date = tomorrow.toISOString().split('T')[0];
+        const dayOfWeek = tomorrow.getDay();
         const time = '10:00';
+
+        // Ensure salon is OPEN tomorrow
+        const hours = [];
+        for (let i = 0; i < 7; i++) {
+            hours.push({ isOpen: true, open: '09:00', close: '19:00' });
+        }
+        await db.setSetting('opening_hours', hours);
+
+        // Cleanup any existing appointment to ensure test passes
+        await db.query('DELETE FROM appointments WHERE date = ?', [date]);
 
         const bookingData = {
             name: 'Test No Email',
@@ -56,11 +78,10 @@ describe('Booking without Email Config', () => {
             .post('/api/book')
             .send(bookingData);
 
-        if (res.status !== 200) {
-            console.log('Error:', res.body);
-        }
+
 
         expect(res.status).toBe(200);
         expect(res.body.success).toBe(true);
     });
 });
+

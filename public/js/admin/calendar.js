@@ -598,6 +598,43 @@ async function openDayDetails(dateStr, appointments, shouldScroll = true) {
 // Let's pass 'listContainer' and 'currentWorkers' to it if we move it out. 
 // For now, I'll define it HERE to keep it working with closure vars, but cleanly.
 
+// NEW: Render Worker Section (was missing)
+function renderWorkerSection(workerName, appts, waitCount) {
+    const listContainer = document.getElementById('day-appointments-list');
+    if (!listContainer) return;
+
+    const section = document.createElement('div');
+    section.style.marginBottom = '30px';
+
+    // Header
+    const header = document.createElement('h3');
+    header.textContent = workerName;
+    header.style.borderBottom = '1px solid #ddd';
+    header.style.paddingBottom = '5px';
+    header.style.marginBottom = '15px';
+    section.appendChild(header);
+
+    // Waitlist Alert
+    if (waitCount > 0) {
+        const alert = document.createElement('div');
+        alert.className = 'alert alert-info';
+        alert.style.marginBottom = '10px';
+        alert.style.backgroundColor = '#e1f5fe';
+        alert.style.color = '#0277bd';
+        alert.innerHTML = `<strong>File d'attente :</strong> ${waitCount} personne(s).`;
+        section.appendChild(alert);
+    }
+
+    // Table or Empty msg
+    if (appts && appts.length > 0) {
+        section.innerHTML += renderAppointmentTable(appts, false);
+    } else {
+        section.innerHTML += '<p style="color:#777; font-style:italic;">Aucun rendez-vous planifié.</p>';
+    }
+
+    listContainer.appendChild(section);
+}
+
 // Simplified Badge Updater
 function updateWaitlistBadges(counts) {
     const listContainer = document.getElementById('day-appointments-list');

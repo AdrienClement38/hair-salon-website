@@ -602,10 +602,7 @@ const getDailyGaps = async (date, workerId, _injectedOpeningHours = null) => {
 };
 
 const getAllAppointments = async (forceAdminId = null) => {
-  // If forceAdminId is 1 (Salon), we want ALL appointments, so treat as null.
-  if (forceAdminId && String(forceAdminId) === '1') {
-    forceAdminId = null;
-  }
+
 
   if (forceAdminId) {
     if (type === 'pg') return await query('SELECT * FROM appointments WHERE admin_id = $1 OR admin_id IS NULL ORDER BY date DESC, time ASC', [forceAdminId]);

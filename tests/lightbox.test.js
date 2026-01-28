@@ -102,12 +102,9 @@ describe('Lightbox UX', () => {
 
             await page.waitForSelector('#lightbox-modal', { visible: true });
 
-            // Check Content
-            const title = await page.$eval('#lightbox-title', el => el.textContent);
-            const price = await page.$eval('#lightbox-price', el => el.textContent);
-
-            expect(title).toBe('Test Product');
-            expect(price).toContain('99');
+            // Verify Caption is HIDDEN (Feature change: only show photo)
+            const display = await page.$eval('#lightbox-caption', el => getComputedStyle(el).display);
+            expect(display).toBe('none');
 
             // Close
             await page.mouse.click(10, 10);

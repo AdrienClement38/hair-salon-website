@@ -362,14 +362,8 @@ window.openLightbox = (src, title, price, desc) => {
 
     img.src = src;
 
-    if (title || price) {
-        caption.style.display = 'block';
-        document.getElementById('lightbox-title').textContent = title || '';
-        document.getElementById('lightbox-price').textContent = price ? price + '€' : '';
-        document.getElementById('lightbox-desc').textContent = desc || '';
-    } else {
-        caption.style.display = 'none';
-    }
+    // User requested to show ONLY the photo, no text at all.
+    caption.style.display = 'none';
 
     modal.classList.add('active');
 };

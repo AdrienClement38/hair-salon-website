@@ -315,8 +315,11 @@
 
     #services-grid .item-card .card-body,
     #products-grid .item-card .card-body {
-        font-size: 0.8rem;
-        margin-top: 0.2rem;
+        font-size: 0.9rem;
+        color: #aeaeae;
+        margin-top: auto;
+        /* Aligns description to the bottom */
+        width: 100%;
     }
 }
 

@@ -75,10 +75,79 @@ export const loadSettings = async () => {
             renderProductsList();
         }
 
+        // 7. Init Profile Form Handler
+        initProfileFormHandler();
+
     } catch (e) {
         console.error('Error loading settings:', e);
     }
 };
+
+function initProfileFormHandler() {
+    const form = document.getElementById('profile-form');
+    if (!form) return;
+
+    // Prevent multiple bindings
+    if (form.dataset.initialized === 'true') return;
+    form.dataset.initialized = 'true';
+
+    form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        const username = document.getElementById('profile-username').value;
+        const displayName = document.getElementById('profile-displayname').value;
+        const passInput = document.getElementById('profile-new-pass');
+        const pass = passInput ? passInput.value : '';
+
+        const filterEl = document.getElementById('admin-filter');
+        const selectedId = filterEl ? filterEl.value : '';
+
+        const body = {
+            username: username,
+            displayName: displayName
+        };
+        if (pass) body.password = pass;
+
+        try {
+            let url = '/api/admin/profile'; // Default: Update My Profile
+            let method = 'PUT';
+
+            if (selectedId) {
+                // Update specific worker
+                url = `/api/admin/workers/${selectedId}`;
+            }
+
+            const res = await fetch(url, {
+                method: method,
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': 'Bearer ' + localStorage.getItem('auth')
+                },
+                body: JSON.stringify(body)
+            });
+
+            if (res.ok) {
+                alert('Profil mis à jour !');
+                if (passInput) passInput.value = ''; // Clear password field
+
+                // Refresh workers list in filter logic (calendar.js)
+                // Use dynamic import or just reload page? Reload is safer to reflect name changes everywhere.
+                // But user wants smooth experience.
+                // Re-calling loadWorkersForFilter is good.
+                import('./calendar.js').then(mod => {
+                    if (mod.loadWorkersForFilter) mod.loadWorkersForFilter();
+                });
+
+            } else {
+                const err = await res.json();
+                alert('Erreur: ' + (err.error || 'Erreur inconnue'));
+            }
+        } catch (err) {
+            console.error(err);
+            alert('Erreur réseau');
+        }
+    });
+}
 
 // --- Schedule Logic ---
 

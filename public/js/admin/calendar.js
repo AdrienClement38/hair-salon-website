@@ -51,8 +51,14 @@ export function initCalendar() {
     const filterEl = document.getElementById('admin-filter');
     if (filterEl) {
         filterEl.addEventListener('change', (e) => {
-            localStorage.setItem('adminFilter', e.target.value);
+            const val = e.target.value;
+            localStorage.setItem('adminFilter', val);
             loadAppointments();
+
+            // Auto-fill Profile (if function exists)
+            if (typeof updateProfileInputs === 'function') {
+                updateProfileInputs(val);
+            }
         });
     }
 
@@ -94,37 +100,81 @@ function initYearSelect() {
 
 export async function loadWorkersForFilter() {
     try {
-        const res = await fetch('/api/workers');
+        // Use Admin Endpoint to get full details (username, etc.)
+        const res = await fetch('/api/admin/workers', { headers: getHeaders() });
         const workers = await res.json();
-        currentWorkers = workers;
+
+        // Map for compatibility with existing code expecting 'name'
+        currentWorkers = workers.map(w => ({
+            ...w,
+            name: w.displayName || w.username // Ensure 'name' property exists
+        }));
+
         const select = document.getElementById('admin-filter');
         const currentValue = select.value;
 
         // Keep first option (All)
         select.innerHTML = '<option value="">Salon</option>';
 
-        workers.forEach(w => {
+        currentWorkers.forEach(w => {
             const opt = document.createElement('option');
             opt.value = w.id;
             opt.textContent = w.name;
             select.appendChild(opt);
         });
 
-        if (currentValue) {
-            select.value = currentValue;
-        } else {
-            const saved = localStorage.getItem('adminFilter');
-            if (saved) {
-                // Verify if option exists
-                if (select.querySelector(`option[value="${saved}"]`)) {
-                    select.value = saved;
-                    // Trigger load because default load might have run with empty filter
-                    loadAppointments();
-                }
-            }
-        }
+        // Add Auto-fill Listener (if not already added, but adding here ensures it uses fresh closure scope if needed, 
+        // though typically listeners should be in init. Ideally we add it once in init, but here we have the select element ready.)
+        // To avoid duplicates, we can check a flag or just rely on initCalendar's listener.
+        // BUT initCalendar already adds a listener. We should EXTEND that one or handle it here?
+        // Let's handle the Auto-fill in the existing listener in initCalendar or just add a second one?
+        // Adding a second one is fine.
+
+        // Remove old listener if any? Hard to remove anonymous. 
+        // Let's just update the logic in initCalendar instead? 
+        // No, let's add a named function and attach it to avoid duplication if re-run.
+        // Actually, loadWorkersForFilter is called once usually.
     } catch (e) {
         console.error('Failed to load workers', e);
+    }
+
+    // Resume selection
+    const select = document.getElementById('admin-filter');
+    const saved = localStorage.getItem('adminFilter');
+    if (saved && select.querySelector(`option[value="${saved}"]`)) {
+        select.value = saved;
+
+        // Trigger Auto-fill immediately on load if value is present
+        updateProfileInputs(saved);
+
+        loadAppointments();
+    } else {
+        // Ensure default state (hidden profile)
+        updateProfileInputs('');
+    }
+}
+
+// Helper to fill inputs
+function updateProfileInputs(adminId) {
+    const profileSection = document.getElementById('profile-section');
+    const profileUser = document.getElementById('profile-username');
+    const profileDisplay = document.getElementById('profile-displayname');
+
+    // Toggle visibility based on selection
+    if (profileSection) {
+        if (!adminId) {
+            profileSection.style.display = 'none';
+        } else {
+            profileSection.style.display = 'block';
+        }
+    }
+
+    if (profileUser && profileDisplay && adminId) {
+        const worker = currentWorkers.find(w => w.id == adminId);
+        if (worker) {
+            profileUser.value = worker.username || '';
+            profileDisplay.value = worker.displayName || worker.name || '';
+        }
     }
 }
 

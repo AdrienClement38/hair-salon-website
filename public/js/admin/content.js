@@ -7,8 +7,6 @@ let currentX = 50;
 let currentY = 50;
 
 export async function saveTextSettings() {
-    const title = document.getElementById('content-title').value;
-    const subtitle = document.getElementById('content-subtitle').value;
     const philosophy = document.getElementById('content-philosophy').value;
     const address = document.getElementById('content-address').value;
     const phone = document.getElementById('content-phone').value;
@@ -18,8 +16,6 @@ export async function saveTextSettings() {
     const settings = {
         home_content: {
             ...currentHomeContent,
-            title,
-            subtitle,
             philosophy
         },
         contact_info: {

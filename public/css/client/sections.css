@@ -116,7 +116,8 @@
     width: 230px;
     min-width: 230px;
     height: auto;
-    min-height: 350px;
+    min-height: 280px;
+    /* Reduced from 350px/auto to be tighter */
     /* Ensure uniform height */
     display: flex;
     flex-direction: column;
@@ -140,6 +141,63 @@
     width: 65%;
     height: 65%;
     object-fit: contain;
+}
+
+/* Service Card Alignment */
+/* Service Card Layout */
+#services-grid .item-card.service-card {
+    justify-content: space-between;
+}
+
+#services-grid .item-card.service-card .card-header.service-header {
+    justify-content: center;
+    text-align: center;
+    width: 100%;
+    margin-bottom: auto;
+    /* Push footer down if needed, though flex space-between handles it */
+}
+
+#services-grid .item-card.service-card .card-header.service-header h3 {
+    margin: 0;
+    text-align: center;
+}
+
+#services-grid .item-card.service-card .service-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    /* Center vertically */
+    width: 100%;
+    padding-top: 10px;
+    margin-top: 10px;
+    /* Reduced spacing from title (removed auto) */
+    position: relative;
+    /* For separator */
+}
+
+/* Central Separator */
+#services-grid .item-card.service-card .service-footer::after {
+    content: '';
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    height: 60%;
+    width: 1px;
+    background-color: rgba(255, 255, 255, 0.3);
+}
+
+#services-grid .item-card.service-card .service-footer .price {
+    font-size: 1.1rem;
+    font-weight: bold;
+    color: #fff;
+    /* White */
+}
+
+#services-grid .item-card.service-card .service-footer .service-duration {
+    font-size: 1.1rem;
+    font-weight: bold;
+    color: #fff;
 }
 
 /* Mobile overrides for Services removed to match Desktop/Product slider layout */

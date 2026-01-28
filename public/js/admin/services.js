@@ -37,7 +37,6 @@ export function renderServicesList() {
                 <th>Nom</th>
                 <th style="width: 80px;">Prix</th>
                 <th style="width: 90px;">Durée</th>
-                <th>Description</th>
                 <th class="th-actions-services">Actions</th>
             </tr>
         </thead>
@@ -107,7 +106,6 @@ export function renderServicesList() {
             <td>${service.name}</td>
             <td>${service.price} €</td>
             <td>${service.duration || 30} min</td>
-             <td style="font-size:0.9em; color:#666;">${service.description || ''}</td>
             <td>
                     ${renderActionButtons(`editService(${index})`, `removeService(${index})`, {
             editLabel: `<svg xmlns="http://www.w3.org/2000/svg" style="width:1.25rem; height:1.25rem;" viewBox="0 -960 960 960" fill="#000000"><path d="M200-200h57l391-391-57-57-391 391v57Zm-80 80v-170l528-527q12-11 26.5-17t30.5-6q16 0 31 6t26 18l55 56q12 11 17.5 26t5.5 30q0 16-5.5 30.5T817-647L290-120H120Zm640-584-56-56 56 56Zm-141 85-28-29 57 57-29-28Z"/></svg>`,
@@ -141,19 +139,17 @@ export function addService() {
     const priceInput = document.getElementById('new-service-price');
     const durationInput = document.getElementById('new-service-duration');
     const iconInput = document.getElementById('new-service-icon');
-    const descInput = document.getElementById('new-service-desc');
 
     const name = nameInput.value;
     const price = priceInput.value;
     const duration = parseInt(durationInput.value) || 30;
     const icon = iconInput.value;
-    const description = descInput.value;
 
     if (!name) return alert('Le nom de la prestation est requis');
     if (!price) return alert('Le prix est invalide (chiffres uniquement)');
 
     if (editingServiceIndex >= 0) {
-        currentServices[editingServiceIndex] = { name, price, duration, icon, description };
+        currentServices[editingServiceIndex] = { name, price, duration, icon };
         resetServiceForm();
     } else {
         currentServices.push({
@@ -161,8 +157,7 @@ export function addService() {
             name,
             price,
             duration,
-            icon,
-            description
+            icon
         });
         resetServiceForm();
     }
@@ -176,7 +171,6 @@ function resetServiceForm() {
     document.getElementById('new-service-name').value = '';
     document.getElementById('new-service-price').value = '';
     document.getElementById('new-service-duration').value = '30';
-    document.getElementById('new-service-desc').value = '';
     document.getElementById('new-service-icon').value = 'cut';
 
     const formContainer = document.querySelector('#services-list + div');
@@ -195,7 +189,6 @@ export function editService(index) {
     document.getElementById('new-service-name').value = svc.name;
     document.getElementById('new-service-price').value = svc.price;
     document.getElementById('new-service-duration').value = svc.duration || 30;
-    document.getElementById('new-service-desc').value = svc.description || '';
     let iconVal = svc.icon || 'barber';
     if (iconVal === 'star') iconVal = 'barber';
     document.getElementById('new-service-icon').value = iconVal;

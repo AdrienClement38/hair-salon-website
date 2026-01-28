@@ -42,6 +42,25 @@ function createItemCard(item, type) {
         }
     }
 
+    const isService = type === 'service';
+    const bodyContent = isService ? (item.duration ? `${item.duration} min` : '30 min') : (item.description || '');
+
+    if (isService) {
+        const duration = item.duration ? `${item.duration} min` : '30 min';
+        return `
+            <div class="item-card service-card">
+                ${mediaHtml}
+                <div class="card-header service-header">
+                    <h3>${item.name}</h3>
+                </div>
+                <div class="service-footer">
+                    <span class="price">${item.price}€</span>
+                    <span class="service-duration">${duration}</span>
+                </div>
+            </div>
+        `;
+    }
+
     return `
         <div class="item-card">
             ${mediaHtml}

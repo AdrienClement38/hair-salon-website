@@ -33,8 +33,6 @@ export const loadSettings = async () => {
 
         // 4. Content (Texts)
         if (settings.home_content) {
-            if (document.getElementById('content-title')) document.getElementById('content-title').value = settings.home_content.title || '';
-            if (document.getElementById('content-subtitle')) document.getElementById('content-subtitle').value = settings.home_content.subtitle || '';
             if (document.getElementById('content-philosophy')) document.getElementById('content-philosophy').value = settings.home_content.philosophy || '';
 
             // Images
@@ -314,8 +312,6 @@ async function saveSetting(key, value) {
 // Global scope for HTML onclick access
 window.saveTextSettings = async () => {
     const home_content = {
-        title: document.getElementById('content-title').value,
-        subtitle: document.getElementById('content-subtitle').value,
         philosophy: document.getElementById('content-philosophy').value
     };
     const salon_identity = {

@@ -139,13 +139,13 @@ input:disabled {
     border: 2px solid #555;
     box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
     cursor: crosshair;
-    max-height: 70vh;
+    max-height: 50vh;
 }
 
 #position-image {
     display: block;
     max-width: 100%;
-    max-height: 70vh;
+    max-height: 50vh;
     object-fit: contain;
     user-select: none;
 }
@@ -357,4 +357,10 @@ th {
     border-radius: 4px;
     border: 1px solid #ddd;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+#thumb-logo {
+    object-fit: contain;
+    background-color: #f0f0f0;
+    /* Optional: helps visibility if transparent */
 }

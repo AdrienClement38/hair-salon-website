@@ -32,11 +32,20 @@ describe('Admin Management Tests', () => {
             .send({
                 username: 'staff1',
                 password: 'staffpassword',
-                displayName: 'Staff Member'
+                displayName: 'Staff Member',
+                daysOff: [1, 2] // Mon, Tue
             });
 
         expect(res.statusCode).toBe(200);
         expect(res.body.success).toBe(true);
+
+        // Verify daysOff
+        const listRes = await request(app).get('/api/admin/workers').set('Authorization', authHeader);
+        const savedWorker = listRes.body.find(w => w.username === 'staff1');
+        expect(savedWorker).toBeDefined();
+        // Backend returns strings or numbers? usually numbers if JSON.
+        // Check exact equality or array containing
+        expect(savedWorker.daysOff).toEqual(expect.arrayContaining([1, 2]));
     });
 
     test('US-2.15: Should prevent duplicate username', async () => {

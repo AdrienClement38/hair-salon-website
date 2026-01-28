@@ -78,6 +78,9 @@ export const loadSettings = async () => {
         // 7. Init Profile Form Handler
         initProfileFormHandler();
 
+        // 8. Init Team Form Handler
+        initTeamFormHandler();
+
     } catch (e) {
         console.error('Error loading settings:', e);
     }
@@ -138,6 +141,53 @@ function initProfileFormHandler() {
                     if (mod.loadWorkersForFilter) mod.loadWorkersForFilter();
                 });
 
+            } else {
+                const err = await res.json();
+                alert('Erreur: ' + (err.error || 'Erreur inconnue'));
+            }
+        } catch (err) {
+            console.error(err);
+            alert('Erreur réseau');
+        }
+    });
+}
+
+function initTeamFormHandler() {
+    const form = document.getElementById('team-form');
+    if (!form) return;
+
+    // Prevent multiple bindings
+    if (form.dataset.initialized === 'true') return;
+    form.dataset.initialized = 'true';
+
+    form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        const username = document.getElementById('team-username').value;
+        const displayName = document.getElementById('team-displayname').value;
+        const password = document.getElementById('team-password').value;
+
+        // Collect checkboxes
+        const daysOff = Array.from(form.querySelectorAll('input[name="daysOff"]:checked'))
+            .map(cb => parseInt(cb.value));
+
+        try {
+            const res = await fetch('/api/admin/workers', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': 'Bearer ' + localStorage.getItem('auth')
+                },
+                body: JSON.stringify({ username, displayName, password, daysOff })
+            });
+
+            if (res.ok) {
+                alert('Membre ajouté !');
+                form.reset();
+                // Refresh workers
+                import('./calendar.js').then(mod => {
+                    if (mod.loadWorkersForFilter) mod.loadWorkersForFilter();
+                });
             } else {
                 const err = await res.json();
                 alert('Erreur: ' + (err.error || 'Erreur inconnue'));

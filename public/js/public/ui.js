@@ -93,7 +93,7 @@ export function renderHolidays(ranges) {
     const html = activeRanges.map(r => {
         const start = new Date(r.start).toLocaleDateString('fr-FR');
         const end = new Date(r.end).toLocaleDateString('fr-FR');
-        return `<div>Congés du ${start} au ${end}</div>`;
+        return `<div>Fermeture du ${start} au ${end}</div>`;
     }).join('');
 
     container.innerHTML = html;

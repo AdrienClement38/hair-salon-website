@@ -227,27 +227,70 @@
 
 
                 <div class="settings-section">
-                    <h3 id="leaves-section-title">Congés Exceptionnels</h3>
+                    <h3 id="leaves-section-title">Congés Exceptionnels <span id="leaves-worker-name"
+                            style="font-weight:normal; color:#666; font-size: 0.8em;"></span></h3>
 
-                    <div id="holiday-list" style="margin-bottom: 20px;">
-                        <!-- Ranges injected here -->
-                    </div>
-
-                    <div class="form-group">
-                        <label>Ajouter une période de congés</label>
-                        <div style="display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap;">
-                            <div>
-                                <label style="font-size: 0.9em;">Début</label>
-                                <input type="date" id="holiday-start">
+                    <div id="weekly-days-off-wrapper"
+                        style="display:none; margin-bottom: 20px; padding: 15px; background: #fafafa; border: 1px solid #eee; border-radius: 5px;">
+                        <h4 style="margin-top:0;">Jours de Repos Hebdomadaire</h4>
+                        <div class="days-off-grid" style="display:flex; gap:20px; flex-wrap:wrap; margin-bottom:15px;">
+                            <div style="display:flex; flex-direction:column; align-items:center; gap:5px;">
+                                <label style="font-weight:bold; margin-bottom:0;">Lun</label>
+                                <input type="checkbox" class="weekly-off-cb" value="1" style="transform: scale(1.2);">
                             </div>
-                            <div>
-                                <label style="font-size: 0.9em;">Fin</label>
-                                <input type="date" id="holiday-end">
+                            <div style="display:flex; flex-direction:column; align-items:center; gap:5px;">
+                                <label style="font-weight:bold; margin-bottom:0;">Mar</label>
+                                <input type="checkbox" class="weekly-off-cb" value="2" style="transform: scale(1.2);">
+                            </div>
+                            <div style="display:flex; flex-direction:column; align-items:center; gap:5px;">
+                                <label style="font-weight:bold; margin-bottom:0;">Mer</label>
+                                <input type="checkbox" class="weekly-off-cb" value="3" style="transform: scale(1.2);">
+                            </div>
+                            <div style="display:flex; flex-direction:column; align-items:center; gap:5px;">
+                                <label style="font-weight:bold; margin-bottom:0;">Jeu</label>
+                                <input type="checkbox" class="weekly-off-cb" value="4" style="transform: scale(1.2);">
+                            </div>
+                            <div style="display:flex; flex-direction:column; align-items:center; gap:5px;">
+                                <label style="font-weight:bold; margin-bottom:0;">Ven</label>
+                                <input type="checkbox" class="weekly-off-cb" value="5" style="transform: scale(1.2);">
+                            </div>
+                            <div style="display:flex; flex-direction:column; align-items:center; gap:5px;">
+                                <label style="font-weight:bold; margin-bottom:0;">Sam</label>
+                                <input type="checkbox" class="weekly-off-cb" value="6" style="transform: scale(1.2);">
+                            </div>
+                            <div style="display:flex; flex-direction:column; align-items:center; gap:5px;">
+                                <label style="font-weight:bold; margin-bottom:0;">Dim</label>
+                                <input type="checkbox" class="weekly-off-cb" value="0" style="transform: scale(1.2);">
                             </div>
                         </div>
-                        <div style="margin-top: 10px;">
-                            <button class="btn" onclick="addHolidayRange()"
-                                style="width: auto; padding: 10px 20px;">Ajouter</button>
+                        <button class="btn" style="width:auto; padding: 5px 15px;"
+                            onclick="saveWeeklyDaysOff()">Enregistrer les jours de repos</button>
+                    </div>
+
+                    <div id="vacations-wrapper"
+                        style="display:none; padding: 15px; background: #fafafa; border: 1px solid #eee; border-radius: 5px;">
+                        <h4 style="margin-top:0;">Vacances</h4>
+
+                        <div id="holiday-list" style="margin-bottom: 20px;">
+                            <!-- Ranges injected here -->
+                        </div>
+
+                        <div class="form-group">
+                            <label>Ajouter une période de congés</label>
+                            <div style="display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap;">
+                                <div>
+                                    <label style="font-size: 0.9em;">Début</label>
+                                    <input type="date" id="holiday-start">
+                                </div>
+                                <div>
+                                    <label style="font-size: 0.9em;">Fin</label>
+                                    <input type="date" id="holiday-end">
+                                </div>
+                            </div>
+                            <div style="margin-top: 10px;">
+                                <button class="btn" onclick="addHolidayRange()"
+                                    style="width: auto; padding: 10px 20px;">Ajouter</button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -324,291 +367,277 @@
                                 </button>
                             </div>
                         </div>
+                        <button type="submit" class="btn" style="width:auto">Ajouter le membre</button>
+
+                    </form>
                 </div>
-                <div class="form-group">
-                    <label>Jours de Repos Hebdomadaire</label>
-                    <div class="days-off-grid"
-                        style="display:grid; grid-template-columns: repeat(auto-fit, minmax(60px, 1fr)); gap:5px;">
-                        <label><input type="checkbox" name="daysOff" value="1"> Lun</label>
-                        <label><input type="checkbox" name="daysOff" value="2"> Mar</label>
-                        <label><input type="checkbox" name="daysOff" value="3"> Mer</label>
-                        <label><input type="checkbox" name="daysOff" value="4"> Jeu</label>
-                        <label><input type="checkbox" name="daysOff" value="5"> Ven</label>
-                        <label><input type="checkbox" name="daysOff" value="6"> Sam</label>
-                        <label><input type="checkbox" name="daysOff" value="0"> Dim</label>
-                    </div>
-                </div>
-                <button type="submit" class="btn" style="width:auto">Ajouter le membre</button>
 
-                </form>
-            </div>
-
-            <!-- Email Configuration -->
-            <div class="settings-section">
-                <h3>Connexion Email (Gmail)</h3>
-                <p>Connectez un compte Gmail <strong>existant</strong> pour que le site puisse envoyer les
-                    confirmations de RDV.</p>
-                <div class="admin-form-card">
-                    <div class="form-group">
-                        <label>Adresse Gmail du compte émetteur</label>
-                        <input type="email" id="email-config-user" placeholder="ex : la-base-coiffure@gmail.com"
-                            autocomplete="off" name="gmail_user_config">
-                    </div>
-                    <div class="form-group">
-                        <label>Mot de passe d'application</label>
-                        <input type="password" id="email-config-pass" placeholder="xxxx xxxx xxxx xxxx"
-                            autocomplete="new-password" name="gmail_pass_config">
-                        <small class="text-muted" style="color: #888;">
-                            Important : Ceci est le mot de passe de l'adresse email. Pour Gmail, utilisez un "Mot de
-                            passe d'application".
-                        </small>
-                    </div>
-
-                    <!-- Auto-Discovery Fields (Hidden by default) -->
-                    <details id="advanced-email-config">
-                        <summary style="cursor:pointer; color:#777; font-size:0.9rem; margin-bottom:10px;">
-                            Configuration Avancée (Serveur SMTP)</summary>
+                <!-- Email Configuration -->
+                <div class="settings-section">
+                    <h3>Connexion Email (Gmail)</h3>
+                    <p>Connectez un compte Gmail <strong>existant</strong> pour que le site puisse envoyer les
+                        confirmations de RDV.</p>
+                    <div class="admin-form-card">
                         <div class="form-group">
-                            <label>Serveur SMTP</label>
-                            <input type="text" id="email-config-host" placeholder="ex: smtp.orange.fr">
+                            <label>Adresse Gmail du compte émetteur</label>
+                            <input type="email" id="email-config-user" placeholder="ex : la-base-coiffure@gmail.com"
+                                autocomplete="off" name="gmail_user_config">
                         </div>
                         <div class="form-group">
-                            <label>Port SMTP</label>
-                            <input type="number" id="email-config-port" placeholder="465">
+                            <label>Mot de passe d'application</label>
+                            <input type="password" id="email-config-pass" placeholder="xxxx xxxx xxxx xxxx"
+                                autocomplete="new-password" name="gmail_pass_config">
+                            <small class="text-muted" style="color: #888;">
+                                Important : Ceci est le mot de passe de l'adresse email. Pour Gmail, utilisez un "Mot de
+                                passe d'application".
+                            </small>
                         </div>
-                    </details>
-                    <div class="form-actions" style="display:flex; gap:10px; align-items: center;">
-                        <button class="btn" onclick="saveEmailConfig()" style="width:auto;">Enregistrer la
-                            connexion</button>
-                        <button class="btn btn-outline" onclick="testEmailConfig()"
-                            style="width:auto; border-color: #ccc; color: #333;">Tester la connexion</button>
 
-                        <button class="btn btn-text" onclick="deleteEmailConfig()"
-                            style="width:auto; margin-left: auto; color: #d9534f; font-size: 0.9rem; text-decoration:underline; border:none; background:none; cursor:pointer;">
-                            Supprimer la configuration
-                        </button>
+                        <!-- Auto-Discovery Fields (Hidden by default) -->
+                        <details id="advanced-email-config">
+                            <summary style="cursor:pointer; color:#777; font-size:0.9rem; margin-bottom:10px;">
+                                Configuration Avancée (Serveur SMTP)</summary>
+                            <div class="form-group">
+                                <label>Serveur SMTP</label>
+                                <input type="text" id="email-config-host" placeholder="ex: smtp.orange.fr">
+                            </div>
+                            <div class="form-group">
+                                <label>Port SMTP</label>
+                                <input type="number" id="email-config-port" placeholder="465">
+                            </div>
+                        </details>
+                        <div class="form-actions" style="display:flex; gap:10px; align-items: center;">
+                            <button class="btn" onclick="saveEmailConfig()" style="width:auto;">Enregistrer la
+                                connexion</button>
+                            <button class="btn btn-outline" onclick="testEmailConfig()"
+                                style="width:auto; border-color: #ccc; color: #333;">Tester la connexion</button>
+
+                            <button class="btn btn-text" onclick="deleteEmailConfig()"
+                                style="width:auto; margin-left: auto; color: #d9534f; font-size: 0.9rem; text-decoration:underline; border:none; background:none; cursor:pointer;">
+                                Supprimer la configuration
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
-    </div>
 
-    <!-- Photos Tab -->
-    <!-- Content Tab (Replaces Photos) -->
-    <div id="tab-content" class="tab-content">
-        <div class="settings-form">
-
+        <!-- Photos Tab -->
+        <!-- Content Tab (Replaces Photos) -->
+        <div id="tab-content" class="tab-content">
+            <div class="settings-form">
 
 
 
-            <!-- General Text -->
+
+                <!-- General Text -->
+                <div class="settings-section">
+                    <h3>Textes</h3>
+                    <div class="admin-form-card">
+                        <div class="form-group">
+                            <label>Nom du Salon (Affiché dans l'en-tête)</label>
+                            <input type="text" id="salon-name" placeholder="La Base Coiffure">
+                        </div>
+
+                        <div class="form-group">
+                            <label>Texte "Notre Philosophie"</label>
+                            <textarea id="content-philosophy" rows="4" style="width:100%; padding:8px;"
+                                placeholder="Votre texte ici..."></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label>Adresse (Pied de page)</label>
+                            <input type="text" id="content-address" placeholder="12 Rue de la Mode, 75001 Paris">
+                        </div>
+                        <div class="form-group">
+                            <label>Téléphone (Pied de page)</label>
+                            <input type="text" id="content-phone" placeholder="01 23 45 67 89">
+                        </div>
+                        <div class="form-actions">
+                            <button class="btn" onclick="saveTextSettings()" style="width:auto;">Enregistrer les
+                                Textes</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Images -->
+                <div class="settings-section">
+                    <h3>Images</h3>
+                    <div class="admin-form-card"> <!-- Added card wrapper if missing, assuming style works -->
+                        <div class="form-group">
+                            <label>Logo du Salon (Optionnel)</label>
+                            <div class="admin-thumb-container">
+                                <img id="thumb-logo" class="admin-thumb" src="" alt="Aperçu Logo"
+                                    onerror="this.style.display='none'" onload="this.style.display='block'">
+                                <button class="btn-x" onclick="removeLogo()" style="margin-left: auto;"
+                                    title="Supprimer le logo">
+                                    &times;
+                                </button>
+                            </div>
+                        </div>
+                        <form id="upload-logo"
+                            style="display:flex; flex-direction:column; align-items:flex-start; gap:10px; margin-top:5px;">
+                            <input type="file" name="salon-logo" accept="image/*">
+                            <button type="submit" class="btn-submit-left">Mettre à jour le fichier</button>
+                        </form>
+                    </div>
+
+                    <div class="admin-form-card">
+                        <div class="form-group">
+                            <label>Image d'Accueil</label>
+                            <div class="admin-thumb-container">
+                                <img id="thumb-hero" class="admin-thumb" src="" alt="Aperçu Hero">
+                                <button class="btn-copper" onclick="openPositioning('hero-bg')"
+                                    title="Positionner l'image" style="margin-left: auto;">
+                                    <svg xmlns="http://www.w3.org/2000/svg" style="width:1.25rem; height:1.25rem;"
+                                        viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                                        stroke-linecap="round" stroke-linejoin="round">
+                                        <circle cx="12" cy="12" r="10"></circle>
+                                        <line x1="22" y1="12" x2="18" y2="12"></line>
+                                        <line x1="6" y1="12" x2="2" y2="12"></line>
+                                        <line x1="12" y1="6" x2="12" y2="2"></line>
+                                        <line x1="12" y1="22" x2="12" y2="18"></line>
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+                        <form id="upload-hero"
+                            style="display:flex; flex-direction:column; align-items:flex-start; gap:10px; margin-top:5px;">
+                            <input type="file" name="hero-bg" accept="image/*" required>
+                            <button type="submit" class="btn-submit-left">Mettre à
+                                jour le fichier</button>
+                        </form>
+                    </div>
+
+                    <div class="admin-form-card">
+                        <div class="form-group">
+                            <label>Image "Notre Philosophie"</label>
+                            <div class="admin-thumb-container">
+                                <img id="thumb-philosophy" class="admin-thumb" src="" alt="Aperçu Philo">
+                                <button class="btn-copper" onclick="openPositioning('philosophy-bg')"
+                                    title="Positionner l'image" style="margin-left: auto;">
+                                    <svg xmlns="http://www.w3.org/2000/svg" style="width:1.25rem; height:1.25rem;"
+                                        viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                                        stroke-linecap="round" stroke-linejoin="round">
+                                        <circle cx="12" cy="12" r="10"></circle>
+                                        <line x1="22" y1="12" x2="18" y2="12"></line>
+                                        <line x1="6" y1="12" x2="2" y2="12"></line>
+                                        <line x1="12" y1="6" x2="12" y2="2"></line>
+                                        <line x1="12" y1="22" x2="12" y2="18"></line>
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+                        <form id="upload-philosophy"
+                            style="display:flex; flex-direction:column; align-items:flex-start; gap:10px; margin-top:5px;">
+                            <input type="file" name="philosophy-bg" accept="image/*" required>
+                            <button type="submit" class="btn-submit-left">Mettre à
+                                jour le fichier</button>
+                        </form>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- ... existing code ... -->
+            <!-- Prestations (Moved from Configuration) -->
             <div class="settings-section">
-                <h3>Textes</h3>
-                <div class="admin-form-card">
-                    <div class="form-group">
-                        <label>Nom du Salon (Affiché dans l'en-tête)</label>
-                        <input type="text" id="salon-name" placeholder="La Base Coiffure">
-                    </div>
+                <h3>Prestations</h3>
+                <div id="services-list"></div>
 
+                <div class="admin-form-card">
+                    <h5 style="margin-top:0;">Ajouter une prestation</h5>
                     <div class="form-group">
-                        <label>Texte "Notre Philosophie"</label>
-                        <textarea id="content-philosophy" rows="4" style="width:100%; padding:8px;"
-                            placeholder="Votre texte ici..."></textarea>
+                        <label>Nom</label>
+                        <input type="text" id="new-service-name">
                     </div>
-                    <div class="form-group">
-                        <label>Adresse (Pied de page)</label>
-                        <input type="text" id="content-address" placeholder="12 Rue de la Mode, 75001 Paris">
-                    </div>
-                    <div class="form-group">
-                        <label>Téléphone (Pied de page)</label>
-                        <input type="text" id="content-phone" placeholder="01 23 45 67 89">
+                    <div style="display:flex; gap:10px;">
+                        <div class="form-group" style="flex:1">
+                            <label>Prix</label>
+                            <input type="number" id="new-service-price" step="0.5" min="0"
+                                onkeydown="return ['Backspace','Delete','ArrowLeft','ArrowRight','Tab'].includes(event.key) || (!isNaN(Number(event.key)) || event.key === '.' || event.key === ',')">
+                        </div>
+                        <div class="form-group" style="flex:1">
+                            <label>Durée (min)</label>
+                            <input type="number" id="new-service-duration" step="5" min="5" value="30">
+                        </div>
+                        <div class="form-group" style="flex:1">
+                            <label>Icône</label>
+                            <select id="new-service-icon" style="width:100%; padding:8px;">
+                                <option value="cut">Ciseaux</option>
+                                <option value="razor">Rasoir</option>
+                                <option value="barber">Barber Pole</option>
+                            </select>
+                        </div>
                     </div>
                     <div class="form-actions">
-                        <button class="btn" onclick="saveTextSettings()" style="width:auto;">Enregistrer les
-                            Textes</button>
+                        <button class="btn" id="btn-add-service" onclick="addService()" style="width:auto">Ajouter à
+                            la liste</button>
+                        <button class="btn btn-outline" id="btn-cancel-service" onclick="cancelEditService()"
+                            style="width:auto; display: none;">Annuler</button>
                     </div>
                 </div>
-            </div>
 
-            <!-- Images -->
+            </div>
+            <!-- Products -->
             <div class="settings-section">
-                <h3>Images</h3>
-                <div class="admin-form-card"> <!-- Added card wrapper if missing, assuming style works -->
+                <h3>Nos Produits</h3>
+                <div id="products-list"></div>
+
+                <div class="admin-form-card">
+                    <h5 style="margin-top:0;">Ajouter un produit</h5>
                     <div class="form-group">
-                        <label>Logo du Salon (Optionnel)</label>
-                        <div class="admin-thumb-container">
-                            <img id="thumb-logo" class="admin-thumb" src="" alt="Aperçu Logo"
-                                onerror="this.style.display='none'" onload="this.style.display='block'">
-                            <button class="btn-x" onclick="removeLogo()" style="margin-left: auto;"
-                                title="Supprimer le logo">
-                                &times;
-                            </button>
+                        <label>Nom</label>
+                        <input type="text" id="new-product-name">
+                    </div>
+                    <div style="display:flex; gap:10px;">
+                        <div class="form-group" style="flex:1">
+                            <label>Prix (€)</label>
+                            <input type="number" id="new-product-price" step="0.5" min="0">
                         </div>
                     </div>
-                    <form id="upload-logo"
-                        style="display:flex; flex-direction:column; align-items:flex-start; gap:10px; margin-top:5px;">
-                        <input type="file" name="salon-logo" accept="image/*">
-                        <button type="submit" class="btn-submit-left">Mettre à jour le fichier</button>
-                    </form>
+                    <div class="form-group">
+                        <label>Description</label>
+                        <input type="text" id="new-product-desc">
+                    </div>
+                    <div class="form-group">
+                        <label>Photo</label>
+                        <form id="upload-new-product" style="display:flex; align-items:center; gap:10px;">
+                            <input type="file" name="product-image" accept="image/*" required id="new-product-file">
+                        </form>
+                    </div>
+                    <div class="form-actions">
+                        <button class="btn" id="btn-add-product" onclick="addProduct()" style="width:auto">Ajouter à
+                            la liste</button>
+                        <button class="btn btn-outline" id="btn-cancel-product" onclick="cancelEdit()"
+                            style="display:none; width:auto">Annuler</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Portfolio (Notre Travail) -->
+            <div class="settings-section">
+                <h3>Notre Travail</h3>
+                <p>Ajoutez des photos de vos réalisations. <span id="portfolio-count"
+                        style="font-weight:bold; color: var(--primary);">(0 / 50)</span></p>
+                <div id="portfolio-list" class="portfolio-grid">
                 </div>
 
                 <div class="admin-form-card">
+                    <h5 style="margin-top:0;">Ajouter une photo</h5>
+                    <!-- Description removed as per user request -->
                     <div class="form-group">
-                        <label>Image d'Accueil</label>
-                        <div class="admin-thumb-container">
-                            <img id="thumb-hero" class="admin-thumb" src="" alt="Aperçu Hero">
-                            <button class="btn-copper" onclick="openPositioning('hero-bg')" title="Positionner l'image"
-                                style="margin-left: auto;">
-                                <svg xmlns="http://www.w3.org/2000/svg" style="width:1.25rem; height:1.25rem;"
-                                    viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                                    stroke-linecap="round" stroke-linejoin="round">
-                                    <circle cx="12" cy="12" r="10"></circle>
-                                    <line x1="22" y1="12" x2="18" y2="12"></line>
-                                    <line x1="6" y1="12" x2="2" y2="12"></line>
-                                    <line x1="12" y1="6" x2="12" y2="2"></line>
-                                    <line x1="12" y1="22" x2="12" y2="18"></line>
-                                </svg>
-                            </button>
-                        </div>
+                        <label>Photo</label>
+                        <form id="upload-portfolio" style="display:flex; align-items:center; gap:10px;">
+                            <input type="file" name="portfolio-image" accept="image/*" required id="new-portfolio-file">
+                        </form>
                     </div>
-                    <form id="upload-hero"
-                        style="display:flex; flex-direction:column; align-items:flex-start; gap:10px; margin-top:5px;">
-                        <input type="file" name="hero-bg" accept="image/*" required>
-                        <button type="submit" class="btn-submit-left">Mettre à
-                            jour le fichier</button>
-                    </form>
-                </div>
-
-                <div class="admin-form-card">
-                    <div class="form-group">
-                        <label>Image "Notre Philosophie"</label>
-                        <div class="admin-thumb-container">
-                            <img id="thumb-philosophy" class="admin-thumb" src="" alt="Aperçu Philo">
-                            <button class="btn-copper" onclick="openPositioning('philosophy-bg')"
-                                title="Positionner l'image" style="margin-left: auto;">
-                                <svg xmlns="http://www.w3.org/2000/svg" style="width:1.25rem; height:1.25rem;"
-                                    viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                                    stroke-linecap="round" stroke-linejoin="round">
-                                    <circle cx="12" cy="12" r="10"></circle>
-                                    <line x1="22" y1="12" x2="18" y2="12"></line>
-                                    <line x1="6" y1="12" x2="2" y2="12"></line>
-                                    <line x1="12" y1="6" x2="12" y2="2"></line>
-                                    <line x1="12" y1="22" x2="12" y2="18"></line>
-                                </svg>
-                            </button>
-                        </div>
+                    <div class="form-actions">
+                        <button class="btn" onclick="addPortfolioItem()" style="width:auto">Ajouter à la
+                            liste</button>
                     </div>
-                    <form id="upload-philosophy"
-                        style="display:flex; flex-direction:column; align-items:flex-start; gap:10px; margin-top:5px;">
-                        <input type="file" name="philosophy-bg" accept="image/*" required>
-                        <button type="submit" class="btn-submit-left">Mettre à
-                            jour le fichier</button>
-                    </form>
-                </div>
-
-            </div>
-        </div>
-
-        <!-- ... existing code ... -->
-        <!-- Prestations (Moved from Configuration) -->
-        <div class="settings-section">
-            <h3>Prestations</h3>
-            <div id="services-list"></div>
-
-            <div class="admin-form-card">
-                <h5 style="margin-top:0;">Ajouter une prestation</h5>
-                <div class="form-group">
-                    <label>Nom</label>
-                    <input type="text" id="new-service-name">
-                </div>
-                <div style="display:flex; gap:10px;">
-                    <div class="form-group" style="flex:1">
-                        <label>Prix</label>
-                        <input type="number" id="new-service-price" step="0.5" min="0"
-                            onkeydown="return ['Backspace','Delete','ArrowLeft','ArrowRight','Tab'].includes(event.key) || (!isNaN(Number(event.key)) || event.key === '.' || event.key === ',')">
-                    </div>
-                    <div class="form-group" style="flex:1">
-                        <label>Durée (min)</label>
-                        <input type="number" id="new-service-duration" step="5" min="5" value="30">
-                    </div>
-                    <div class="form-group" style="flex:1">
-                        <label>Icône</label>
-                        <select id="new-service-icon" style="width:100%; padding:8px;">
-                            <option value="cut">Ciseaux</option>
-                            <option value="razor">Rasoir</option>
-                            <option value="barber">Barber Pole</option>
-                        </select>
-                    </div>
-                </div>
-                <div class="form-actions">
-                    <button class="btn" id="btn-add-service" onclick="addService()" style="width:auto">Ajouter à
-                        la liste</button>
-                    <button class="btn btn-outline" id="btn-cancel-service" onclick="cancelEditService()"
-                        style="width:auto; display: none;">Annuler</button>
-                </div>
-            </div>
-
-        </div>
-        <!-- Products -->
-        <div class="settings-section">
-            <h3>Nos Produits</h3>
-            <div id="products-list"></div>
-
-            <div class="admin-form-card">
-                <h5 style="margin-top:0;">Ajouter un produit</h5>
-                <div class="form-group">
-                    <label>Nom</label>
-                    <input type="text" id="new-product-name">
-                </div>
-                <div style="display:flex; gap:10px;">
-                    <div class="form-group" style="flex:1">
-                        <label>Prix (€)</label>
-                        <input type="number" id="new-product-price" step="0.5" min="0">
-                    </div>
-                </div>
-                <div class="form-group">
-                    <label>Description</label>
-                    <input type="text" id="new-product-desc">
-                </div>
-                <div class="form-group">
-                    <label>Photo</label>
-                    <form id="upload-new-product" style="display:flex; align-items:center; gap:10px;">
-                        <input type="file" name="product-image" accept="image/*" required id="new-product-file">
-                    </form>
-                </div>
-                <div class="form-actions">
-                    <button class="btn" id="btn-add-product" onclick="addProduct()" style="width:auto">Ajouter à
-                        la liste</button>
-                    <button class="btn btn-outline" id="btn-cancel-product" onclick="cancelEdit()"
-                        style="display:none; width:auto">Annuler</button>
                 </div>
             </div>
         </div>
-
-        <!-- Portfolio (Notre Travail) -->
-        <div class="settings-section">
-            <h3>Notre Travail</h3>
-            <p>Ajoutez des photos de vos réalisations. <span id="portfolio-count"
-                    style="font-weight:bold; color: var(--primary);">(0 / 50)</span></p>
-            <div id="portfolio-list" class="portfolio-grid">
-            </div>
-
-            <div class="admin-form-card">
-                <h5 style="margin-top:0;">Ajouter une photo</h5>
-                <!-- Description removed as per user request -->
-                <div class="form-group">
-                    <label>Photo</label>
-                    <form id="upload-portfolio" style="display:flex; align-items:center; gap:10px;">
-                        <input type="file" name="portfolio-image" accept="image/*" required id="new-portfolio-file">
-                    </form>
-                </div>
-                <div class="form-actions">
-                    <button class="btn" onclick="addPortfolioItem()" style="width:auto">Ajouter à la
-                        liste</button>
-                </div>
-            </div>
-        </div>
-    </div>
     </div>
     </div>
 

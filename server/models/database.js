@@ -660,6 +660,17 @@ const deleteImage = async (filename) => {
   }
 };
 
+const purgeOldLeaves = async () => {
+  const today = new Date().toISOString().split('T')[0];
+  // Delete leaves where end_date is strictly less than today (yesterday or before)
+  // Assuming end_date is stored as YYYY-MM-DD string
+  if (type === 'pg') {
+    return await query('DELETE FROM leaves WHERE end_date < $1', [today]);
+  } else {
+    return await query('DELETE FROM leaves WHERE end_date < ?', [today]);
+  }
+};
+
 const createPortfolioItem = async (filename, description, adminId) => {
   if (type === 'pg') {
     const sql = 'INSERT INTO portfolio (filename, description, admin_id) VALUES ($1, $2, $3) RETURNING id';
@@ -821,11 +832,22 @@ const createLeave = async (start, end, adminId = null, note = '') => {
   }
 };
 
-const getLeaves = async (adminId = null) => {
+const getLeaves = async (adminId = null, strict = false) => {
   if (adminId) {
-    if (type === 'pg') return await query('SELECT * FROM leaves WHERE admin_id = $1 OR admin_id IS NULL ORDER BY start_date', [adminId]);
-    return await query('SELECT * FROM leaves WHERE admin_id = ? OR admin_id IS NULL ORDER BY start_date', [adminId]);
+    if (strict) {
+      // Strict: Only this user's leaves
+      if (type === 'pg') return await query('SELECT * FROM leaves WHERE admin_id = $1 ORDER BY start_date', [adminId]);
+      return await query('SELECT * FROM leaves WHERE admin_id = ? ORDER BY start_date', [adminId]);
+    } else {
+      // Normal (Calendar View): User's + Global
+      if (type === 'pg') return await query('SELECT * FROM leaves WHERE admin_id = $1 OR admin_id IS NULL ORDER BY start_date', [adminId]);
+      return await query('SELECT * FROM leaves WHERE admin_id = ? OR admin_id IS NULL ORDER BY start_date', [adminId]);
+    }
   }
+  // If adminId is null, we return Global leaves. 
+  // Should "Strict" change anything here?
+  // If adminId is null, existing logic is "WHERE admin_id IS NULL". This is already strict global.
+  // So we keep it.
   return await query('SELECT * FROM leaves WHERE admin_id IS NULL ORDER BY start_date');
 };
 
@@ -1162,6 +1184,7 @@ module.exports = {
   saveImage,
   getImage,
   deleteImage,
+  purgeOldLeaves,
   createPortfolioItem,
   getPortfolioItemIds,
   getPortfolioItems,

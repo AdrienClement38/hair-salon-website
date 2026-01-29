@@ -20,7 +20,7 @@ export const loadSettings = async () => {
         renderSchedule(settings.openingHours);
 
         // 2. Render Holidays
-        renderHolidays(settings.holidayRanges);
+        // renderHolidays(settings.holidayRanges); // CONFLICT: Handled by fetchAndRenderLeaves in calendar.js based on filter
 
         // 3. Fill Profile Form (if visible)
         if (settings.salon_identity) {
@@ -77,9 +77,6 @@ export const loadSettings = async () => {
 
         // 7. Init Profile Form Handler
         initProfileFormHandler();
-
-        // 8. Init Team Form Handler
-        initTeamFormHandler();
 
     } catch (e) {
         console.error('Error loading settings:', e);
@@ -141,53 +138,6 @@ function initProfileFormHandler() {
                     if (mod.loadWorkersForFilter) mod.loadWorkersForFilter();
                 });
 
-            } else {
-                const err = await res.json();
-                alert('Erreur: ' + (err.error || 'Erreur inconnue'));
-            }
-        } catch (err) {
-            console.error(err);
-            alert('Erreur réseau');
-        }
-    });
-}
-
-function initTeamFormHandler() {
-    const form = document.getElementById('team-form');
-    if (!form) return;
-
-    // Prevent multiple bindings
-    if (form.dataset.initialized === 'true') return;
-    form.dataset.initialized = 'true';
-
-    form.addEventListener('submit', async (e) => {
-        e.preventDefault();
-
-        const username = document.getElementById('team-username').value;
-        const displayName = document.getElementById('team-displayname').value;
-        const password = document.getElementById('team-password').value;
-
-        // Collect checkboxes
-        const daysOff = Array.from(form.querySelectorAll('input[name="daysOff"]:checked'))
-            .map(cb => parseInt(cb.value));
-
-        try {
-            const res = await fetch('/api/admin/workers', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': 'Bearer ' + localStorage.getItem('auth')
-                },
-                body: JSON.stringify({ username, displayName, password, daysOff })
-            });
-
-            if (res.ok) {
-                alert('Membre ajouté !');
-                form.reset();
-                // Refresh workers
-                import('./calendar.js').then(mod => {
-                    if (mod.loadWorkersForFilter) mod.loadWorkersForFilter();
-                });
             } else {
                 const err = await res.json();
                 alert('Erreur: ' + (err.error || 'Erreur inconnue'));
@@ -334,6 +284,42 @@ window.saveSchedule = async () => {
 
 // --- Holiday Logic ---
 
+window.saveWeeklyDaysOff = async () => {
+    const adminId = document.getElementById('admin-filter').value;
+    if (!adminId) {
+        alert('Veuillez sélectionner un coiffeur.');
+        return;
+    }
+
+    const checkboxes = document.querySelectorAll('.weekly-off-cb:checked');
+    const daysOff = Array.from(checkboxes).map(cb => parseInt(cb.value));
+
+    try {
+        const res = await fetch(`/api/admin/workers/${adminId}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${localStorage.getItem('auth')}`
+            },
+            body: JSON.stringify({ daysOff }) // Only updating daysOff
+        });
+
+        if (res.ok) {
+            alert('Jours de repos enregistrés !');
+            // Refresh local data to ensure consistency
+            import('./calendar.js').then(mod => {
+                if (mod.loadWorkersForFilter) mod.loadWorkersForFilter();
+            });
+        } else {
+            const err = await res.json();
+            alert('Erreur: ' + (err.error || 'Erreur inconnue'));
+        }
+    } catch (e) {
+        console.error(e);
+        alert('Erreur réseau');
+    }
+};
+
 function renderHolidays(ranges) {
     const container = document.getElementById('holiday-list');
     if (!container) return;
@@ -344,39 +330,97 @@ function renderHolidays(ranges) {
         return;
     }
 
-    ranges.forEach((range, index) => {
+    ranges.forEach((range) => {
         const div = document.createElement('div');
         div.className = 'holiday-item';
-        div.style.cssText = 'display:flex; justify-content:space-between; align-items:center; background:#f9f9f9; padding:8px; margin-bottom:5px; border-radius:4px;';
+        div.style.cssText = 'display:flex; justify-content:space-between; align-items:center; background:#fff; padding:10px; margin-bottom:10px; border: 1px solid #ddd; border-radius:4px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);';
+
+        // Use range.id for deletion if available
+        const deleteBtn = range.id
+            ? `<button class="btn-x" onclick="window.deleteLeave(${range.id})">&times;</button>`
+            : '';
+
         div.innerHTML = `
             <span>Du <strong>${new Date(range.start).toLocaleDateString()}</strong> au <strong>${new Date(range.end).toLocaleDateString()}</strong></span>
-            <button class="btn-x" onclick="removeHoliday(${index})">&times;</button>
+            ${deleteBtn}
         `;
         container.appendChild(div);
     });
+}
+
+window.deleteLeave = async (id) => {
+    if (!confirm('Supprimer cette période ?')) return;
+    try {
+        const token = localStorage.getItem('auth');
+        const res = await fetch(`/api/admin/leaves/${id}`, {
+            method: 'DELETE',
+            headers: { 'Authorization': 'Bearer ' + token }
+        });
+        if (res.ok) {
+            // Refresh list
+            const filterEl = document.getElementById('admin-filter');
+            fetchAndRenderLeaves(filterEl ? filterEl.value : '');
+        } else {
+            alert('Erreur lors de la suppression');
+        }
+    } catch (e) {
+        console.error(e);
+        alert('Erreur réseau');
+    }
+};
+
+let currentFetchId = 0;
+
+export async function fetchAndRenderLeaves(adminId) {
+    const myId = ++currentFetchId;
+    try {
+        const token = localStorage.getItem('auth');
+        const queryParam = adminId ? `?adminId=${adminId}&strict=true` : '?adminId=null&strict=true';
+        const res = await fetch(`/api/admin/leaves${queryParam}`, {
+            headers: { 'Authorization': 'Bearer ' + token }
+        });
+        const leaves = await res.json();
+
+        // Race Condition Check
+        if (myId !== currentFetchId) {
+            console.log('[DEBUG Leaves] Stale request ignored');
+            return;
+        }
+
+        console.log('[DEBUG Leaves] Fetched:', leaves);
+
+        // Safety Filter (Client-side Double Check)
+        // Ensures that if backend returns mixed data (shouldn't happening), we still display correctly.
+        const targetId = adminId ? parseInt(adminId) : null;
+        const safeLeaves = leaves.filter(l => {
+            if (targetId === null) return l.admin_id == null; // Salon: Only Global
+            return l.admin_id == targetId; // Worker: Only Worker
+        });
+
+        renderHolidays(safeLeaves.map(l => ({
+            start: l.start_date,
+            end: l.end_date,
+            id: l.id // Keep ID for deletion
+        })));
+    } catch (e) {
+        if (myId === currentFetchId) {
+            console.error('Error loading leaves:', e);
+        }
+    }
 }
 
 window.addHolidayRange = async () => {
     const start = document.getElementById('holiday-start').value;
     const end = document.getElementById('holiday-end').value;
 
+    // Get selected admin ID
+    const filterEl = document.getElementById('admin-filter');
+    const adminIdRaw = filterEl ? filterEl.value : '';
+    const adminId = adminIdRaw ? parseInt(adminIdRaw) : null; // If empty, it's Salon (Global)
+
     if (!start || !end) return alert('Veuillez sélectionner les dates');
 
     try {
-        // Use Leaves API for this
-        // Actually the settings controller reads 'holidayRanges' from Global Leaves.
-        // But saving uses the Leaves Controller normally. 
-        // Let's use the Leaves API directly if possible, or the settings alias if backend supports it.
-        // Backend settings.update supports 'holidayRanges' but it maps to global leaves?
-        // Looking at settings.js controller: `if (holidayRanges) await db.setSetting('holidayRanges', holidayRanges);`
-        // BUT `get` reads `db.getLeaves(null)`. 
-        // There is a disconnection. The controller saves to 'settings' table but reads from 'leaves' table.
-        // ERROR in backend controller?
-        // Let's verify: line 63 `const holidayRanges = globalLeaves...`
-        // line 11 `if (holidayRanges) await db.setSetting('holidayRanges', ...)`
-        // The GET ignores the setting and reads leaves table. The SET writes to setting.
-        // This implies specific "Leaves" API should be used for robustness.
-
         const token = localStorage.getItem('auth');
         const res = await fetch('/api/admin/leaves', {
             method: 'POST',
@@ -384,11 +428,20 @@ window.addHolidayRange = async () => {
                 'Content-Type': 'application/json',
                 'Authorization': 'Bearer ' + token
             },
-            body: JSON.stringify({ start, end, admin_id: null, note: 'Fermeture Salon' })
+            body: JSON.stringify({
+                start,
+                end,
+                adminId: adminId,
+                note: adminId ? 'Congés Coiffeur' : 'Fermeture Salon'
+            })
         });
 
         if (res.ok) {
-            loadSettings(); // Reload to refresh list
+            // Refresh list (Not loadSettings, but context-aware fetch)
+            const filterEl = document.getElementById('admin-filter');
+            fetchAndRenderLeaves(filterEl ? filterEl.value : '');
+
+            // loadSettings(); // Still needed for other settings? Maybe. But NOT for holidays.
             document.getElementById('holiday-start').value = '';
             document.getElementById('holiday-end').value = '';
         } else {
@@ -398,6 +451,17 @@ window.addHolidayRange = async () => {
     } catch (e) {
         alert(e.message);
     }
+};
+
+window.removeHoliday = async (indexOrId) => {
+    // Requires ID handling. Re-implementing renderHolidays to use IDs would be best.
+    // For now, let's assume indexOrId could be the DB ID if we updated renderHolidays.
+    // But renderHolidays uses index currently.
+    // Let's rely on RELOADING the list which will have IDs.
+    // BUT wait, removeHoliday is called from onclick in HTML.
+
+    // We need to update renderHolidays to pass the ID to removeHoliday.
+    alert("Veuillez recharger la page pour supprimer (Mise à jour en cours...)");
 };
 
 window.removeHoliday = async (index) => {

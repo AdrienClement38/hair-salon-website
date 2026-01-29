@@ -45,6 +45,10 @@ describe('Public Interface Tests', () => {
     test('US-1.6: Should create a booking', async () => {
         const targetDate = new Date();
         targetDate.setDate(targetDate.getDate() + 10);
+        // Ensure not Sunday (0) or Monday (1)
+        while (targetDate.getDay() === 0 || targetDate.getDay() === 1) {
+            targetDate.setDate(targetDate.getDate() + 1);
+        }
         const validDate = targetDate.toISOString().split('T')[0];
 
         // Cleanup
@@ -67,6 +71,10 @@ describe('Public Interface Tests', () => {
     test('US-1.5: Should prevent booking taken slot', async () => {
         const targetDate = new Date();
         targetDate.setDate(targetDate.getDate() + 10);
+        // Ensure not Sunday (0) or Monday (1)
+        while (targetDate.getDay() === 0 || targetDate.getDay() === 1) {
+            targetDate.setDate(targetDate.getDate() + 1);
+        }
         const validDate = targetDate.toISOString().split('T')[0];
 
         const bookingData = {

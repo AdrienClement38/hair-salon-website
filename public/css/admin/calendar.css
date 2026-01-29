@@ -55,8 +55,8 @@
 /* Color Coding for Status */
 .day-cell.status-closed-regular {
     /* Grey - Regular Closing (Sun/Mon) */
-    background: #f5f5f5;
-    border-color: #bdbdbd;
+    background: #eeeeee;
+    border-color: #e0e0e0;
 }
 
 .day-cell.status-holiday {

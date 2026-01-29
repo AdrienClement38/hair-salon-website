@@ -25,40 +25,14 @@ class AppointmentService {
             return { slots: [], reason: 'date_limit_exceeded' };
         }
 
-        // 1. Check Global Holidays (Dates)
+        // 1. Check Global Holidays (Exceptions)
         const holidays = (await db.getSetting('holidays')) || [];
         if (holidays.includes(date)) {
             return { slots: [], reason: 'holiday' };
         }
 
-        // 1.5 Check Worker Weekly Days Off
-        // Need to fetch admin profile for this.
-        let admin = null;
-        if (adminId) {
-            admin = await db.getAdminById(adminId);
-            if (admin && admin.days_off) {
-                const daysOff = JSON.parse(admin.days_off); // Stored as JSON string in DB
-                const dateDay = new Date(date).getDay(); // 0 = Sunday
-
-                // daysOff is array of ints [0..6]
-                if (Array.isArray(daysOff) && daysOff.includes(dateDay)) {
-                    // Worker is OFF this day of week
-                    return { slots: [], reason: 'worker_off_day' };
-                }
-            }
-        }
-
-        // 2. Check Leaves (Global + Admin Specific)
-        const leaves = await db.getLeaves(adminId);
-        const isLeave = leaves.some(leave => {
-            return date >= leave.start_date && date <= leave.end_date;
-        });
-
-        if (isLeave) {
-            return { slots: [], reason: 'leave' };
-        }
-
-        // 3. Get Opening Hours
+        // 2. Check Opening Hours (Regular Weekly Closure)
+        // MOVED UP to prioritize "Salon Closed" message over Worker Absence
         let openingHours = await db.getSetting('opening_hours') || await db.getSetting('openingHours');
         const dayOfWeek = new Date(date).getDay();
         let daySettings = null;
@@ -78,6 +52,36 @@ class AppointmentService {
 
         if (!daySettings || !daySettings.isOpen) {
             return { slots: [], reason: 'closed' };
+        }
+
+        // 3. Check Leaves (Global vs Personal)
+        const leaves = await db.getLeaves(adminId);
+
+        // 3a. Global Leave (Salon Closed Priority)
+        const globalLeave = leaves.find(l => l.admin_id === null && date >= l.start_date && date <= l.end_date);
+        if (globalLeave) {
+            return { slots: [], reason: 'closed' }; // Treat Global Leave as "Closed"
+        }
+
+        // 4. Check Worker Weekly Days Off
+        let admin = null;
+        if (adminId) {
+            admin = await db.getAdminById(adminId);
+            if (admin && admin.days_off) {
+                const daysOff = JSON.parse(admin.days_off); // Stored as JSON string in DB
+                const dateDay = new Date(date).getDay(); // 0 = Sunday
+
+                if (Array.isArray(daysOff) && daysOff.includes(dateDay)) {
+                    // Worker is OFF this day of week
+                    return { slots: [], reason: 'worker_off_day' };
+                }
+            }
+        }
+
+        // 5. Check Personal Leave
+        const personalLeave = leaves.find(l => l.admin_id !== null && date >= l.start_date && date <= l.end_date);
+        if (personalLeave) {
+            return { slots: [], reason: 'leave' };
         }
 
         // --- SMART SCHEDULING LOGIC ---

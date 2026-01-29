@@ -17,9 +17,6 @@ if (require.main === module) {
         // Trigger Database Cleanup on Start
         db.initPromise.then(() => {
             db.purgeOldAppointments()
-                .then(res => console.log('Cleaned up old appointments:', res.changes ? res.changes : 'Done'))
-                .catch(err => console.error('Cleanup failed:', err));
-
             // Start Cron Service
             const cronService = require('./server/services/cronService');
             cronService.start();

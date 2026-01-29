@@ -154,7 +154,7 @@ function renderSlots(slots, reason) {
         let message = 'Aucun créneau disponible.';
         const workerName = workerInput.options[workerInput.selectedIndex]?.text || "Le coiffeur";
 
-        if (reason === 'leave') {
+        if (reason === 'leave' || reason === 'worker_off_day') {
             message = `${workerName} est absent(e) à cette date.`;
         } else if (reason === 'holiday' || reason === 'closed') {
             message = 'Le salon est fermé.';

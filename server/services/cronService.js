@@ -26,6 +26,20 @@ class CronService {
                 console.error('[Cron] Error scanning waitlist:', e);
             }
         }, 30 * 60 * 1000);
+
+        // Daily Cleanup of Old Leaves/Holidays (Every 24 hours)
+        const ONE_DAY = 24 * 60 * 60 * 1000;
+        setInterval(async () => {
+            try {
+                const db = require('../models/database');
+                const res = await db.purgeOldLeaves();
+                if (res && res.changes > 0) {
+                    console.log(`[Cron] Daily cleanup: Removed ${res.changes} past holidays.`);
+                }
+            } catch (e) {
+                console.error('[Cron] Error running daily cleanup:', e);
+            }
+        }, ONE_DAY);
     }
 }
 

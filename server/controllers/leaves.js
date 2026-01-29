@@ -3,12 +3,34 @@ const { triggerUpdate } = require('../config/polling');
 
 exports.list = async (req, res) => {
     try {
-        // Admin dashboard needs to see all leaves to manage them? 
-        // Or if filter provided?
-        // Let's return all for the management table.
-        const leaves = await db.getAllLeaves();
-        res.json(leaves);
+        const { adminId, strict } = req.query;
+
+        // If adminId param is present (empty string, "null", or value), filter STRICTLY.
+        // If adminId is undefined (not in query), return ALL leaves (Legacy behavior / Safety).
+        // 'strict' param controls if we include Global leaves with Worker leaves.
+        // Default strict=true (Settings List behavior). strict=false returns Mixed (Calendar behavior).
+        const isStrict = strict !== 'false';
+
+        if (adminId !== undefined) {
+            let targetId = adminId;
+            if (targetId === 'null' || targetId === '') {
+                targetId = null;
+            } else if (targetId) {
+                targetId = parseInt(targetId);
+            }
+
+            // Use getLeaves with strictly controlled logic
+            // Note: getLeaves accepts (adminId, strict). 
+            // If targetId is null, it returns Global leaves (strict logic inside getLeaves supports this)
+            const leaves = await db.getLeaves(targetId, isStrict);
+            res.json(leaves);
+        } else {
+            // No filter provided -> Return ALL
+            const leaves = await db.getAllLeaves();
+            res.json(leaves);
+        }
     } catch (err) {
+        console.error('List Leaves Error:', err);
         res.status(500).json({ error: err.message });
     }
 };

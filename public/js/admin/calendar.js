@@ -1,6 +1,7 @@
 import { API_URL, getHeaders, formatDateDisplay } from './config.js';
-import { currentSchedule, currentLeaves, salonClosingTime } from './state.js';
+import { currentSchedule, currentLeaves, salonClosingTime, setLeaves, setSchedule } from './state.js';
 import { renderActionButtons } from './ui-components.js';
+import { fetchAndRenderLeaves } from './settings.js';
 
 let appointmentsCache = [];
 let currentCalendarDate = new Date();
@@ -59,11 +60,16 @@ export function initCalendar() {
             if (typeof updateProfileInputs === 'function') {
                 updateProfileInputs(val);
             }
+
+            // Update Leaves List (Management UI - Strict)
+            fetchAndRenderLeaves(val);
+            // Update Calendar Grid Leaves (Visual UI - Loose/All)
+            loadLeavesForCalendar(val);
         });
     }
 
-    // Load services for ID lookup
-    loadServicesForCalendar();
+    // Load services and schedule for ID lookup and status
+    loadCalendarSettings();
 
     // Start Global Polling (Every 10 seconds)
     if (calendarPollingInterval) clearInterval(calendarPollingInterval);
@@ -74,13 +80,21 @@ export function initCalendar() {
     }, 10000);
 }
 
-async function loadServicesForCalendar() {
+async function loadCalendarSettings() {
     try {
         const res = await fetch('/api/settings');
         const settings = await res.json();
         window.currentServices = settings.services || [];
+
+        // Populate Schedule
+        if (settings.openingHours) {
+            setSchedule(settings.openingHours);
+        }
+
+        // Render after loading schedule to ensure grey days appear
+        renderCalendar();
     } catch (e) {
-        console.error('Failed to load services for calendar', e);
+        console.error('Failed to load settings for calendar', e);
     }
 }
 
@@ -148,13 +162,22 @@ export async function loadWorkersForFilter() {
         updateProfileInputs(saved);
 
         loadAppointments();
+        fetchAndRenderLeaves(saved);
+        loadLeavesForCalendar(saved);
     } else {
         // Ensure default state (hidden profile)
         updateProfileInputs('');
+        fetchAndRenderLeaves('');
+        loadLeavesForCalendar('');
     }
 }
 
+
 // Helper to fill inputs
+
+
+// ...
+
 function updateProfileInputs(adminId) {
     const profileSection = document.getElementById('profile-section');
     const profileUser = document.getElementById('profile-username');
@@ -169,12 +192,47 @@ function updateProfileInputs(adminId) {
         }
     }
 
-    if (profileUser && profileDisplay && adminId) {
+    const leavesName = document.getElementById('leaves-worker-name');
+    const vacationsWrapper = document.getElementById('vacations-wrapper');
+    const daysOffWrapper = document.getElementById('weekly-days-off-wrapper');
+
+    if (adminId) {
+        // WORKER MODE
         const worker = currentWorkers.find(w => w.id == adminId);
         if (worker) {
-            profileUser.value = worker.username || '';
-            profileDisplay.value = worker.displayName || worker.name || '';
+            if (profileUser) profileUser.value = worker.username || '';
+            if (profileDisplay) profileDisplay.value = worker.displayName || worker.name || '';
+
+            if (leavesName) leavesName.textContent = `(pour ${worker.displayName || worker.name})`;
+
+            // Show Days Off
+            if (daysOffWrapper) {
+                daysOffWrapper.style.display = 'block';
+                const checkboxes = document.querySelectorAll('.weekly-off-cb');
+                const workerDaysOff = worker.daysOff || [];
+                checkboxes.forEach(cb => {
+                    cb.checked = workerDaysOff.includes(parseInt(cb.value));
+                });
+            }
+
+            // Show Vacations
+            if (vacationsWrapper) vacationsWrapper.style.display = 'block';
         }
+    } else {
+        // SALON MODE (No adminId selected)
+
+        // Hide Profile Inputs (already done by profileSection logic above)
+        if (profileUser) profileUser.value = '';
+        if (profileDisplay) profileDisplay.value = '';
+
+        // Leaves Title -> Global/Salon
+        if (leavesName) leavesName.textContent = '(Fermetures du Salon)';
+
+        // Hide Weekly Days Off (Salon doesn't use this UI for standard closing days)
+        if (daysOffWrapper) daysOffWrapper.style.display = 'none';
+
+        // Show Vacations (Global Leaves)
+        if (vacationsWrapper) vacationsWrapper.style.display = 'block';
     }
 }
 
@@ -205,6 +263,29 @@ export async function loadAppointments() {
         }
     } catch (e) {
         console.error(e);
+    }
+}
+
+// Separate function for Calendar Leaves (Loose/Visual Mode)
+export async function loadLeavesForCalendar(adminId) {
+    try {
+        let url = `${API_URL}/leaves`;
+        if (adminId) {
+            // Worker View: Worker + Global (Mixed/Loose)
+            url += `?adminId=${adminId}&strict=false`;
+        } else {
+            // Salon View: ALL (No param = ALL)
+            // No params
+        }
+
+        const res = await fetch(url, { headers: getHeaders() });
+        const leaves = await res.json();
+
+        setLeaves(leaves); // Update Global State for Render
+        renderCalendar(); // Re-render grid
+
+    } catch (e) {
+        console.error('Failed to load calendar leaves:', e);
     }
 }
 
@@ -463,6 +544,7 @@ function renderCalendar() {
 }
 
 export function changeMonth(delta) {
+    currentCalendarDate.setDate(1); // Avoid month rollover issues
     currentCalendarDate.setMonth(currentCalendarDate.getMonth() + delta);
     renderCalendar();
 }
@@ -470,6 +552,7 @@ export function changeMonth(delta) {
 export function jumpToDate() {
     const m = parseInt(document.getElementById('calendar-month-select').value);
     const y = parseInt(document.getElementById('calendar-year-select').value);
+    currentCalendarDate.setDate(1); // Avoid month rollover issues
     currentCalendarDate.setFullYear(y);
     currentCalendarDate.setMonth(m);
     renderCalendar();

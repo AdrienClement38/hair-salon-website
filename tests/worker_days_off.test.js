@@ -30,39 +30,33 @@ describe('Worker Weekly Days Off', () => {
         }
     });
 
-    test('Should create a worker with days off (Monday=1)', async () => {
+    test('Should create a worker with days off (Wednesday=3)', async () => {
         const payload = {
-            username: 'mondays_off',
+            username: 'wednesdays_off',
             password: 'password123',
-            displayName: 'No Monday',
-            daysOff: [1] // Monday
+            displayName: 'No Wednesday',
+            daysOff: [3] // Wednesday to avoid Monday closure conflict
         };
 
         const res = await request(app)
             .post('/api/admin/workers')
-            .set('Authorization', adminToken) // Use token directly (Basic ...)
+            .set('Authorization', adminToken)
             .send(payload);
 
-        if (res.status !== 200) console.error("Create Worker Error:", res.body);
         expect(res.status).toBe(200);
 
-        // Fetch to verify ID
         const list = await request(app).get('/api/admin/workers').set('Authorization', adminToken);
-        const worker = list.body.find(w => w.username === 'mondays_off');
+        const worker = list.body.find(w => w.username === 'wednesdays_off');
         expect(worker).toBeDefined();
         workerId = worker.id;
-
-        // Verify days_off (via DB query or list response)
-        // Checking API response property
-        // listPublicWorkers exposes daysOff? No, listWorkers (admin) does.
-        expect(worker.daysOff).toEqual([1]);
+        expect(worker.daysOff).toEqual([3]);
     });
 
-    test('Should NOT have slots on Monday', async () => {
-        // Find next Monday
+    test('Should NOT have slots on Wednesday', async () => {
+        // Find next Wednesday
         const d = new Date();
-        d.setDate(d.getDate() + ((1 + 7 - d.getDay()) % 7));
-        if (d.getDay() !== 1) d.setDate(d.getDate() + 7); // Safety ensure future
+        d.setDate(d.getDate() + ((3 + 7 - d.getDay()) % 7));
+        if (d.getDay() !== 3) d.setDate(d.getDate() + 7);
 
         const dateStr = d.toISOString().split('T')[0];
 
@@ -70,7 +64,6 @@ describe('Worker Weekly Days Off', () => {
             .get(`/api/slots?date=${dateStr}&adminId=${workerId}`)
             .expect(200);
 
-        // Expect empty slots or reason
         expect(res.body.slots).toEqual([]);
         expect(res.body.reason).toBe('worker_off_day');
     });
@@ -79,7 +72,6 @@ describe('Worker Weekly Days Off', () => {
         // Find next Tuesday
         const d = new Date();
         d.setDate(d.getDate() + ((2 + 7 - d.getDay()) % 7));
-        // Ensure it's not today if today is Tuesday 20:00 (closed)
         const today = new Date();
         if (d.getDate() === today.getDate()) {
             d.setDate(d.getDate() + 7);
@@ -87,13 +79,13 @@ describe('Worker Weekly Days Off', () => {
 
         const dateStr = d.toISOString().split('T')[0];
 
-        // Assuming shop is open on Tuesday
         const res = await request(app)
             .get(`/api/slots?date=${dateStr}&adminId=${workerId}`)
             .expect(200);
 
-        // Should return slots
         expect(Array.isArray(res.body.slots)).toBe(true);
+        // If Tuesday isn't closed globally, this should pass.
+        // Assuming open since user said Mon/Sun closed usually.
         expect(res.body.slots.length).toBeGreaterThan(0);
     });
 });

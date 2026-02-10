@@ -211,7 +211,20 @@ class AppointmentService {
         const sortedCandidates = Array.from(candidateStartTimes).sort((a, b) => a - b);
         const timeSlots = [];
 
+        // Check for today to filter past slots
+        const nowObj = new Date();
+        const year = nowObj.getFullYear();
+        const month = String(nowObj.getMonth() + 1).padStart(2, '0');
+        const day = String(nowObj.getDate()).padStart(2, '0');
+        const todayStr = `${year}-${month}-${day}`;
+        const currentMinutes = nowObj.getHours() * 60 + nowObj.getMinutes();
+
         for (const t of sortedCandidates) {
+            // Filter out past times if date is today
+            if (date === todayStr && t <= currentMinutes) {
+                continue;
+            }
+
             const h = Math.floor(t / 60);
             const m = t % 60;
             timeSlots.push(`${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`);

@@ -9,18 +9,146 @@ const bookingForm = document.getElementById('booking-form');
 const workerInput = document.getElementById('worker');
 const serviceInput = document.getElementById('service');
 
-export function initBooking() {
-    // Set min date
-    const today = new Date().toISOString().split('T')[0];
-    dateInput.min = today;
+let flatpickrInstance = null;
+let salonSettings = {
+    openingHours: { closedDays: [] },
+    holidays: []
+};
+let availableWorkers = []; // Store workers with their schedule
 
+export async function initBooking() {
     // Hide Submit Button Initially
     const submitBtn = document.querySelector('button[type="submit"]');
     if (submitBtn) submitBtn.style.display = 'none';
 
+    // Helper to calculate rules
+    window.updateCalendarRules = function () {
+        if (!flatpickrInstance) return;
+
+        const workerId = workerInput.value;
+        // Use loose equality for string/number match
+        const worker = availableWorkers.find(w => w.id == workerId);
+
+        const rules = [];
+
+        // 1. Global Holiday Ranges
+        if (salonSettings.holidayRanges) {
+            salonSettings.holidayRanges.forEach(range => {
+                rules.push({ from: range.start, to: range.end });
+            });
+        }
+
+        // 2. Worker Specific Leaves
+        if (worker && worker.leaves) {
+            worker.leaves.forEach(l => {
+                rules.push({ from: l.start_date, to: l.end_date });
+            });
+        }
+
+        // 3. Weekly & Single Dates
+        rules.push(function (date) {
+            const day = date.getDay(); // 0-6
+
+            // Global Weekly Closing
+            if (Array.isArray(salonSettings.openingHours)) {
+                const dayConfig = salonSettings.openingHours.find(d => d.day === day);
+                if (dayConfig && !dayConfig.isOpen) return true;
+            } else if (salonSettings.openingHours && salonSettings.openingHours.closedDays &&
+                salonSettings.openingHours.closedDays.includes(day)) {
+                return true;
+            }
+
+            // Worker Weekly Off (if selected)
+            if (worker && worker.daysOff && worker.daysOff.includes(day)) {
+                return true;
+            }
+
+            // Global Single Holidays
+            const dateStr = date.toISOString().split('T')[0];
+            if (salonSettings.holidays && salonSettings.holidays.includes(dateStr)) {
+                return true;
+            }
+
+            return false;
+        });
+
+        flatpickrInstance.set('disable', rules);
+    };
+
+    // 1. Fetch Settings (for Calendar Constraints)
+    try {
+        const res = await fetch(`/api/settings?t=${Date.now()}`);
+        const settings = await res.json();
+        salonSettings = settings;
+    } catch (e) {
+        console.error("Error loading settings for calendar", e);
+    }
+
+    // 2. Initialize Flatpickr
+    const today = new Date();
+    const maxDate = new Date();
+    maxDate.setMonth(maxDate.getMonth() + 2);
+
+    // Prepare Disable Array
+    const disableRules = [];
+
+    // 1. Add Holiday Ranges (Global Leaves)
+    if (salonSettings.holidayRanges) {
+        salonSettings.holidayRanges.forEach(range => {
+            disableRules.push({ from: range.start, to: range.end });
+        });
+    }
+
+    // 2. Add Function for Weekly Closures & Single Holidays
+    disableRules.push(function (date) {
+        // Check Weekly Closing
+        const day = date.getDay(); // 0 (Sun) to 6 (Sat)
+
+        if (Array.isArray(salonSettings.openingHours)) {
+            const dayConfig = salonSettings.openingHours.find(d => d.day === day);
+            if (dayConfig && !dayConfig.isOpen) {
+                return true;
+            }
+        }
+        else if (salonSettings.openingHours && salonSettings.openingHours.closedDays &&
+            salonSettings.openingHours.closedDays.includes(day)) {
+            return true;
+        }
+
+        // Check Holidays (Single Dates)
+        const dateStr = date.toISOString().split('T')[0];
+        if (salonSettings.holidays && salonSettings.holidays.includes(dateStr)) {
+            return true;
+        }
+
+        return false;
+    });
+
+    flatpickrInstance = flatpickr("#date", {
+        locale: "fr",
+        minDate: "today",
+        maxDate: maxDate,
+        dateFormat: "Y-m-d",
+        altInput: true,
+        altFormat: "d-m-Y",
+        altFormat: "d-m-Y",
+        disableMobile: "true",
+        // remove static disable array, we will set it dynamically
+        disable: [],
+        onReady: function () {
+            updateCalendarRules(); // Set initial rules
+        },
+        onChange: function (selectedDates, dateStr, instance) {
+            updateSlots();
+        }
+    });
+
     // Listeners
-    dateInput.addEventListener('change', updateSlots);
-    workerInput.addEventListener('change', updateSlots);
+    // dateInput listener removed (handled by Flatpickr onChange)
+    workerInput.addEventListener('change', () => {
+        updateCalendarRules();
+        updateSlots();
+    });
     serviceInput.addEventListener('change', updateSlots);
 
     // Form Submit
@@ -53,8 +181,6 @@ export function initBooking() {
             const result = await res.json();
 
             if (res.ok) {
-
-
                 const serviceName = serviceInput.options[serviceInput.selectedIndex].text;
                 const workerName = workerInput.options[workerInput.selectedIndex].text;
 
@@ -65,6 +191,7 @@ export function initBooking() {
 
                 // Immediate Reset
                 bookingForm.reset();
+                if (flatpickrInstance) flatpickrInstance.clear();
                 slotsContainer.innerHTML = '';
                 selectedTimeInput.value = '';
 
@@ -221,6 +348,7 @@ async function loadWorkers() {
     try {
         const res = await fetch(`/api/workers?t=${Date.now()}`);
         const workers = await res.json();
+        availableWorkers = workers; // Store for calendar logic
 
         workerInput.innerHTML = '<option value="">-- Choisir --</option>';
         workers.forEach(w => {

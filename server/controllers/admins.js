@@ -38,11 +38,28 @@ exports.listPublicWorkers = async (req, res) => {
     try {
         // console.log("Public Workers Request");
         const workers = await db.getAllAdmins();
-        const safeWorkers = workers.map(w => ({
-            id: w.id,
-            name: w.display_name || w.username,
-            daysOff: w.days_off
+        const today = new Date().toISOString().split('T')[0];
+
+        const safeWorkers = await Promise.all(workers.map(async w => {
+            // Fetch leaves (Strict = true, only this worker)
+            const leaves = await db.getLeaves(w.id, true);
+
+            // Filter future or current leaves
+            const futureLeaves = leaves
+                .filter(l => l.end_date >= today)
+                .map(l => ({
+                    start_date: l.start_date,
+                    end_date: l.end_date
+                }));
+
+            return {
+                id: w.id,
+                name: w.display_name || w.username,
+                daysOff: w.days_off,
+                leaves: futureLeaves
+            };
         }));
+
         res.json(safeWorkers);
     } catch (e) {
         res.status(500).json({ error: e.message });

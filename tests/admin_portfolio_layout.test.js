@@ -1,4 +1,6 @@
 const puppeteer = require('puppeteer');
+const http = require('http');
+const app = require('../server/app');
 
 const BASE_URL = 'http://localhost:3000';
 const ADMIN_USER = 'admin';
@@ -45,6 +47,11 @@ test('Admin Portfolio: Layout should be 5 columns and square items', async () =>
         headless: "new",
         args: ['--no-sandbox', '--disable-setuid-sandbox', '--window-size=1280,800']
     });
+
+    // Start Server
+    const server = http.createServer(app);
+    await new Promise(resolve => server.listen(3000, resolve));
+
     const page = await browser.newPage();
     page.on('console', msg => console.log('PAGE LOG:', msg.text()));
     await page.setViewport({ width: 1280, height: 800 });
@@ -183,5 +190,6 @@ test('Admin Portfolio: Layout should be 5 columns and square items', async () =>
 
     } finally {
         await browser.close();
+        if (server) await new Promise(resolve => server.close(resolve));
     }
 }, 60000);

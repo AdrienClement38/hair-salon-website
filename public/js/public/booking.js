@@ -512,10 +512,21 @@ async function joinWaitlist() {
                 }
             }, 4000);
         } else {
-            msgEl.style.backgroundColor = '#ffe6e6';
-            msgEl.style.color = '#d63031';
-            msgEl.style.border = '1px solid #ff7675';
-            msgEl.textContent = data.error || "Erreur lors de l'inscription.";
+            msgEl.style.backgroundColor = '#fff3cd'; // Warn yellow/orange for conflicts
+            msgEl.style.color = '#856404';
+            msgEl.style.border = '1px solid #ffeeba';
+
+            // Check if specific error to add icon
+            if (data.error && data.error.includes("déjà sur la liste")) {
+                msgEl.innerHTML = `<strong>Attention</strong><br>${data.error}`;
+            } else {
+                msgEl.textContent = data.error || "Erreur lors de l'inscription.";
+                // Reset to red for generic errors
+                msgEl.style.backgroundColor = '#ffe6e6';
+                msgEl.style.color = '#d63031';
+                msgEl.style.border = '1px solid #ff7675';
+            }
+
             btn.disabled = false;
             btn.textContent = originalText;
         }

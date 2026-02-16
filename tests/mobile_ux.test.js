@@ -1,4 +1,6 @@
 const puppeteer = require('puppeteer');
+const http = require('http');
+const app = require('../server/app');
 
 const BASE_URL = 'http://localhost:3000';
 
@@ -6,7 +8,13 @@ describe('Mobile UX Tests', () => {
     let browser;
     let page;
 
+    let server;
+
     beforeAll(async () => {
+        // Start Server
+        server = http.createServer(app);
+        await new Promise(resolve => server.listen(3000, resolve));
+
         browser = await puppeteer.launch({
             headless: 'new',
             args: ['--no-sandbox', '--disable-setuid-sandbox']
@@ -15,7 +23,8 @@ describe('Mobile UX Tests', () => {
     });
 
     afterAll(async () => {
-        await browser.close();
+        if (browser) await browser.close();
+        if (server) await new Promise(resolve => server.close(resolve));
     });
 
     test('Mobile: Page should not have horizontal scroll', async () => {

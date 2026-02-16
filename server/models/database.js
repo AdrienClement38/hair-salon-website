@@ -1026,6 +1026,22 @@ const findNextWaitingRequest = async (date, serviceIdsCompatible, workerId = nul
   })[0]; // Return the first one (FIFO)
 };
 
+const findWaitingRequestByClient = async (email, date) => {
+  // Check if client already has a request for this date
+  // We include WAITING, OFFER_SENT, BOOKED (active states)
+  // We exclude REFUSED, EXPIRED (inactive states, retry allowed)
+  let sql;
+  const params = [email, date];
+
+  if (type === 'pg') {
+    sql = "SELECT * FROM waiting_list_requests WHERE client_email = $1 AND target_date = $2 AND status IN ('WAITING', 'OFFER_SENT', 'BOOKED')";
+  } else {
+    sql = "SELECT * FROM waiting_list_requests WHERE client_email = ? AND target_date = ? AND status IN ('WAITING', 'OFFER_SENT', 'BOOKED')";
+  }
+
+  return await getOne(sql, params);
+};
+
 const updateWaitingRequestStatus = async (id, status, token = null, expires = null) => {
   // Updates status, and optionally sets token/expiry (for making an offer)
   if (type === 'pg') {
@@ -1163,6 +1179,7 @@ module.exports = {
   getPendingWaitingDates,
   getWaitingRequestsForDate,
   findNextWaitingRequest,
+  findWaitingRequestByClient,
   updateWaitingRequestStatus,
   getWaitingRequestByToken,
   getExpiredOffers,

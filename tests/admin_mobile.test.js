@@ -1,4 +1,6 @@
 const puppeteer = require('puppeteer');
+const http = require('http');
+const app = require('../server/app');
 
 const BASE_URL = 'http://localhost:3000/admin.html';
 
@@ -7,8 +9,13 @@ jest.setTimeout(45000);
 describe('Admin Mobile UX Tests', () => {
     let browser;
     let page;
+    let server;
 
     beforeAll(async () => {
+        // Start Server
+        server = http.createServer(app);
+        await new Promise(resolve => server.listen(3000, resolve));
+
         browser = await puppeteer.launch({
             headless: 'new',
             args: ['--no-sandbox', '--disable-setuid-sandbox']
@@ -40,6 +47,7 @@ describe('Admin Mobile UX Tests', () => {
 
     afterAll(async () => {
         if (browser) await browser.close();
+        if (server) await new Promise(resolve => server.close(resolve));
     });
 
     // Helper to force switch tab

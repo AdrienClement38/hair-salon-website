@@ -25,6 +25,9 @@ exports.join = async (req, res) => {
         res.json({ success: true });
     } catch (e) {
         console.error('Join Waitlist Error:', e);
+        if (e.message.includes("déjà sur la liste")) {
+            return res.status(409).json({ error: e.message }); // 409 Conflict
+        }
         res.status(500).json({ error: "Erreur lors de l'inscription." });
     }
 };

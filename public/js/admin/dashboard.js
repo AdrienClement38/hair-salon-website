@@ -1,9 +1,9 @@
-import { API_URL, getHeaders } from './config.js';
+// public/js/admin/dashboard.js
+import { apiFetch } from '../utils/api.js';
 import { loadSettings } from './settings.js';
-import { loadAppointments, autoOpenDayDetails, loadWorkersForFilter } from './calendar.js';
+import { loadAppointments, autoOpenDayDetails } from './calendar.js';
 
-let lastSettingsTS = Date.now();
-let lastApptTS = Date.now();
+let pollingInterval = null;
 
 export async function loadDashboard(isInitial = false) {
     await loadSettings();
@@ -11,62 +11,24 @@ export async function loadDashboard(isInitial = false) {
     loadCurrentUser();
     if (isInitial) {
         autoOpenDayDetails();
+        startPolling();
     }
 }
 
 async function loadCurrentUser() {
     try {
-        const res = await fetch(`${API_URL}/me`, { headers: getHeaders() });
-        const user = await res.json();
-
-        // Populate Profile Form - HANDLED IN settings.js dynamically
-        // const displayInput = document.getElementById('profile-displayname');
-        // if (displayInput && user.displayName) {
-        //    displayInput.value = user.displayName;
-        // }
-
-        // Maybe show name in header
-        const headerTitle = document.querySelector('#dashboard-view header h1');
-        if (headerTitle) {
-            // headerTitle.textContent = `Tableau de Bord - ${user.displayName}`;
-        }
-
-    } catch (e) {
-        console.error('Failed to load user info', e);
-    }
+        const res = await apiFetch('api/auth_status.php');
+        const data = await res.json();
+        // User data might be in data.user if authenticated
+    } catch (e) { console.error(e); }
 }
 
-// Polling System
-
-export async function pollUpdates() {
-    const dashboardView = document.getElementById('dashboard-view');
-    if (dashboardView.style.display !== 'block') return;
-
-    try {
-        const res = await fetch(`/api/updates?lastSettings=${lastSettingsTS}&lastAppt=${lastApptTS}`, { headers: getHeaders() });
-        const data = await res.json();
-
-        // console.log('[Polling] Response:', data);
-
-        let settingsChanged = false;
-        let apptChanged = false;
-
-        if (data.needsSettingsUpdate) {
-            console.log('Settings update detected');
-            lastSettingsTS = data.settingsTimestamp;
-            await loadWorkersForFilter(); // Reload workers first to update names
-            await loadSettings(); // Then re-render UI (headers, holidays) using new names
-            settingsChanged = true;
+function startPolling() {
+    if (pollingInterval) clearInterval(pollingInterval);
+    pollingInterval = setInterval(() => {
+        const dashboard = document.getElementById('dashboard-view');
+        if (dashboard && dashboard.style.display !== 'none') {
+            loadAppointments();
         }
-
-        if (data.needsApptUpdate) {
-            console.log('Appt update detected');
-            lastApptTS = data.apptTimestamp;
-            await loadAppointments();
-            apptChanged = true;
-        }
-
-    } catch (e) {
-        console.error('Polling error', e);
-    }
+    }, 5000); // 5 seconds
 }

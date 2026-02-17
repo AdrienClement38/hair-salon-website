@@ -1,4 +1,4 @@
-import { API_URL, getHeaders } from './config.js';
+import { apiFetch } from '../utils/api.js';
 import { currentProducts, setProducts } from './state.js';
 import { renderActionButtons } from './ui-components.js';
 
@@ -179,14 +179,22 @@ export async function addProduct() {
         formData.append(uniqueId, fileInput.files[0]);
 
         try {
-            const res = await fetch(`${API_URL}/upload`, {
+            // api/upload.php expects key 'file' or similar? 
+            // In upload.php: $fileToCheck = $_FILES['image'] ?? $_FILES['file'] ?? reset($_FILES);
+            // So any key works, but simpler is better.
+            // Original code used a uniqueId key. PHP `reset($_FILES)` handles it.
+
+            const res = await apiFetch('api/upload', {
                 method: 'POST',
-                headers: { 'Authorization': 'Basic ' + localStorage.getItem('auth') },
+                // Content-Type header is NOT set manually for FormData, browser does it with boundary
                 body: formData
             });
 
             if (!res.ok) throw new Error('Erreur upload');
-            imageName = uniqueId;
+            const data = await res.json();
+            imageName = data.filename || data.file; // PHP returns {success:true, filename:...} or relative path? 
+            // upload.php returns: json_response(['success' => true, 'filename' => $uniqueName, 'path' => $uploadFileRelative]);
+            // So 'filename' is the basename.
         } catch (e) {
             console.error(e);
             return alert("Erreur lors de l'upload de l'image");
@@ -234,10 +242,9 @@ export async function removeProduct(index) {
 
 async function saveProducts(products) {
     try {
-        await fetch(`${API_URL}/settings`, {
+        await apiFetch('api/settings_update.php', {
             method: 'POST',
-            headers: getHeaders(),
-            body: JSON.stringify({ products })
+            body: { products }
         });
     } catch (e) {
         console.error(e);

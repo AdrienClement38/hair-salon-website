@@ -1,12 +1,8 @@
 // public/js/admin/config.js
-
-export const API_URL = '/api/admin';
+export const API_URL = '/api'; // Simpler base, or just use relative paths in apiFetch
 
 export function getHeaders() {
-    const auth = localStorage.getItem('auth');
-    if (!auth) return {};
     return {
-        'Authorization': 'Basic ' + auth,
         'Content-Type': 'application/json'
     };
 }

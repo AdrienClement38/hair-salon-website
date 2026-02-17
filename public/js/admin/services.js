@@ -1,5 +1,5 @@
 // public/js/admin/services.js
-import { API_URL, getHeaders } from './config.js';
+import { apiFetch } from '../utils/api.js';
 import { renderActionButtons } from './ui-components.js';
 
 let currentServices = [];
@@ -223,10 +223,9 @@ export async function saveServicesSettings(silent = false) {
     };
 
     try {
-        const res = await fetch(`${API_URL}/settings`, {
+        const res = await apiFetch('api/settings', {
             method: 'POST',
-            headers: getHeaders(),
-            body: JSON.stringify(settings)
+            body: settings
         });
         if (!res.ok) throw new Error('Network response was not ok');
 

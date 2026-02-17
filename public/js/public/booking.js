@@ -1,6 +1,6 @@
-// public/js/public/booking.js
 import { formatDateDisplay } from './config.js';
 import { showMessage } from './ui.js';
+import { apiFetch } from '../utils/api.js'; // Import custom fetch wrapper
 
 const dateInput = document.getElementById('date');
 const slotsContainer = document.getElementById('slots-container');
@@ -77,7 +77,10 @@ export async function initBooking() {
 
     // 1. Fetch Settings (for Calendar Constraints)
     try {
-        const res = await fetch(`/api/settings?t=${Date.now()}`);
+        // ... (Matched via context in execution)
+        // I will use multiple replacements or strict targets.
+        // Since file is large, I'll use specific blocks for each fetch.
+
         const settings = await res.json();
         salonSettings = settings;
     } catch (e) {
@@ -172,15 +175,15 @@ export async function initBooking() {
         const data = { name, phone, email, service, date, time, adminId };
 
         try {
-            const res = await fetch('/api/book', {
+            // Book
+            const bookRes = await apiFetch('api/appointments_book.php', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(data)
+                body: data
             });
 
-            const result = await res.json();
+            const result = await bookRes.json();
 
-            if (res.ok) {
+            if (bookRes.ok) {
                 const serviceName = serviceInput.options[serviceInput.selectedIndex].text;
                 const workerName = workerInput.options[workerInput.selectedIndex].text;
 
@@ -266,7 +269,7 @@ async function loadSlots(date, adminId, serviceId) {
     if (submitBtn) submitBtn.style.display = 'none';
 
     try {
-        const res = await fetch(`/api/slots?date=${date}&adminId=${adminId}&serviceId=${serviceId}`);
+        const res = await apiFetch(`api/appointments_get.php?type=slots&date=${date}&adminId=${adminId}&serviceId=${serviceId}`);
         const data = await res.json();
         renderSlots(data.slots || [], data.reason);
     } catch (err) {
@@ -346,7 +349,7 @@ function selectSlot(btn, time) {
 
 async function loadWorkers() {
     try {
-        const res = await fetch(`/api/workers?t=${Date.now()}`);
+        const res = await apiFetch(`api/workers_list.php?t=${Date.now()}`);
         const workers = await res.json();
         availableWorkers = workers; // Store for calendar logic
 
@@ -368,7 +371,10 @@ export const refreshBookingWorkers = loadWorkers;
 export async function loadServices() {
     serviceInput.innerHTML = '<option value="">Chargement...</option>';
     try {
-        const res = await fetch(`/api/settings?t=${Date.now()}`);
+        // ... (Matched via context in execution)
+        // I will use multiple replacements or strict targets.
+        // Since file is large, I'll use specific blocks for each fetch.
+
         const settings = await res.json();
         const services = settings.services || [];
 
@@ -455,10 +461,9 @@ async function joinWaitlist() {
     };
 
     try {
-        const res = await fetch('/api/waiting-list', {
+        const res = await apiFetch('api/waiting_list.php', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
+            body: payload
         });
 
         const data = await res.json();

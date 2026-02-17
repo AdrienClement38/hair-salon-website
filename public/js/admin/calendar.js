@@ -1,4 +1,5 @@
-import { API_URL, getHeaders, formatDateDisplay } from './config.js';
+import { API_URL, formatDateDisplay } from './config.js';
+import { apiFetch } from '../utils/api.js';
 import { currentSchedule, currentLeaves, salonClosingTime, setLeaves, setSchedule } from './state.js';
 import { renderActionButtons } from './ui-components.js';
 import { fetchAndRenderLeaves } from './settings.js';
@@ -82,7 +83,7 @@ export function initCalendar() {
 
 async function loadCalendarSettings() {
     try {
-        const res = await fetch('/api/settings');
+        const res = await apiFetch('api/settings');
         const settings = await res.json();
         window.currentServices = settings.services || [];
 
@@ -115,7 +116,8 @@ function initYearSelect() {
 export async function loadWorkersForFilter() {
     try {
         // Use Admin Endpoint to get full details (username, etc.)
-        const res = await fetch('/api/admin/workers', { headers: getHeaders() });
+        // api/users.php gives more details for admins.
+        const res = await apiFetch('api/users');
         const workers = await res.json();
 
         // Map for compatibility with existing code expecting 'name'
@@ -238,7 +240,7 @@ function updateProfileInputs(adminId) {
 
 export async function loadAppointments() {
     const filter = document.getElementById('admin-filter') ? document.getElementById('admin-filter').value : '';
-    const url = filter ? `${API_URL}/appointments?adminId=${filter}` : `${API_URL}/appointments`;
+    const url = filter ? `api/appointments?adminId=${filter}` : `api/appointments`;
 
     try {
         // Update Title dynamically
@@ -249,7 +251,7 @@ export async function loadAppointments() {
             headerTitle.textContent = `Tableau de Bord - ${selectedText}`;
         }
 
-        const res = await fetch(url, { headers: getHeaders() });
+        const res = await apiFetch(url);
         const allAppointments = await res.json();
         // Filter out HOLD appointments (Waitlist offers) to prevent them from appearing in the main agenda
         // They are handled by the Waitlist UI (Orange Badges).
@@ -269,7 +271,7 @@ export async function loadAppointments() {
 // Separate function for Calendar Leaves (Loose/Visual Mode)
 export async function loadLeavesForCalendar(adminId) {
     try {
-        let url = `${API_URL}/leaves`;
+        let url = `api/leaves`;
         if (adminId) {
             // Worker View: Worker + Global (Mixed/Loose)
             url += `?adminId=${adminId}&strict=false`;
@@ -278,7 +280,7 @@ export async function loadLeavesForCalendar(adminId) {
             // No params
         }
 
-        const res = await fetch(url, { headers: getHeaders() });
+        const res = await apiFetch(url);
         const leaves = await res.json();
 
         setLeaves(leaves); // Update Global State for Render
@@ -566,7 +568,7 @@ async function openDayDetails(dateStr, appointments, shouldScroll = true) {
     // Fetch Waitlist Counts
     let wlCounts = [];
     try {
-        const res = await fetch(`${API_URL}/waiting-list/counts?date=${dateStr}`, { headers: getHeaders() });
+        const res = await apiFetch(`api/waiting-list?action=counts&date=${dateStr}`);
         if (res.ok) wlCounts = await res.json();
     } catch (e) { console.error("WL Count error", e); }
 
@@ -678,7 +680,7 @@ async function openDayDetails(dateStr, appointments, shouldScroll = true) {
 
                 // Update Badge Counts (Waitlist Counts still relevant for PENDING)
                 try {
-                    const resCounts = await fetch(`${API_URL}/waiting-list/counts?date=${dateStr}`, { headers: getHeaders() });
+                    const resCounts = await apiFetch(`api/waiting-list?action=counts&date=${dateStr}`);
                     if (resCounts.ok) {
                         const counts = await resCounts.json();
                         // Update Badges Only

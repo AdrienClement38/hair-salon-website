@@ -1,19 +1,20 @@
 // public/js/admin/auth.js
-import { API_URL, getHeaders } from './config.js';
+import { API_URL } from './config.js';
 import { loadDashboard } from './dashboard.js';
+import { apiFetch } from '../utils/api.js';
 
 const loginForm = document.getElementById('login-form');
 const setupView = document.getElementById('setup-view');
 const loginView = document.getElementById('login-view');
 const dashboardView = document.getElementById('dashboard-view');
-const loadingView = document.getElementById('loading-view'); // New
+const loadingView = document.getElementById('loading-view');
 const setupForm = document.getElementById('setup-form');
 
 export function initAuth() {
     // Initial Check
     (async () => {
         try {
-            const res = await fetch('/api/auth/status');
+            const res = await apiFetch('api/auth_status.php');
             const data = await res.json();
 
             if (data.setupRequired) {
@@ -21,13 +22,15 @@ export function initAuth() {
                 setupView.style.display = 'flex';
                 loginView.style.display = 'none';
                 dashboardView.style.display = 'none';
+            } else if (data.isAuthenticated) {
+                showDashboard();
+                loadDashboard(true);
             } else {
-                verifyAuth();
+                showLogin();
             }
         } catch (e) {
             console.error("Auth status check failed", e);
-            // Fallback to login view
-            verifyAuth();
+            showLogin();
         }
     })();
 
@@ -38,17 +41,14 @@ export function initAuth() {
         const password = document.getElementById('setup-password').value;
 
         try {
-            const res = await fetch('/api/auth/setup', {
+            const res = await apiFetch('api/auth/setup', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ username, password })
+                body: { username, password }
             });
 
             if (res.ok) {
-                // Auto login
-                const authString = btoa(`${username}:${password}`);
-                localStorage.setItem('auth', authString);
-                window.location.reload();
+                // Login automatically
+                await login(username, password);
             } else {
                 alert('Erreur lors de la création du compte');
             }
@@ -58,165 +58,77 @@ export function initAuth() {
     });
 
     // Login Handler
-    // Login Handler
-    // Login Handler
     const errorEl = document.getElementById('login-error');
-
-    // Clear error on input
-    if (loginForm && errorEl) {
-        try {
-            loginForm.querySelectorAll('input').forEach(input => {
-                input.addEventListener('input', () => {
-                    errorEl.style.display = 'none';
-                });
-            });
-        } catch (e) {
-            console.warn('Error attaching input listeners', e);
-        }
-    }
-
     if (loginForm) {
+        // Clear error on input
+        loginForm.querySelectorAll('input').forEach(input => {
+            input.addEventListener('input', () => {
+                if (errorEl) errorEl.style.display = 'none';
+            });
+        });
+
         loginForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             const username = document.getElementById('username').value;
             const password = document.getElementById('password').value;
-            const submitBtn = loginForm.querySelector('button[type="submit"]');
-            const originalBtnText = submitBtn.textContent;
+            await login(username, password);
+        });
+    }
+}
 
-            // Reset state
-            errorEl.style.display = 'none';
-            submitBtn.disabled = true;
-            submitBtn.textContent = 'Connexion...';
+async function login(username, password) {
+    const errorEl = document.getElementById('login-error');
+    const submitBtn = document.querySelector('#login-form button[type="submit"]');
+    const originalBtnText = submitBtn ? submitBtn.textContent : 'Connexion';
 
-            // UX: Artificial delay to ensure user sees the "Processing" state
-            await new Promise(r => setTimeout(r, 600));
+    if (errorEl) errorEl.style.display = 'none';
+    if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Connexion...';
+    }
 
-            try {
-                const res = await fetch('/api/auth/login', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ username, password })
-                });
+    try {
+        const res = await apiFetch('api/auth_login.php', {
+            method: 'POST',
+            body: { username, password }
+        });
 
-                if (res.ok) {
-                    const authString = btoa(`${username}:${password}`);
-                    localStorage.setItem('auth', authString);
+        const data = await res.json();
 
-                    // Clear fields to prevent autofill on other forms
-                    document.getElementById('username').value = '';
-                    document.getElementById('password').value = '';
-
-                    // Reload to initialize everything (settings, etc.) with new auth
-                    window.location.reload();
-                } else {
-                    let errorMsg = 'Identifiants incorrects';
-                    try {
-                        const data = await res.json();
-                        if (data.error) errorMsg = data.error;
-                    } catch (jsonErr) {
-                        console.warn('Non-JSON error response');
-                    }
-
-                    errorEl.textContent = errorMsg;
-                    errorEl.style.display = 'block';
-
-                    // Restore button
-                    submitBtn.disabled = false;
-                    submitBtn.textContent = originalBtnText;
-                }
-            } catch (e) {
-                console.error(e);
-                errorEl.textContent = 'Erreur réseau';
-                errorEl.style.display = 'block';
-
-                // Restore button
+        if (res.ok && data.success) {
+            // Success
+            if (submitBtn) {
                 submitBtn.disabled = false;
                 submitBtn.textContent = originalBtnText;
             }
-        });
+            window.location.reload();
+        } else {
+            throw new Error(data.error || 'Identifiants incorrects');
+        }
 
-        // Forgot Password Logic - Native Alert Implementation
-        const forgotLink = document.getElementById('forgot-password-link');
-
-        // Check if email service is configured
-        fetch('/api/settings').then(res => res.json()).then(settings => {
-            if (!settings.emailConfigured && forgotLink) {
-                forgotLink.style.display = 'none';
-            }
-        }).catch(err => console.warn('Failed to check email config for auth UI', err));
-
-        if (forgotLink) {
-            forgotLink.addEventListener('click', async (e) => {
-                e.preventDefault();
-
-                if (confirm("Réinitialisation du mot de passe\n\nUn lien de réinitialisation sera envoyé à l'adresse email configurée pour le salon.\n\nVoulez-vous continuer ?")) {
-                    try {
-                        // Visual feedback during request (optional, but good for UX)
-                        const originalText = forgotLink.textContent;
-                        forgotLink.textContent = "Envoi en cours...";
-                        forgotLink.style.pointerEvents = "none";
-                        forgotLink.style.color = "#999";
-
-                        const res = await fetch('/api/auth/forgot-password', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({})
-                        });
-
-                        // Restore link state
-                        forgotLink.textContent = originalText;
-                        forgotLink.style.pointerEvents = "auto";
-                        forgotLink.style.color = "#666";
-
-                        const contentType = res.headers.get("content-type");
-                        if (contentType && contentType.indexOf("application/json") !== -1) {
-                            const data = await res.json();
-                            if (data.success) {
-                                alert("✅ Un email de réinitialisation a bien été envoyé !\n\nVérifiez la boîte mail du salon pour y trouver le lien.");
-                            } else {
-                                alert('Erreur: ' + (data.error || 'Erreur inconnue'));
-                            }
-                        } else {
-                            const text = await res.text();
-                            console.error('Server Error:', text);
-                            alert('Erreur Serveur (Non-JSON) : ' + text.substring(0, 500));
-                        }
-
-                    } catch (error) {
-                        console.error('Error:', error);
-                        alert('Une erreur est survenue : ' + error.message);
-
-                        // Restore link state in case of error
-                        forgotLink.textContent = "Mot de passe oublié ?";
-                        forgotLink.style.pointerEvents = "auto";
-                        forgotLink.style.color = "#666";
-                    }
-                }
-            });
+    } catch (e) {
+        console.error(e);
+        if (errorEl) {
+            errorEl.textContent = e.message || 'Erreur réseau';
+            errorEl.style.display = 'block';
+        }
+        if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.textContent = originalBtnText;
         }
     }
 }
 
 export async function verifyAuth() {
-    const auth = localStorage.getItem('auth');
-    if (!auth) {
-        showLogin();
-        return;
-    }
-
+    // Kept for compatibility if other modules call it, but initAuth handles main check
+    // Logic is now effectively "check status"
     try {
-        const res = await fetch(`${API_URL}/appointments`, { headers: getHeaders() });
-        if (res.ok) {
-            showDashboard();
-            loadDashboard(true);
-        } else {
-            console.warn('Auth failed or expired');
-            localStorage.removeItem('auth');
+        const res = await apiFetch('api/auth_status.php');
+        const data = await res.json();
+        if (!data.isAuthenticated) {
             showLogin();
         }
-    } catch (err) {
-        console.error(err);
-        localStorage.removeItem('auth');
+    } catch (e) {
         showLogin();
     }
 }
@@ -235,9 +147,13 @@ function showDashboard() {
     setupView.style.display = 'none';
 }
 
-export function logout() {
-    localStorage.removeItem('auth');
-    location.reload();
+export async function logout() {
+    try {
+        await apiFetch('api/auth_logout.php', { method: 'POST' });
+        window.location.reload();
+    } catch (e) {
+        window.location.reload();
+    }
 }
 
-window.logout = logout; // Expose to window for onclick
+window.logout = logout;

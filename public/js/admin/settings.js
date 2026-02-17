@@ -4,14 +4,13 @@ import { setServicesData, renderServicesList } from './services.js';
 import { renderProductsList } from './products.js';
 import { setProducts } from './state.js';
 
+// ...
+import { apiFetch } from '../utils/api.js';
+
 export const loadSettings = async () => {
     try {
-        const token = localStorage.getItem('auth');
-        if (!token) return;
-
-        const response = await fetch('/api/admin/settings', {
-            headers: { 'Authorization': 'Bearer ' + token }
-        });
+        const response = await apiFetch('api/settings');
+        // ...
 
         if (!response.ok) throw new Error('Failed to load settings');
         const settings = await response.json();
@@ -109,31 +108,25 @@ function initProfileFormHandler() {
         if (pass) body.password = pass;
 
         try {
-            let url = '/api/admin/profile'; // Default: Update My Profile
+            // Profile Update
+            // ...
+            let url = 'api/users?me=1'; // Default: Update My Profile using explicit me flag or users.php logic
             let method = 'PUT';
 
             if (selectedId) {
                 // Update specific worker
-                url = `/api/admin/workers/${selectedId}`;
+                url = `api/users?id=${selectedId}`;
             }
 
-            const res = await fetch(url, {
+            const res = await apiFetch(url, {
                 method: method,
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': 'Bearer ' + localStorage.getItem('auth')
-                },
-                body: JSON.stringify(body)
+                body: body
             });
-
             if (res.ok) {
                 alert('Profil mis à jour !');
                 if (passInput) passInput.value = ''; // Clear password field
 
                 // Refresh workers list in filter logic (calendar.js)
-                // Use dynamic import or just reload page? Reload is safer to reflect name changes everywhere.
-                // But user wants smooth experience.
-                // Re-calling loadWorkersForFilter is good.
                 import('./calendar.js').then(mod => {
                     if (mod.loadWorkersForFilter) mod.loadWorkersForFilter();
                 });
@@ -148,6 +141,7 @@ function initProfileFormHandler() {
         }
     });
 }
+
 
 // --- Schedule Logic ---
 
@@ -295,13 +289,9 @@ window.saveWeeklyDaysOff = async () => {
     const daysOff = Array.from(checkboxes).map(cb => parseInt(cb.value));
 
     try {
-        const res = await fetch(`/api/admin/workers/${adminId}`, {
+        const res = await apiFetch(`api/users?id=${adminId}`, {
             method: 'PUT',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${localStorage.getItem('auth')}`
-            },
-            body: JSON.stringify({ daysOff }) // Only updating daysOff
+            body: { daysOff }
         });
 
         if (res.ok) {
@@ -351,10 +341,8 @@ function renderHolidays(ranges) {
 window.deleteLeave = async (id) => {
     if (!confirm('Supprimer cette période ?')) return;
     try {
-        const token = localStorage.getItem('auth');
-        const res = await fetch(`/api/admin/leaves/${id}`, {
-            method: 'DELETE',
-            headers: { 'Authorization': 'Bearer ' + token }
+        const res = await apiFetch(`api/leaves?id=${id}`, {
+            method: 'DELETE'
         });
         if (res.ok) {
             // Refresh list
@@ -374,11 +362,8 @@ let currentFetchId = 0;
 export async function fetchAndRenderLeaves(adminId) {
     const myId = ++currentFetchId;
     try {
-        const token = localStorage.getItem('auth');
         const queryParam = adminId ? `?adminId=${adminId}&strict=true` : '?adminId=null&strict=true';
-        const res = await fetch(`/api/admin/leaves${queryParam}`, {
-            headers: { 'Authorization': 'Bearer ' + token }
-        });
+        const res = await apiFetch(`api/leaves${queryParam}`);
         const leaves = await res.json();
 
         // Race Condition Check
@@ -421,19 +406,14 @@ window.addHolidayRange = async () => {
     if (!start || !end) return alert('Veuillez sélectionner les dates');
 
     try {
-        const token = localStorage.getItem('auth');
-        const res = await fetch('/api/admin/leaves', {
+        const res = await apiFetch('api/leaves', {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': 'Bearer ' + token
-            },
-            body: JSON.stringify({
+            body: {
                 start,
                 end,
                 adminId: adminId,
                 note: adminId ? 'Congés Coiffeur' : 'Fermeture Salon'
-            })
+            }
         });
 
         if (res.ok) {
@@ -475,17 +455,12 @@ window.removeHoliday = async (index) => {
 
 // --- Generic Save Helper ---
 async function saveSetting(key, value) {
-    const token = localStorage.getItem('auth');
     const body = {};
     body[key] = value;
 
-    const res = await fetch('/api/admin/settings', {
+    const res = await apiFetch('api/settings', {
         method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'Authorization': 'Bearer ' + token
-        },
-        body: JSON.stringify(body)
+        body: body
     });
 
     if (!res.ok) throw new Error('Failed to save');
@@ -568,15 +543,10 @@ window.testEmailConfig = async () => {
     // Actually, `server/controllers/settings.js` exports.testEmail takes body props.
     // I should update it to fallback to DB pass if missing.
 
-    const token = localStorage.getItem('auth');
     try {
-        const res = await fetch('/api/admin/settings/test-email', {
+        const res = await apiFetch('api/settings/test-email', {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': 'Bearer ' + token
-            },
-            body: JSON.stringify(config)
+            body: config
         });
         const data = await res.json();
         if (res.ok) {

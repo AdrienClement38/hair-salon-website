@@ -16,8 +16,9 @@ jobs:
           host: ${{ secrets.AD_HOST }}
           username: ${{ secrets.AD_USER }}
           password: ${{ secrets.AD_PASSWORD }}
+          script_stop: true
           script: |
             cd ~/hair-salon-website
             git pull origin main
             npm install --production
-            pkill -f "node index.js" || true
+            nohup pkill -f "node index.js" > /dev/null 2>&1 &

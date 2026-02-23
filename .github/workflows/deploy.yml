@@ -1,0 +1,23 @@
+name: Deploy to Alwaysdata
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.AD_HOST }}
+          username: ${{ secrets.AD_USER }}
+          password: ${{ secrets.AD_PASSWORD }}
+          script: |
+            cd ~/hair-salon-website
+            git pull origin main
+            npm install --production
+            pkill -f "node index.js" || true

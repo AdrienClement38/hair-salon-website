@@ -268,7 +268,82 @@
     padding: 1rem;
 }
 
+/* Product Description Expandable Layout */
+.product-desc-wrapper {
+    margin-top: auto;
+    margin-bottom: auto;
+    /* Added to vertically center this block in the available space */
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+.product-desc-wrapper.expandable {
+    cursor: default;
+    /* Changed from pointer to prevent desktop clicks */
+}
+
+.product-desc-wrapper .truncate-text {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    /* Show only 2 lines by default */
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    transition: all 0.3s ease;
+    margin-bottom: 0.2rem;
+}
+
+.item-card.expanded .product-desc-wrapper .truncate-text {
+    -webkit-line-clamp: unset;
+    line-clamp: unset;
+    /* Show full text */
+}
+
+.product-desc-wrapper .expand-indicator {
+    font-size: 0.8rem;
+    color: var(--primary);
+    /* Gold color from variables */
+    text-align: center;
+    font-style: italic;
+    opacity: 0.8;
+    margin-top: 4px;
+    display: block;
+}
+
+.product-desc-wrapper .expand-indicator::after {
+    content: "Voir plus...";
+}
+
+.item-card.expanded .product-desc-wrapper .expand-indicator::after {
+    content: "Voir moins...";
+}
+
+/* Reset for Desktop >= 769px: Hide "Voir plus" and disable truncation */
+@media (min-width: 769px) {
+    .product-desc-wrapper .truncate-text {
+        display: block;
+        -webkit-line-clamp: unset;
+        line-clamp: unset;
+        margin-bottom: 0px;
+    }
+
+    .product-desc-wrapper .expand-indicator {
+        display: none !important;
+    }
+
+    .product-desc-wrapper.expandable {
+        cursor: default;
+    }
+}
+
 @media (max-width: 768px) {
+
+    /* Activate expansion specifically for mobile */
+    .product-desc-wrapper.expandable {
+        cursor: pointer;
+    }
 
     /* Reduce Carousel Wrapper Padding to give more space */
     .carousel-wrapper {
@@ -283,15 +358,34 @@
         width: 160px;
         min-width: 160px;
         max-width: 160px;
-        min-height: 260px;
+        min-height: 200px;
+        /* Reduced from 260px */
         padding: 0.8rem;
+    }
+
+    /* Fixed height for products to ensure perfectly identical sizes before expansion */
+    #products-grid {
+        align-items: flex-start;
+    }
+
+    #products-grid .item-card {
+        height: 250px;
+        transition: height 0.3s ease;
+    }
+
+    #products-grid .item-card.expanded {
+        height: max-content;
     }
 
     #services-grid .item-card .card-media,
     #products-grid .item-card .card-media {
-        width: 100px;
-        height: 100px;
-        margin-bottom: 0.5rem;
+        width: 90px;
+        /* Slightly reduced */
+        height: 90px;
+        margin-bottom: 0px;
+        /* Removed margin */
+        margin-left: auto;
+        margin-right: auto;
     }
 
     #services-grid .item-card .card-header,
@@ -299,18 +393,27 @@
         flex-direction: column;
         align-items: center;
         text-align: center;
-        gap: 0.2rem;
+        gap: 0;
+        /* Removed gap */
     }
 
     #services-grid .item-card .card-header h3,
     #products-grid .item-card .card-header h3 {
         font-size: 0.95rem;
         text-align: center;
+        margin-bottom: 0;
     }
 
     #services-grid .item-card .card-header .price,
     #products-grid .item-card .card-header .price {
         font-size: 0.95rem;
+    }
+
+    #services-grid .item-card.service-card .service-footer {
+        margin-top: auto;
+        /* Push footer to bottom but naturally tight */
+        padding-top: 5px;
+        /* Reduced padding */
     }
 
     #services-grid .item-card .card-body,

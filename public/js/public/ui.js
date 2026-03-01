@@ -61,6 +61,8 @@ function createItemCard(item, type) {
         `;
     }
 
+    const hasLongDesc = item.description && item.description.length > 50;
+
     return `
         <div class="item-card">
             ${mediaHtml}
@@ -68,7 +70,10 @@ function createItemCard(item, type) {
                 <h3>${item.name}</h3>
                 <span class="price">${item.price}€</span>
             </div>
-            <p class="card-body">${item.description || ''}</p>
+            <div class="product-desc-wrapper ${hasLongDesc ? 'expandable' : ''}" onclick="if(this.classList.contains('expandable')) this.closest('.item-card').classList.toggle('expanded')">
+                <p class="card-body truncate-text">${item.description || ''}</p>
+                ${hasLongDesc ? '<span class="expand-indicator"></span>' : ''}
+            </div>
         </div>
     `;
 }

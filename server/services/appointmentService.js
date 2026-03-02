@@ -361,6 +361,7 @@ class AppointmentService {
         const { reason, source, sendEmail } = options;
         const waitingListService = require('./waitingListService');
         const emailService = require('./emailService');
+        const socketService = require('./socketService'); // IMPORT SOCKET SERVICE
         const { triggerUpdate } = require('../config/polling');
 
         // 1. Fetch Appointment Details BEFORE deletion
@@ -412,7 +413,10 @@ class AppointmentService {
         }
 
         // B. Real-time Update
-        triggerUpdate();
+        triggerUpdate(); // Keep for compatibility if any old polling remains
+        try {
+            socketService.getIO().emit('appointmentsUpdated'); // EMIT SOCKET EVENT
+        } catch (e) { console.error('Socket emit error:', e); }
 
         return { success: true, appointment };
     }

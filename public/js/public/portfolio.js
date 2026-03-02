@@ -51,61 +51,72 @@ function appendItem(item, grid, prepend = false) {
     }
 }
 
-// Smart Polling: Checks for NEW items only
+// WebSocket Portfolio Sync
 export function startPortfolioPolling() {
-    if (pollInterval) return;
     loadPublicPortfolio(); // Initial Load
 
-    pollInterval = setInterval(async () => {
-        try {
-            // Fetch IDs only to be lightweight
-            const res = await fetch('/api/portfolio?format=ids');
-            const serverIds = await res.json();
+    const socket = typeof io !== 'undefined' ? io() : null;
+    if (socket) {
+        socket.on('portfolioUpdated', async () => {
+            console.log('Portfolio update received via WebSocket');
 
-            // Find IDs that are NOT in our displayed set
-            const newIds = serverIds.filter(id => !displayedIds.has(id));
+            // Smart Update: Fetch new IDs and append/remove appropriately
+            try {
+                const res = await fetch('/api/portfolio?format=ids');
+                const serverIds = await res.json();
 
-            if (newIds.length > 0) {
-                // Fetch details for NEW items
-                const detailsRes = await fetch(`/api/portfolio?ids=${newIds.join(',')}`);
-                const newItems = await detailsRes.json();
+                // Find IDs that are NOT in our displayed set
+                const newIds = serverIds.filter(id => !displayedIds.has(id));
 
+                // Find IDs that were deleted from server
+                const deletedIds = Array.from(displayedIds).filter(id => !serverIds.includes(id));
                 const grid = document.getElementById('public-portfolio-grid');
-                if (!grid) return;
 
-                // Prepend new items
-                newItems.forEach(item => {
-                    if (!displayedIds.has(item.id)) {
-                        appendItem(item, grid, true); // Prepend
-                        displayedIds.add(item.id);
-                    }
-                });
+                // Remove deleted
+                if (deletedIds.length > 0 && grid) {
+                    deletedIds.forEach(delId => {
+                        const el = grid.querySelector(`.masonry-item[data-id="${delId}"]`);
+                        if (el) el.remove();
+                        displayedIds.delete(delId);
+                    });
+                }
 
-                // Enforce Limit: Remove Oldest (Last in DOM)
-                const itemsInDom = grid.querySelectorAll('.masonry-item');
-                if (itemsInDom.length > MAX_DISPLAY) {
-                    const excess = itemsInDom.length - MAX_DISPLAY;
-                    for (let i = 0; i < excess; i++) {
-                        const lastItem = grid.lastElementChild;
-                        if (lastItem) {
-                            const idToRemove = parseInt(lastItem.dataset.id);
-                            displayedIds.delete(idToRemove);
-                            grid.removeChild(lastItem);
+                if (newIds.length > 0 && grid) {
+                    // Fetch details for NEW items
+                    const detailsRes = await fetch(`/api/portfolio?ids=${newIds.join(',')}`);
+                    const newItems = await detailsRes.json();
+
+                    // Prepend new items
+                    newItems.forEach(item => {
+                        if (!displayedIds.has(item.id)) {
+                            appendItem(item, grid, true); // Prepend
+                            displayedIds.add(item.id);
+                        }
+                    });
+
+                    // Enforce Limit: Remove Oldest (Last in DOM)
+                    const itemsInDom = grid.querySelectorAll('.masonry-item');
+                    if (itemsInDom.length > MAX_DISPLAY) {
+                        const excess = itemsInDom.length - MAX_DISPLAY;
+                        for (let i = 0; i < excess; i++) {
+                            const lastItem = grid.lastElementChild;
+                            if (lastItem) {
+                                const idToRemove = parseInt(lastItem.dataset.id);
+                                displayedIds.delete(idToRemove);
+                                grid.removeChild(lastItem);
+                            }
                         }
                     }
                 }
+            } catch (e) {
+                console.warn("WebSocket check failed", e);
             }
-        } catch (e) {
-            console.warn("Poll check failed", e);
-        }
-    }, 5000); // Check every 5s
+        });
+    }
 }
 
 export function stopPortfolioPolling() {
-    if (pollInterval) {
-        clearInterval(pollInterval);
-        pollInterval = null;
-    }
+    // WebSockets persist or can be manually disconnected, but we just leave it active to keep data fresh implicitly.
 }
 
 // Utility: Fisher-Yates Shuffle

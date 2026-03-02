@@ -61,8 +61,6 @@ function createItemCard(item, type) {
         `;
     }
 
-    const hasLongDesc = item.description && item.description.length > 50;
-
     return `
         <div class="item-card">
             ${mediaHtml}
@@ -70,9 +68,8 @@ function createItemCard(item, type) {
                 <h3>${item.name}</h3>
                 <span class="price">${item.price}€</span>
             </div>
-            <div class="product-desc-wrapper ${hasLongDesc ? 'expandable' : ''}" onclick="if(this.classList.contains('expandable')) this.closest('.item-card').classList.toggle('expanded')">
+            <div class="product-desc-wrapper" onclick="if(this.classList.contains('expandable')) this.closest('.item-card').classList.toggle('expanded')">
                 <p class="card-body truncate-text">${item.description || ''}</p>
-                ${hasLongDesc ? '<span class="expand-indicator"></span>' : ''}
             </div>
         </div>
     `;
@@ -348,6 +345,38 @@ function updateCarouselUI() {
             }
             if (prevBtn) prevBtn.style.display = 'none';
             if (nextBtn) nextBtn.style.display = 'none';
+        }
+
+        // Dynamically check if descriptions are truncated to add "Voir plus..."
+        if (gridId === 'products-grid') {
+            container.querySelectorAll('.product-desc-wrapper').forEach(descWrapper => {
+                const p = descWrapper.querySelector('.truncate-text');
+                if (!p) return;
+
+                const card = descWrapper.closest('.item-card');
+                const wasExpanded = card.classList.contains('expanded');
+
+                if (wasExpanded) card.classList.remove('expanded');
+
+                // Compare scrollHeight vs clientHeight to detect text overflow
+                const isTextOverflowing = p.scrollHeight > p.clientHeight;
+
+                if (wasExpanded) card.classList.add('expanded');
+
+                if (isTextOverflowing) {
+                    descWrapper.classList.add('expandable');
+                    if (!descWrapper.querySelector('.expand-indicator')) {
+                        const indicator = document.createElement('span');
+                        indicator.className = 'expand-indicator';
+                        descWrapper.appendChild(indicator);
+                    }
+                } else {
+                    descWrapper.classList.remove('expandable');
+                    card.classList.remove('expanded');
+                    const indicator = descWrapper.querySelector('.expand-indicator');
+                    if (indicator) indicator.remove();
+                }
+            });
         }
     });
 }

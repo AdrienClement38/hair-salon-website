@@ -1,46 +1,11 @@
 const puppeteer = require('puppeteer');
 const http = require('http');
 const app = require('../server/app');
+const socketService = require('../server/services/socketService');
 
-const BASE_URL = 'http://localhost:3000';
-const ADMIN_USER = 'admin';
-// Assuming default password or we need to reset/know it. 
-// For test env, we might need to rely on the fact that we can create a user or use existing.
-// Since we don't know the password, we might need a test-helper to reset it or a seeded db.
-// HOWEVER, strict TDD requires a known state.
-// Let's assume 'admin' / 'admin123' or similar standard, OR
-// usage of the `setup-view` if no users exist. 
-// Given previous contexts, the user might be logged in or we can use localStorage injection if we knew the token.
-// PROPOSAL: Use a fresh puppeteer profile? No, state is on server.
+let BASE_URL;
 
-// Let's try to "Login" using the form. If fails, we might need to debug.
-// Or we can simple check the CSS computed styles without login if we can reach the page? 
-// No, admin is protected.
-
-// Workaround: We will check if we can reach the dashboard.
-// If the test fails at login, we'll need to ask user or reset DB. 
-// CAUTION: We should not reset DB in a user session.
-// Maybe we can hijack the `window.initAuth` or similar? 
-// easier: Modify `tests/portfolio_ux.test.js` style but for admin. 
-
-// Let's assume standard flow:
-// 1. Go to /admin.html
-// 2. If login needed, try 'admin'/'password' (just a guess) OR rely on the fact we might have a session? 
-// Puppeteer starts fresh.
-// I will attempt to create a temporary admin via API backdoor or just try to verify CSS by injecting my own HTML in the test page to verify the CSS rules? 
-// No, that doesn't test the real app.
-
-// Best approach: Verification of CSS using a "kitchen sink" approach if login is hard.
-// BUT, let's try to see if we can just test the CSS logic? 
-// No, user wants TDD.
-
-// I'll try to login with "admin" / "admin". If that fails, I'll fail the test and ask for credentials or skip login by injecting token.
-// Actually, I can just check the computed styles of elements if I mock the page content? 
-// No, integration test is better.
-
-// Let's try injecting a "fake" auth token into localStorage before page load.
-// The app checks `localStorage.getItem('auth')`.
-// If I set `auth` to `btoa('admin:admin')`, it might work if 'admin' exists.
+// ...
 
 test('Admin Portfolio: Layout should be 5 columns and square items', async () => {
     const browser = await puppeteer.launch({
@@ -50,7 +15,10 @@ test('Admin Portfolio: Layout should be 5 columns and square items', async () =>
 
     // Start Server
     const server = http.createServer(app);
-    await new Promise(resolve => server.listen(3000, resolve));
+    socketService.init(server);
+    await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
+    const port = server.address().port;
+    BASE_URL = `http://127.0.0.1:${port}`;
 
     const page = await browser.newPage();
     page.on('console', msg => console.log('PAGE LOG:', msg.text()));
@@ -190,6 +158,7 @@ test('Admin Portfolio: Layout should be 5 columns and square items', async () =>
 
     } finally {
         await browser.close();
+        if (socketService.getIO()) socketService.getIO().close();
         if (server) await new Promise(resolve => server.close(resolve));
     }
 }, 60000);

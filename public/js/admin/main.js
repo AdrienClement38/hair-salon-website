@@ -20,7 +20,4 @@ document.addEventListener('DOMContentLoaded', () => {
             headers: { 'Authorization': 'Bearer ' + localStorage.getItem('auth') }
         }).catch(err => console.error('Scan Error:', err));
     }
-
-    // Start polling
-    setInterval(pollUpdates, 5000);
 });

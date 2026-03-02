@@ -71,13 +71,21 @@ export function initCalendar() {
     // Load services and schedule for ID lookup and status
     loadCalendarSettings();
 
-    // Start Global Polling (Every 10 seconds)
+    // Setup WebSockets for Real-time Updates
+    const socket = typeof io !== 'undefined' ? io() : null;
+    if (socket) {
+        socket.on('appointmentsUpdated', () => {
+            console.log('Appointments update received via WebSocket');
+            loadAppointments(); // This refreshes the calendar and day details if open
+        });
+        socket.on('settingsUpdated', () => {
+            console.log('Settings update received via WebSocket');
+            loadCalendarSettings();
+        });
+    }
+
+    // Stop Global Polling
     if (calendarPollingInterval) clearInterval(calendarPollingInterval);
-    calendarPollingInterval = setInterval(() => {
-        // Refresh Appointments (which triggers renderCalendar)
-        // This keeps the Grid View Badges up to date
-        loadAppointments();
-    }, 10000);
 }
 
 async function loadCalendarSettings() {
@@ -709,12 +717,8 @@ async function openDayDetails(dateStr, appointments, shouldScroll = true) {
             };
 
             // Run immediately
-            // await performRefresh(); 
-            // Actually, initial load is already done via arguments.
-
-            // Setup Polling
+            // Setup Polling -> Replaced by WebSockets in initCalendar
             if (window.detailsInterval) clearInterval(window.detailsInterval);
-            window.detailsInterval = setInterval(performRefresh, 10000);
 
         } catch (e) { console.error("WL Init error", e); }
     } // End of if (appointments) check

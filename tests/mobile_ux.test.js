@@ -1,8 +1,9 @@
 const puppeteer = require('puppeteer');
 const http = require('http');
 const app = require('../server/app');
+const socketService = require('../server/services/socketService');
 
-const BASE_URL = 'http://localhost:3000';
+let BASE_URL;
 
 describe('Mobile UX Tests', () => {
     let browser;
@@ -13,7 +14,10 @@ describe('Mobile UX Tests', () => {
     beforeAll(async () => {
         // Start Server
         server = http.createServer(app);
-        await new Promise(resolve => server.listen(3000, resolve));
+        socketService.init(server);
+        await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
+        const port = server.address().port;
+        BASE_URL = `http://127.0.0.1:${port}`;
 
         browser = await puppeteer.launch({
             headless: 'new',
@@ -24,6 +28,7 @@ describe('Mobile UX Tests', () => {
 
     afterAll(async () => {
         if (browser) await browser.close();
+        if (socketService.getIO()) socketService.getIO().close();
         if (server) await new Promise(resolve => server.close(resolve));
     });
 

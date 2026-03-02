@@ -1,5 +1,6 @@
 const app = require('./server/app');
 const http = require('http');
+const socketService = require('./server/services/socketService');
 
 // Export app for Vercel
 module.exports = app;
@@ -7,6 +8,10 @@ module.exports = app;
 // Start server if run directly (Local dev)
 if (require.main === module) {
     const server = http.createServer(app);
+
+    // Initialize Socket.io
+    socketService.init(server);
+
     const port = process.env.PORT || 3000;
 
     const db = require('./server/models/database');

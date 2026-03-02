@@ -2,6 +2,7 @@ const db = require('../models/database');
 const { triggerUpdate } = require('../config/polling');
 const appointmentService = require('../services/appointmentService');
 const waitingListService = require('../services/waitingListService');
+const socketService = require('../services/socketService'); // IMPORT SOCKET SERVICE
 
 exports.list = async (req, res) => {
     const { adminId } = req.query;
@@ -43,6 +44,9 @@ exports.update = async (req, res) => {
     try {
         await db.updateAppointment(req.params.id, time);
         triggerUpdate();
+        try {
+            socketService.getIO().emit('appointmentsUpdated');
+        } catch (e) { console.error('Socket emit error:', e); }
         res.json({ success: true });
     } catch (err) {
         if (err.message.includes('UNIQUE constraint failed') || err.message.includes('duplicate key')) {
@@ -86,6 +90,10 @@ exports.createBooking = async (req, res) => {
         }).catch(err => console.error("Email send failed", err));
 
         triggerUpdate();
+        try {
+            socketService.getIO().emit('appointmentsUpdated');
+        } catch (e) { console.error('Socket emit error:', e); }
+
         res.json({ success: true, id: result.lastInsertRowid });
     } catch (err) {
         if (err.message === 'Slot already booked' || err.message === 'Slot already booked or overlaps') {

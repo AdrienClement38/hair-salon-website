@@ -1,5 +1,6 @@
 const db = require('../models/database');
 const { triggerUpdate } = require('../config/polling');
+const socketService = require('../services/socketService'); // IMPORT SOCKET SERVICE
 const path = require('path');
 
 exports.update = async (req, res) => {
@@ -48,6 +49,10 @@ exports.update = async (req, res) => {
         }
 
         triggerUpdate('settings');
+        try {
+            socketService.getIO().emit('settingsUpdated');
+        } catch (e) { console.error('Socket emit error:', e); }
+
         res.json({ success: true });
     } catch (err) {
         console.error('Settings Update Error:', err);

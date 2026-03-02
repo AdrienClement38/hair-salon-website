@@ -1,6 +1,7 @@
 const db = require('../models/database');
 const fs = require('fs');
 const path = require('path');
+const socketService = require('../services/socketService'); // IMPORT SOCKET SERVICE
 
 exports.list = async (req, res) => {
     try {
@@ -29,6 +30,8 @@ exports.create = async (req, res) => {
         const adminId = req.user ? req.user.id : null;
         await db.createPortfolioItem(filename, description, adminId);
 
+        try { socketService.getIO().emit('portfolioUpdated'); } catch (e) { console.error('Socket emit error:', e); }
+
         res.json({ success: true });
     } catch (err) {
         console.error("Portfolio upload error:", err);
@@ -39,6 +42,7 @@ exports.create = async (req, res) => {
 exports.delete = async (req, res) => {
     try {
         await db.deletePortfolioItem(req.params.id);
+        try { socketService.getIO().emit('portfolioUpdated'); } catch (e) { console.error('Socket emit error:', e); }
         res.json({ success: true });
     } catch (err) {
         res.status(500).json({ error: err.message });

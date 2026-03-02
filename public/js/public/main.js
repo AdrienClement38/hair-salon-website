@@ -10,37 +10,6 @@ window.toggleMenu = function () {
     navList.classList.toggle('active');
 }
 
-let lastSettingsTS = Date.now();
-let lastApptTS = Date.now();
-
-// Poll Updates
-async function pollUpdates() {
-    try {
-        const res = await fetch(`/api/updates?lastSettings=${lastSettingsTS}&lastAppt=${lastApptTS}`);
-        const data = await res.json();
-
-        if (data.needsSettingsUpdate) {
-            console.log('Settings update detected');
-            lastSettingsTS = data.settingsTimestamp;
-            loadSettings();
-            refreshBookingServices(); // Update booking dropdown
-            refreshBookingWorkers(); // Update workers dropdown
-
-            // Refresh Images
-            refreshImages();
-        }
-
-        if (data.needsApptUpdate) {
-            console.log('Appt update detected');
-            lastApptTS = data.apptTimestamp;
-            refreshSlots();
-        }
-
-    } catch (err) {
-        console.warn('Polling error:', err);
-    }
-}
-
 // Load Settings
 async function loadSettings() {
     try {
@@ -68,8 +37,22 @@ document.addEventListener('DOMContentLoaded', () => {
     initBooking();
     loadSettings();
 
-    // Start polling
-    setInterval(pollUpdates, 5000);
+    // Setup WebSockets
+    const socket = typeof io !== 'undefined' ? io() : null;
+    if (socket) {
+        socket.on('settingsUpdated', () => {
+            console.log('Settings update received via WebSocket');
+            loadSettings();
+            refreshBookingServices();
+            refreshBookingWorkers();
+            refreshImages();
+        });
+
+        socket.on('appointmentsUpdated', () => {
+            console.log('Appointments update received via WebSocket');
+            refreshSlots();
+        });
+    }
 
     // Expose navigation
     window.showPortfolio = () => {
@@ -77,7 +60,7 @@ document.addEventListener('DOMContentLoaded', () => {
         document.querySelectorAll('section.hero, section.section').forEach(el => el.style.display = 'none');
         document.getElementById('portfolio-section').style.display = 'block';
 
-        // Start polling
+        // Start polling (Leave as is for now or migrate if needed)
         import('./portfolio.js').then(m => m.startPortfolioPolling());
 
         window.scrollTo(0, 0);

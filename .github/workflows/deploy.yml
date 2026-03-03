@@ -19,6 +19,7 @@ jobs:
           script_stop: true
           script: |
             cd ~/hair-salon-website
-            git pull origin main
+            git fetch origin main
+            git reset --hard origin/main
             npm install --production
             nohup pkill -f "node index.js" > /dev/null 2>&1 &

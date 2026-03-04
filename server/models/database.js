@@ -731,7 +731,7 @@ const saveImage = async (filename, buffer, mimetype) => {
   // NOUVELLE LOGIQUE : Ecriture sur le disque + Sauvegarde du chemin dans la BDD (optionnel car on peut deduire le nom)
   // On garde l'insertion en BDD pour garder l'historique de ce qui a été uploadé (et son mimetype)
   // Mais on sauvegarde physiquement !
-  const outputDir = path.join(__dirname, '../../public/images/portfolio');
+  const outputDir = path.join(__dirname, '../../public/images');
   if (!fs.existsSync(outputDir)) fs.mkdirSync(outputDir, { recursive: true });
 
   let extension = '';

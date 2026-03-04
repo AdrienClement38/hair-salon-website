@@ -26,7 +26,7 @@ export const loadSettings = async () => {
         if (settings.salon_identity) {
             const logoThumb = document.getElementById('thumb-logo');
             if (logoThumb && settings.salon_identity.logo) {
-                logoThumb.src = `/images/${settings.salon_identity.logo}`;
+                logoThumb.src = `/images/${settings.salon_identity.logo}?t=${Date.now()}`;
                 logoThumb.style.display = 'block';
             }
         }
@@ -38,11 +38,11 @@ export const loadSettings = async () => {
             // Images
             const heroThumb = document.getElementById('thumb-hero');
             if (heroThumb && settings.home_content.heroBg) {
-                heroThumb.src = `/images/${settings.home_content.heroBg}`;
+                heroThumb.src = `/images/${settings.home_content.heroBg}?t=${Date.now()}`;
             }
             const philoThumb = document.getElementById('thumb-philosophy');
             if (philoThumb && settings.home_content.philosophyBg) {
-                philoThumb.src = `/images/${settings.home_content.philosophyBg}`;
+                philoThumb.src = `/images/${settings.home_content.philosophyBg}?t=${Date.now()}`;
             }
         }
 

@@ -158,7 +158,6 @@ exports.uploadImages = async (req, res) => {
 exports.serveImage = async (req, res) => {
     try {
         const filename = req.params.filename;
-        const portfolioPath = path.join(__dirname, '../../public/images/portfolio');
         const rootImagesPath = path.join(__dirname, '../../public/images');
 
         console.log(`Demande d'image reçue: ${filename}`);
@@ -196,11 +195,7 @@ exports.serveImage = async (req, res) => {
             });
         };
 
-        // 1. Chercher dans portfolio (nouvelles images uploadées et extraites)
-        const foundInPortfolio = await tryServe(portfolioPath);
-        if (foundInPortfolio) return;
-
-        // 2. Chercher à la racine des images (fichiers originaux existants)
+        // Chercher à la racine des images (fichiers originaux existants)
         const foundInRoot = await tryServe(rootImagesPath);
         if (foundInRoot) return;
 

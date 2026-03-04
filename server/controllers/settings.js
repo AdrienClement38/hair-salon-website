@@ -2,6 +2,7 @@ const db = require('../models/database');
 const { triggerUpdate } = require('../config/polling');
 const socketService = require('../services/socketService'); // IMPORT SOCKET SERVICE
 const path = require('path');
+const fs = require('fs'); // AJOUT DE L'IMPORT MANQUANT POUR FILE SYSTEM
 
 exports.update = async (req, res) => {
     const { openingHours, holidays, holidayRanges, home_content, services, contact_info, products, email_config, salon_identity } = req.body;

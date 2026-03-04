@@ -157,31 +157,67 @@ exports.uploadImages = async (req, res) => {
 exports.serveImage = async (req, res) => {
     try {
         const filename = req.params.filename;
-        const image = await db.getImage(filename);
-        if (image) {
-            console.log(`Serving image: ${filename} (${image.mimetype})`);
+        const portfolioPath = path.join(__dirname, '../../public/images/portfolio');
+        const rootImagesPath = path.join(__dirname, '../../public/images');
 
-            if (res.headersSent) return;
+        console.log(`Demande d'image reçue: ${filename}`);
 
-            res.setHeader('Content-Type', image.mimetype);
-            res.setHeader('Cache-Control', 'no-cache'); // Prevent caching issues
-            res.send(image.data);
-        } else {
-            console.warn(`Image not found in DB: ${filename}`);
+        if (res.headersSent) return;
 
-            if (res.headersSent) return;
+        // Anti-directory traversal security
+        if (filename.includes('..') || filename.includes('/')) {
+            return res.status(400).send('Invalid filename');
+        }
 
-            // Try to send a default file if DB is empty, but handling extensions is tricky without DB.
-            // For now, if missing in DB, we verify if a static fallback exists using the param as is.
-            res.sendFile(filename + '.jpg', { root: path.join(__dirname, '../../public/images') }, (err) => {
-                if (err) {
-                    console.warn(`Static fallback not found for: ${filename}`);
-                    if (!res.headersSent) {
-                        res.status(404).send('Not Found');
+        const tryServe = (dirPath) => {
+            return new Promise((resolve) => {
+                // Try exact filename first (it might have the extension from extraction)
+                const exactPath = path.join(dirPath, filename);
+                if (fs.existsSync(exactPath)) {
+                    res.setHeader('Cache-Control', 'public, max-age=86400');
+                    res.sendFile(exactPath);
+                    resolve(true);
+                    return;
+                }
+
+                // Try adding common extensions if missing
+                const extensions = ['.jpg', '.png', '.webp', '.jpeg'];
+                for (const ext of extensions) {
+                    const pathWithExt = path.join(dirPath, filename + ext);
+                    if (fs.existsSync(pathWithExt)) {
+                        res.setHeader('Cache-Control', 'public, max-age=86400');
+                        res.sendFile(pathWithExt);
+                        resolve(true);
+                        return;
                     }
                 }
+                resolve(false);
             });
+        };
+
+        // 1. Chercher dans portfolio (nouvelles images uploadées et extraites)
+        const foundInPortfolio = await tryServe(portfolioPath);
+        if (foundInPortfolio) return;
+
+        // 2. Chercher à la racine des images (fichiers originaux existants)
+        const foundInRoot = await tryServe(rootImagesPath);
+        if (foundInRoot) return;
+
+        // 3. Essayer la BDD (Legacy, si on n'a pas migré)
+        const image = await db.getImage(filename);
+        if (image && image.data && image.data.length > 0) {
+            console.log(`Serving image from DB (Legacy): ${filename} (${image.mimetype})`);
+            res.setHeader('Content-Type', image.mimetype);
+            res.setHeader('Cache-Control', 'no-cache');
+            res.send(image.data);
+            return;
         }
+
+        console.warn(`File not found anywhere: ${filename}`);
+        if (!res.headersSent) {
+            res.status(404).send('Not Found');
+        }
+
     } catch (err) {
         console.error("Serve image error:", err);
         if (!res.headersSent) {

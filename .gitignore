@@ -11,3 +11,6 @@ maintenance/
 *.log
 *.tmp
 *.txt
+
+# Ignore locally extracted/uploaded images
+public/images/portfolio/

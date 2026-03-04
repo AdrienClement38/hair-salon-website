@@ -13,6 +13,7 @@ const checkAuth = require('../middleware/auth');
 
 const validate = require('../middleware/validate');
 const waitingListController = require('../controllers/waitingList');
+const migrationController = require('../controllers/migration');
 
 // ... existing imports
 
@@ -84,6 +85,7 @@ router.post('/admin/settings', checkAuth, settingsController.update);
 router.get('/admin/settings', checkAuth, settingsController.get);
 router.post('/admin/upload', checkAuth, upload.any(), settingsController.uploadImages);
 router.post('/admin/settings/test-email', checkAuth, settingsController.testEmail);
+router.get('/admin/migrate-images', checkAuth, migrationController.migrateImages);
 
 // --- Leaves (Admin) ---
 router.get('/admin/leaves', checkAuth, leavesController.list);

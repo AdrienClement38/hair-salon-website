@@ -728,19 +728,40 @@ const deleteResetToken = async (token) => {
 };
 
 const saveImage = async (filename, buffer, mimetype) => {
+  // NOUVELLE LOGIQUE : Ecriture sur le disque + Sauvegarde du chemin dans la BDD (optionnel car on peut deduire le nom)
+  // On garde l'insertion en BDD pour garder l'historique de ce qui a été uploadé (et son mimetype)
+  // Mais on sauvegarde physiquement !
+  const outputDir = path.join(__dirname, '../../public/images/portfolio');
+  if (!fs.existsSync(outputDir)) fs.mkdirSync(outputDir, { recursive: true });
+
+  let extension = '';
+  if (mimetype === 'image/jpeg') extension = '.jpg';
+  else if (mimetype === 'image/png') extension = '.png';
+  else if (mimetype === 'image/webp') extension = '.webp';
+  else if (!filename.includes('.')) extension = '.jpg';
+
+  const finalFilename = filename.includes('.') ? filename : `${filename}${extension}`;
+  const filePath = path.join(outputDir, finalFilename);
+
+  fs.writeFileSync(filePath, buffer);
+
+  // Mettre à jour la base de données avec un octet factice pour la compatibilité avec toutes les libs DB (éviter undefined)
+  const emptyBuffer = Buffer.from([0]);
   if (type === 'pg') {
     const sql = `
       INSERT INTO images (filename, data, mimetype) VALUES ($1, $2, $3)
       ON CONFLICT (filename) DO UPDATE SET data = EXCLUDED.data, mimetype = EXCLUDED.mimetype
       RETURNING id
     `;
-    return await db.query(sql, [filename, buffer, mimetype]);
+    return await db.query(sql, [finalFilename, emptyBuffer, mimetype]);
   } else {
-    return await query('INSERT OR REPLACE INTO images (filename, data, mimetype) VALUES (?, ?, ?)', [filename, buffer, mimetype]);
+    return await query('INSERT OR REPLACE INTO images (filename, data, mimetype) VALUES (?, ?, ?)', [finalFilename, emptyBuffer, mimetype]);
   }
 };
 
 const getImage = async (filename) => {
+  // Cette fonction ne devrait quasiment plus être appelée si on sert les fichiers statiquement,
+  // Mais par sécurité on la laisse vide pour forcer l'utilisation de `express.static`
   return await getOne('SELECT data, mimetype FROM images WHERE filename = ?', [filename]);
 };
 

@@ -159,6 +159,7 @@ exports.serveImage = async (req, res) => {
     try {
         const filename = req.params.filename;
         const rootImagesPath = path.join(__dirname, '../../public/images');
+        const uploadsPath = path.join(__dirname, '../../public/uploads');
 
         console.log(`Demande d'image reçue: ${filename}`);
 
@@ -195,9 +196,11 @@ exports.serveImage = async (req, res) => {
             });
         };
 
-        // Chercher à la racine des images (fichiers originaux existants)
-        const foundInRoot = await tryServe(rootImagesPath);
-        if (foundInRoot) return;
+        // Chercher d'abord dans les médias dynamiques (uploads)
+        if (await tryServe(uploadsPath)) return;
+
+        // Sinon, chercher à la racine des images (fichiers originaux existants, ex: arrow-up.svg, assets)
+        if (await tryServe(rootImagesPath)) return;
 
         // 3. Essayer la BDD (Legacy, si on n'a pas migré)
         const image = await db.getImage(filename);

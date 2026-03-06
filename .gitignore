@@ -12,5 +12,5 @@ maintenance/
 *.tmp
 *.txt
 
-# Ignore locally extracted/uploaded images
-public/images/portfolio/
+# Ignore user-generated uploaded images
+public/uploads/

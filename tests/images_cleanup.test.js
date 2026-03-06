@@ -16,7 +16,7 @@ describe('Image Cleanup Logic', () => {
         await db.saveImage(testImg, Buffer.from('test'), 'image/png');
         const fs = require('fs');
         const path = require('path');
-        const imgPath = path.join(__dirname, '../public/images', testImg + '.png');
+        const imgPath = path.join(__dirname, '../public/uploads', testImg + '.png');
         expect(fs.existsSync(imgPath)).toBe(true);
 
         await db.deleteImage(testImg);

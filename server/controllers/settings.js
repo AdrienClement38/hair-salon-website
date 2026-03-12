@@ -176,7 +176,7 @@ exports.serveImage = async (req, res) => {
                 const exactPath = path.join(dirPath, filename);
                 if (fs.existsSync(exactPath)) {
                     res.setHeader('Cache-Control', 'public, max-age=86400');
-                    res.sendFile(exactPath);
+                    res.sendFile(filename, { root: dirPath });
                     resolve(true);
                     return;
                 }
@@ -187,7 +187,7 @@ exports.serveImage = async (req, res) => {
                     const pathWithExt = path.join(dirPath, filename + ext);
                     if (fs.existsSync(pathWithExt)) {
                         res.setHeader('Cache-Control', 'public, max-age=86400');
-                        res.sendFile(pathWithExt);
+                        res.sendFile(filename + ext, { root: dirPath });
                         resolve(true);
                         return;
                     }

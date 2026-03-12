@@ -804,12 +804,12 @@ function renderAppointmentTable(apts, showWorkerCol) {
         <table class="day-details-table">
             <thead>
                 <tr>
-                    <th style="width: 10%;">Heure</th>
-                    <th style="${showWorkerCol ? 'width: 25%;' : 'width: 30%;'}">Service</th>
-                    <th style="${showWorkerCol ? 'width: 20%;' : 'width: 25%;'}">Client</th>
-                    ${showWorkerCol ? '<th style="width: 15%;">Coiffeur</th>' : ''}
-                    <th style="${showWorkerCol ? 'width: 15%;' : 'width: 20%;'}">Tél</th>
-                    <th style="width: 15%;">Action</th>
+                    <th class="col-hour">Heure</th>
+                    <th class="col-service">Service</th>
+                    <th class="col-client">Client</th>
+                    ${showWorkerCol ? '<th class="col-worker">Coiffeur</th>' : ''}
+                    <th class="col-tel">Tél</th>
+                    <th class="col-actions">Action</th>
                 </tr>
             </thead>
             <tbody>
@@ -841,14 +841,19 @@ function renderAppointmentTable(apts, showWorkerCol) {
             statusBadge = '<span class="appt-badge" style="background:#ff9800; color:white">En attente</span>';
         }
 
+        const phoneDisplay = formatPhoneNumberDisplay(apt.phone);
+
         return `
                     <tr style="${rowStyle}">
                         <td>${apt.time}</td>
-                         <td>${serviceDisplay}</td>
-                        <td>${apt.name} ${statusBadge}</td>
-                        ${showWorkerCol ? `<td><span class="appt-badge">${workerName}</span></td>` : ''}
-                        <td>${formatPhoneNumberDisplay(apt.phone)}</td>
+                        <td>${serviceDisplay}</td>
                         <td>
+                            ${apt.name} ${statusBadge}
+                            <div class="phone-subtext">${phoneDisplay}</div>
+                        </td>
+                        ${showWorkerCol ? `<td><span class="appt-badge">${workerName}</span></td>` : ''}
+                        <td class="col-tel">${phoneDisplay}</td>
+                        <td class="col-actions">
                             ${renderActionButtons(
             `openEdit(${apt.id}, '${apt.name.replace("'", "\\'")}', '${apt.date}', '${apt.time}')`,
             `deleteApt(${apt.id}, '${apt.name.replace("'", "\\'")}', '${apt.date}', '${apt.time}', '${serviceDisplay.replace("'", "\\'")}', '${apt.email || ''}', '${(apt.phone || '').replace("'", "\\'")}')`,

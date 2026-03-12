@@ -110,8 +110,27 @@
     display: none;
 }
 
-/* Mobile Calendar Optimization */
-/* Mobile Calendar Optimization */
+/* Desktop Table Base widths */
+.col-hour {
+    width: 10%;
+}
+
+.col-service {
+    width: 30%;
+}
+
+.col-client {
+    width: 25%;
+}
+
+.col-tel {
+    width: 20%;
+}
+
+.col-actions {
+    width: 15%;
+}
+
 @media (max-width: 768px) {
     .calendar-grid {
         gap: 1px;
@@ -159,4 +178,68 @@
     .mobile-break {
         display: block;
     }
+
+    /* Appointment Table Fixes */
+    .day-details-table th,
+    .day-details-table td {
+        padding: 8px 4px;
+        font-size: 0.85rem;
+    }
+
+    .col-hour {
+        width: 15% !important;
+    }
+
+    .col-service {
+        width: 40% !important;
+    }
+
+    .col-client {
+        width: 30% !important;
+    }
+
+    .col-tel {
+        display: none !important;
+    }
+
+    .phone-subtext {
+        display: block !important;
+        font-size: 0.75rem;
+        color: #666;
+        margin-top: 2px;
+    }
+
+    /* Balanced Action column */
+    .col-actions {
+        width: 15% !important;
+        white-space: nowrap !important;
+        padding: 4px 2px !important;
+    }
+
+    .col-actions div[style*="display:flex"] {
+        gap: 4px !important;
+        justify-content: center;
+    }
+
+    .col-actions .btn-action,
+    .col-actions .btn-gold,
+    .col-actions .btn-x {
+        min-width: unset !important;
+        width: 28px !important;
+        height: 28px !important;
+        padding: 0 !important;
+        display: inline-flex !important;
+        align-items: center;
+        justify-content: center;
+        margin: 0 !important;
+    }
+
+    .col-actions .vertical-sep {
+        height: 15px;
+        margin: 0 2px;
+    }
+}
+
+.phone-subtext {
+    display: none;
 }

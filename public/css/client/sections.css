@@ -37,7 +37,7 @@
     color: var(--white);
     font-size: 1rem;
     text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8);
-    background-color: rgba(0, 0, 0, 0.3);
+    background-color: rgba(0, 0, 0, 0.5);
     display: block;
     width: fit-content;
     margin: 0 auto 1rem auto;
@@ -69,9 +69,9 @@
     }
 
     .hero-hours {
-        width: 90%;
+        width: 98%;
         font-size: 0.85rem;
-        padding: 0.8rem;
+        padding: 0.8rem 0.2rem;
     }
 }
 

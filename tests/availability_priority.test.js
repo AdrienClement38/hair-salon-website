@@ -74,8 +74,8 @@ describe('AppointmentService Availability Priorities', () => {
 
         const result = await appointmentService.getAvailableSlots(date, 1);
 
-        // Expect "closed" (mapped from Global Leave logic)
-        expect(result.reason).toBe('closed');
+        // Expect "salon_closed" (mapped from Global Leave logic)
+        expect(result.reason).toBe('salon_closed');
     });
 
     test('Priority 4: Worker Off Day overrides general availability', async () => {

@@ -171,6 +171,8 @@ export async function initBooking() {
 
         const data = { name, phone, email, service, date, time, adminId };
 
+        window.isProcessingBooking = true; // Block WebSocket updates during this process
+
         try {
             const res = await fetch('/api/book', {
                 method: 'POST',
@@ -189,20 +191,23 @@ export async function initBooking() {
                     <div class="booking-time-details">Le ${formatDateDisplay(date)} à ${time}</div>
                 `, 'success');
 
-                // Immediate Reset
+                // Immediate Reset of inputs
                 bookingForm.reset();
                 if (flatpickrInstance) flatpickrInstance.clear();
-                slotsContainer.innerHTML = '';
                 selectedTimeInput.value = '';
 
-                // Auto-hide message after 5 seconds
+                // Auto-hide both message AND slots after 5 seconds as requested
                 setTimeout(() => {
                     showMessage('', '');
+                    slotsContainer.innerHTML = '<p class="text-muted">Sélectionnez une date pour voir les créneaux.</p>';
+                    window.isProcessingBooking = false; // Re-enable updates
                 }, 5000);
             } else {
+                window.isProcessingBooking = false;
                 showMessage(result.error || 'Erreur lors de la réservation.', 'error');
             }
         } catch (err) {
+            window.isProcessingBooking = false;
             showMessage('Erreur réseau.', 'error');
         }
     });
@@ -394,6 +399,7 @@ export async function loadServices() {
 
 // Export for reloading
 export const refreshSlots = () => {
+    if (window.isProcessingBooking) return;
     if (dateInput.value) updateSlots();
 };
 

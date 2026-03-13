@@ -243,3 +243,35 @@
 .phone-subtext {
     display: none;
 }
+
+/* Slots Grid for Admin Modal */
+.slots-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+    gap: 10px;
+}
+
+.slot-btn {
+    padding: 10px;
+    border: 1px solid #ddd;
+    background: #f1f1f1;
+    border-radius: 4px;
+    cursor: pointer;
+    text-align: center;
+    font-weight: bold;
+    transition: all 0.2s;
+    color: #333;
+    font-size: 0.9rem;
+}
+
+.slot-btn:hover {
+    border-color: var(--primary);
+    background: #fff;
+    color: var(--primary);
+}
+
+.slot-btn.selected {
+    background: var(--primary) !important;
+    color: white !important;
+    border-color: var(--primary) !important;
+}

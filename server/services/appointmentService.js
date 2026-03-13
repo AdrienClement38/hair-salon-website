@@ -8,7 +8,7 @@ class AppointmentService {
     /**
      * Calculate available slots for a given date and admin
      */
-    async getAvailableSlots(date, adminId, serviceId) {
+    async getAvailableSlots(date, adminId, serviceId, excludeAppointmentId = null) {
         if (!date) throw new Error('Date required');
 
         // 0. Check Date Limit (2 Months)
@@ -19,9 +19,6 @@ class AppointmentService {
         limitDate.setMonth(limitDate.getMonth() + 2);
 
         if (checkDate > limitDate) {
-            // Return empty slots silently or throw? Frontend expects slots array.
-            // If date is too far, it's effectively "closed" or "invalid".
-            // Let's return empty with a reason if possible, or just empty.
             return { slots: [], reason: 'date_limit_exceeded' };
         }
 
@@ -32,7 +29,6 @@ class AppointmentService {
         }
 
         // 2. Check Opening Hours (Regular Weekly Closure)
-        // MOVED UP to prioritize "Salon Closed" message over Worker Absence
         let openingHours = await db.getSetting('opening_hours') || await db.getSetting('openingHours');
         const dayOfWeek = new Date(date).getDay();
         let daySettings = null;
@@ -40,7 +36,6 @@ class AppointmentService {
         if (Array.isArray(openingHours)) {
             daySettings = openingHours[dayOfWeek];
         } else {
-            // Legacy format fallback
             openingHours = openingHours || { start: '09:00', end: '18:00', closedDays: [] };
             const isClosed = openingHours.closedDays && openingHours.closedDays.includes(dayOfWeek);
             daySettings = {
@@ -56,42 +51,37 @@ class AppointmentService {
 
         // 3. Check Leaves (Global vs Personal)
         const leaves = await db.getLeaves(adminId);
-
-        // 3a. Global Leave (Salon Closed Priority)
         const globalLeave = leaves.find(l => l.admin_id === null && date >= l.start_date && date <= l.end_date);
         if (globalLeave) {
-            return { slots: [], reason: 'closed' }; // Treat Global Leave as "Closed"
+            return { slots: [], reason: 'salon_closed' };
         }
 
-        // 4. Check Worker Weekly Days Off
-        let admin = null;
+        // 4. Check Worker Presence
         if (adminId) {
-            admin = await db.getAdminById(adminId);
+            const admin = await db.getAdminById(adminId);
             if (admin && admin.days_off) {
-                const daysOff = JSON.parse(admin.days_off); // Stored as JSON string in DB
-                const dateDay = new Date(date).getDay(); // 0 = Sunday
-
-                if (Array.isArray(daysOff) && daysOff.includes(dateDay)) {
-                    // Worker is OFF this day of week
+                const daysOff = typeof admin.days_off === 'string' ? JSON.parse(admin.days_off) : admin.days_off;
+                if (Array.isArray(daysOff) && daysOff.includes(dayOfWeek)) {
                     return { slots: [], reason: 'worker_off_day' };
                 }
             }
         }
 
-        // 5. Check Personal Leave
         const personalLeave = leaves.find(l => l.admin_id !== null && date >= l.start_date && date <= l.end_date);
         if (personalLeave) {
             return { slots: [], reason: 'leave' };
         }
 
         // --- SMART SCHEDULING LOGIC ---
+        const services = (await db.getSetting('services')) || [];
 
         // A. Get Service Duration
         let serviceDuration = 30; // Default
         if (serviceId) {
-            const services = (await db.getSetting('services')) || [];
-            // Handle string vs number IDs loosely just in case
-            const service = services.find(s => s.id == serviceId);
+            let service = services.find(s => s.id == serviceId);
+            if (!service) {
+                service = services.find(s => s.name === serviceId);
+            }
             if (service && service.duration) {
                 serviceDuration = parseInt(service.duration);
             }
@@ -106,144 +96,80 @@ class AppointmentService {
         const dayEnd = endHour * 60 + endMinute;
 
         // C. Get Existing Bookings
-        const booked = await db.getBookingsForDate(date, adminId);
+        let booked = await db.getBookingsForDate(date, adminId);
+        if (excludeAppointmentId) {
+            booked = booked.filter(b => b.id != excludeAppointmentId);
+        }
 
-        // Convert bookings to occupied intervals [start, end] in minutes
         const occupiedIntervals = [];
-
-        // Add bookings
         for (const b of booked) {
             const [bh, bm] = b.time.split(':').map(Number);
             const bStart = bh * 60 + bm;
 
-            // We need the booking DURATION to know when it ends.
-            // Issue: The database schema 'appointments' table DOES NOT store duration.
-            // We only have 'service' name. This is a potential flaw in the current data model.
-            // Workaround: We must look up the service duration by name from settings.
-            // If name matches perfectly, great. If not (legacy or renamed), assume default.
-
-            let bDuration = 30; // Default buffer
-            const services = (await db.getSetting('services')) || [];
-            let knownService = services.find(s => s.name === b.service);
-            if (!knownService) {
-                knownService = services.find(s => s.id === b.service);
-            }
-
+            let bDuration = 30;
+            const knownService = services.find(s => s.name === b.service || s.id == b.service);
             if (knownService && knownService.duration) {
                 bDuration = parseInt(knownService.duration);
             }
-
             occupiedIntervals.push({ start: bStart, end: bStart + bDuration });
         }
 
-        // Add "Lunch Break" if defined for this day
         if (daySettings.breakStart && daySettings.breakEnd) {
             const [bStartH, bStartM] = daySettings.breakStart.split(':').map(Number);
             const [bEndH, bEndM] = daySettings.breakEnd.split(':').map(Number);
-
             if (!isNaN(bStartH) && !isNaN(bEndH)) {
-                const breakStartMin = bStartH * 60 + bStartM;
-                const breakEndMin = bEndH * 60 + bEndM;
-
-                if (breakEndMin > breakStartMin) {
-                    occupiedIntervals.push({ start: breakStartMin, end: breakEndMin });
-                }
+                occupiedIntervals.push({ start: bStartH * 60 + bStartM, end: bEndH * 60 + bEndM });
             }
         }
 
-        // Add "Lunch Break" or other fixed blocks if any? (Not implemented yet, assuming continuous day)
-        console.log('DEBUG: Occupied Intervals:', JSON.stringify(occupiedIntervals));
-
-        // Sort intervals
-
-        // Sort intervals
         occupiedIntervals.sort((a, b) => a.start - b.start);
 
-        // D. Generate Slots using "Tetris" approach
-        // We step through the day every 15 minutes (or 5? 15 is standard granularity)
-        // Let's use 5 minutes for maximum flexibility if duration is like 20min. 
-        // Or 15 min granularity if we want to avoid weird times like 09:07.
-        // Let's stick to 10 minute granularity for now to balance flexibility and clean times.
-        // D. Generate Slots using "Anchor-Based Dynamic Grid" (Optimized for Gap Minimization)
-        // 1. Identify Anchors: Opening Time + End of every Booking
-        const anchors = new Set();
-        anchors.add(dayStart);
+        // D. Generate Slots using Anchor-Based Dynamic Grid
+        const anchors = new Set([dayStart]);
         occupiedIntervals.forEach(interval => {
-            if (interval.end >= dayStart && interval.end < dayEnd) {
-                anchors.add(interval.end);
-            }
+            if (interval.end >= dayStart && interval.end < dayEnd) anchors.add(interval.end);
         });
 
         const sortedAnchors = Array.from(anchors).sort((a, b) => a - b);
         const candidateStartTimes = new Set();
 
-        // 2. Generate candidates from each anchor
         for (const anchor of sortedAnchors) {
             let t = anchor;
-
-            // Project forward from anchor until we hit day end or a collision
             while (t <= dayEnd - serviceDuration) {
                 const proposedStart = t;
                 const proposedEnd = t + serviceDuration;
-
-                // Check collision with any booking
                 let isClashing = false;
 
                 for (const interval of occupiedIntervals) {
                     if (proposedStart < interval.end && proposedEnd > interval.start) {
                         isClashing = true;
-                        // Optimization: Jump to the end of this blocking booking for the next anchor check
-                        // But wait, the outer loop already iterates all anchors (which includes booking ends).
-                        // So for this specific anchor sequence, we are dead.
                         break;
                     }
                 }
 
                 if (!isClashing) {
                     candidateStartTimes.add(t);
-                    t += serviceDuration; // Jump by exact service duration
+                    t += serviceDuration;
                 } else {
-                    break; // Sequence limits reached
+                    break;
                 }
             }
         }
 
         const sortedCandidates = Array.from(candidateStartTimes).sort((a, b) => a - b);
         const timeSlots = [];
-
-        // Check for today to filter past slots
-        const nowObj = new Date();
-        const year = nowObj.getFullYear();
-        const month = String(nowObj.getMonth() + 1).padStart(2, '0');
-        const day = String(nowObj.getDate()).padStart(2, '0');
-        const todayStr = `${year}-${month}-${day}`;
-        const currentMinutes = nowObj.getHours() * 60 + nowObj.getMinutes();
+        const todayStr = new Date().toISOString().split('T')[0];
+        const currentMinutes = new Date().getHours() * 60 + new Date().getMinutes();
 
         for (const t of sortedCandidates) {
-            // Filter out past times if date is today
-            if (date === todayStr && t <= currentMinutes) {
-                continue;
-            }
-
+            if (date === todayStr && t <= currentMinutes) continue;
             const h = Math.floor(t / 60);
             const m = t % 60;
             timeSlots.push(`${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`);
         }
 
-        // D. (Legacy / Backup) - If you wanted to fallback or merge... but Dynamic Grid replaces Tetris.
-        // We will return here.
-
-        /*
-        // LEGACY LOGIC REPLACED ABOVE
-        const granularity = 10;
-        const candidateStartTimes = new Set();
-        // ...
-        */
-
-        const reason = timeSlots.length === 0 ? 'full' : null;
-        return { slots: timeSlots, reason };
+        return { slots: timeSlots, reason: timeSlots.length === 0 ? 'full' : null };
     }
-
     async createBooking(data) {
         const { name, date, time, service, phone, adminId, email } = data;
 
@@ -419,6 +345,90 @@ class AppointmentService {
         } catch (e) { console.error('Socket emit error:', e); }
 
         return { success: true, appointment };
+    }
+
+    /**
+     * Update an appointment time with overlap checks
+     */
+    async updateAppointment(id, newTime) {
+        if (!id || !newTime) throw new Error('ID et heure requis');
+
+        // 1. Fetch current appointment
+        const appointment = await db.getAppointmentById(id);
+        if (!appointment) throw new Error('Rendez-vous introuvable');
+
+        // 2. Calculate duration
+        let duration = 30;
+        const services = await db.getSetting('services') || [];
+        const s = services.find(srv => srv.name === appointment.service);
+        if (s && s.duration) duration = parseInt(s.duration);
+
+        const [nh, nm] = newTime.split(':').map(Number);
+        const newStart = nh * 60 + nm;
+        const newEnd = newStart + duration;
+
+        // 3. Check against opening hours & breaks
+        const openingHours = await db.getSetting('opening_hours');
+        let allHours;
+        try {
+            allHours = (typeof openingHours === 'string') ? JSON.parse(openingHours) : openingHours;
+        } catch (e) { }
+
+        if (allHours) {
+            const dayOfWeek = new Date(appointment.date).getDay();
+            const dc = allHours[dayOfWeek] || allHours[String(dayOfWeek)];
+
+            if (dc && dc.isOpen) {
+                const openTime = dc.open || dc.start;
+                const closeTime = dc.close || dc.end;
+                const breakTimeStart = dc.breakStart || dc.pause_start;
+                const breakTimeEnd = dc.breakEnd || dc.pause_end;
+
+                if (openTime && closeTime) {
+                    const [oh, om] = openTime.split(':').map(Number);
+                    const [ch, cm] = closeTime.split(':').map(Number);
+                    const dayStartMin = oh * 60 + om;
+                    const dayEndMin = ch * 60 + cm;
+                    if (newStart < dayStartMin || newEnd > dayEndMin) {
+                        throw new Error('Le rendez-vous est en dehors des horaires d\'ouverture.');
+                    }
+                }
+
+                if (breakTimeStart && breakTimeEnd) {
+                    const [bsh, bsm] = breakTimeStart.split(':').map(Number);
+                    const [beh, bem] = breakTimeEnd.split(':').map(Number);
+                    const bStartMin = bsh * 60 + bsm;
+                    const bEndMin = beh * 60 + bem;
+                    if (newStart < bEndMin && newEnd > bStartMin) {
+                        throw new Error('Le rendez-vous tombe pendant la pause.');
+                    }
+                }
+            }
+        }
+
+        // 4. Check against other bookings
+        const allApts = await db.getAppointmentsForWorker(appointment.date, appointment.admin_id);
+        for (const a of allApts) {
+            if (a.id == id) continue; // Skip self
+
+            const [ebh, ebm] = a.time.split(':').map(Number);
+            const bStart = ebh * 60 + ebm;
+
+            let bDuration = 30;
+            const existingService = services.find(srv => srv.name === a.service);
+            if (existingService && existingService.duration) {
+                bDuration = parseInt(existingService.duration);
+            }
+            const bEnd = bStart + bDuration;
+
+            if (newStart < bEnd && newEnd > bStart) {
+                throw new Error('Slot already booked or overlaps');
+            }
+        }
+
+        // 5. Perform Update
+        await db.updateAppointment(id, newTime);
+        return { success: true };
     }
 }
 

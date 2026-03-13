@@ -855,7 +855,7 @@ function renderAppointmentTable(apts, showWorkerCol) {
                         <td class="col-tel">${phoneDisplay}</td>
                         <td class="col-actions">
                             ${renderActionButtons(
-            `openEdit(${apt.id}, '${apt.name.replace("'", "\\'")}', '${apt.date}', '${apt.time}')`,
+            `openEdit(${apt.id}, '${apt.name.replace("'", "\\'")}', '${apt.date}', '${apt.time}', '${apt.service}', ${apt.admin_id})`,
             `deleteApt(${apt.id}, '${apt.name.replace("'", "\\'")}', '${apt.date}', '${apt.time}', '${serviceDisplay.replace("'", "\\'")}', '${apt.email || ''}', '${(apt.phone || '').replace("'", "\\'")}')`,
             {
                 editLabel: `<svg xmlns="http://www.w3.org/2000/svg" style="width:1.25rem; height:1.25rem;" viewBox="0 -960 960 960" fill="#000000"><path d="M200-200h57l391-391-57-57-391 391v57Zm-80 80v-170l528-527q12-11 26.5-17t30.5-6q16 0 31 6t26 18l55 56q12 11 17.5 26t5.5 30q0 16-5.5 30.5T817-647L290-120H120Zm640-584-56-56 56 56Zm-141 85-28-29 57 57-29-28Z"/></svg>`
@@ -996,12 +996,52 @@ export async function deleteApt(id, name, date, time, service, email, phone) {
 }
 
 // Edit Modal Functions
-export function openEdit(id, name, date, time) {
+export async function openEdit(id, name, date, time, service, adminId) {
     editIdInput.value = id;
     document.getElementById('edit-client-name').textContent = name;
     document.getElementById('edit-date-display').textContent = formatDateDisplay(date);
     editTimeInput.value = time;
+
+    // Resolve service info for display
+    let serviceDisplay = service;
+    if (window.currentServices) {
+        const svcObj = window.currentServices.find(s => s.id == service || s.name === service);
+        if (svcObj) {
+            serviceDisplay = `${svcObj.name} (${svcObj.duration || 30} min)`;
+        }
+    }
+    const infoEl = document.getElementById('edit-service-info');
+    if (infoEl) infoEl.textContent = serviceDisplay;
+
+    const slotsContainer = document.getElementById('edit-slots-container');
+    slotsContainer.innerHTML = '<p style="color:#666; font-size:0.9rem;">Chargement des créneaux libres...</p>';
+
     editModal.style.display = 'flex';
+
+    try {
+        const res = await fetch(`/api/slots?date=${date}&adminId=${adminId}&serviceId=${encodeURIComponent(service)}&excludeId=${id}`);
+        const data = await res.json();
+
+        if (data.slots && data.slots.length > 0) {
+            slotsContainer.innerHTML = '';
+            data.slots.forEach(slot => {
+                const btn = document.createElement('div');
+                btn.className = 'slot-btn';
+                if (slot === time) btn.classList.add('selected');
+                btn.textContent = slot;
+                btn.onclick = () => {
+                    document.querySelectorAll('.slot-btn').forEach(b => b.classList.remove('selected'));
+                    btn.classList.add('selected');
+                    editTimeInput.value = slot;
+                };
+                slotsContainer.appendChild(btn);
+            });
+        } else {
+            slotsContainer.innerHTML = '<p style="color:#d9534f; font-size:0.9rem;">Aucun autre créneau disponible ce jour.</p>';
+        }
+    } catch (e) {
+        slotsContainer.innerHTML = '<p style="color:#d9534f; font-size:0.9rem;">Erreur lors du chargement des créneaux.</p>';
+    }
 }
 
 export function closeEdit() {

@@ -397,10 +397,10 @@ const initPromise = initDB();
 
 const getBookingsForDate = async (date, adminId) => {
   if (adminId) {
-    if (type === 'pg') return await query('SELECT time, service FROM appointments WHERE date = $1 AND admin_id = $2', [date, adminId]);
-    return await query('SELECT time, service FROM appointments WHERE date = ? AND admin_id = ?', [date, adminId]);
+    if (type === 'pg') return await query('SELECT id, time, service FROM appointments WHERE date = $1 AND admin_id = $2', [date, adminId]);
+    return await query('SELECT id, time, service FROM appointments WHERE date = ? AND admin_id = ?', [date, adminId]);
   }
-  return await query('SELECT time FROM appointments WHERE date = ?', [date]);
+  return await query('SELECT id, time, service FROM appointments WHERE date = ?', [date]);
 };
 
 const getAppointmentsForWorker = async (date, workerId) => {

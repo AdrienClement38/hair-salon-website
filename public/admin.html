@@ -647,10 +647,15 @@
             <h3>Modifier l'heure</h3>
             <p>Modification pour le RDV de <strong id="edit-client-name"></strong> le <span
                     id="edit-date-display"></span>.</p>
+            <p style="margin-top: 5px; color: #666; font-style: italic;">
+                Prestation : <span id="edit-service-info"></span>
+            </p>
             <input type="hidden" id="edit-id">
-            <div class="form-group">
-                <label>Nouvelle Heure</label>
-                <input type="time" id="edit-time" step="3600"> <!-- Step 1 hour -->
+            <input type="hidden" id="edit-time">
+
+            <div id="edit-slots-container" class="slots-grid"
+                style="margin-top: 25px; margin-bottom: 25px; max-height: 350px; overflow-y: auto; padding: 5px;">
+                <!-- Slots injected here -->
             </div>
             <button class="btn" onclick="saveEdit()">Enregistrer</button>
             <button class="btn" onclick="closeEdit()" style="background: #ccc; margin-top: 10px;">Annuler</button>

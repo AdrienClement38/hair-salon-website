@@ -42,15 +42,20 @@ exports.delete = async (req, res) => {
 exports.update = async (req, res) => {
     const { time } = req.body;
     try {
-        await db.updateAppointment(req.params.id, time);
+        await appointmentService.updateAppointment(req.params.id, time);
+
         triggerUpdate();
         try {
             socketService.getIO().emit('appointmentsUpdated');
         } catch (e) { console.error('Socket emit error:', e); }
+
         res.json({ success: true });
     } catch (err) {
-        if (err.message.includes('UNIQUE constraint failed') || err.message.includes('duplicate key')) {
-            res.status(409).json({ error: 'Slot already taken' });
+        console.error('[Update Error]', err);
+        if (err.message === 'Slot already booked or overlaps' || err.message.includes('UNIQUE constraint failed')) {
+            res.status(409).json({ error: 'Ce créneau est déjà pris.' });
+        } else if (err.message.includes('horaires') || err.message.includes('pause')) {
+            res.status(400).json({ error: err.message });
         } else {
             res.status(500).json({ error: err.message });
         }
@@ -105,11 +110,11 @@ exports.createBooking = async (req, res) => {
 };
 
 exports.getSlots = async (req, res) => {
-    const { date, adminId, serviceId } = req.query;
+    const { date, adminId, serviceId, excludeId } = req.query;
     if (!date) return res.status(400).json({ error: 'Date required' });
 
     try {
-        const slots = await appointmentService.getAvailableSlots(date, adminId, serviceId);
+        const slots = await appointmentService.getAvailableSlots(date, adminId, serviceId, excludeId);
         res.json(slots);
     } catch (err) {
         res.status(500).json({ error: err.message });

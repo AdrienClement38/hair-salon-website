@@ -466,8 +466,10 @@
                         <div class="form-group">
                             <label>Logo du Salon (Optionnel)</label>
                             <div class="admin-thumb-container">
+                                <span id="placeholder-logo" style="display:none; color: #999; font-style: italic; width: 100%; text-align: center;">Aucun logo n'est paramétré</span>
                                 <img id="thumb-logo" class="admin-thumb" src="" alt="Aperçu Logo"
-                                    onerror="this.style.display='none'" onload="this.style.display='block'">
+                                    onerror="this.style.display='none'; document.getElementById('placeholder-logo').style.display='block';" 
+                                    onload="this.style.display='block'; document.getElementById('placeholder-logo').style.display='none';">
                                 <button class="btn-x" onclick="removeLogo()" style="margin-left: auto;"
                                     title="Supprimer le logo">
                                     &times;
@@ -485,7 +487,10 @@
                         <div class="form-group">
                             <label>Image d'Accueil</label>
                             <div class="admin-thumb-container">
-                                <img id="thumb-hero" class="admin-thumb" src="" alt="Aperçu Hero">
+                                <span id="placeholder-hero" style="display:none; color: #999; font-style: italic; width: 100%; text-align: center;">Aucune image d'accueil n'est paramétrée</span>
+                                <img id="thumb-hero" class="admin-thumb" src="" alt="Aperçu Hero"
+                                    onerror="this.style.display='none'; document.getElementById('placeholder-hero').style.display='block';" 
+                                    onload="this.style.display='block'; document.getElementById('placeholder-hero').style.display='none';">
                                 <button class="btn-copper" onclick="openPositioning('hero-bg')"
                                     title="Positionner l'image" style="margin-left: auto;">
                                     <svg xmlns="http://www.w3.org/2000/svg" style="width:1.25rem; height:1.25rem;"
@@ -512,7 +517,10 @@
                         <div class="form-group">
                             <label>Image "Notre Philosophie"</label>
                             <div class="admin-thumb-container">
-                                <img id="thumb-philosophy" class="admin-thumb" src="" alt="Aperçu Philo">
+                                <span id="placeholder-philosophy" style="display:none; color: #999; font-style: italic; width: 100%; text-align: center;">Aucune image n'est paramétrée</span>
+                                <img id="thumb-philosophy" class="admin-thumb" src="" alt="Aperçu Philo"
+                                    onerror="this.style.display='none'; document.getElementById('placeholder-philosophy').style.display='block';" 
+                                    onload="this.style.display='block'; document.getElementById('placeholder-philosophy').style.display='none';">
                                 <button class="btn-copper" onclick="openPositioning('philosophy-bg')"
                                     title="Positionner l'image" style="margin-left: auto;">
                                     <svg xmlns="http://www.w3.org/2000/svg" style="width:1.25rem; height:1.25rem;"

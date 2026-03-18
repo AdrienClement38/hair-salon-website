@@ -84,6 +84,7 @@ router.put('/admin/appointments/:id', checkAuth, validate(updateBookingSchema), 
 router.post('/admin/settings', checkAuth, settingsController.update);
 router.get('/admin/settings', checkAuth, settingsController.get);
 router.post('/admin/upload', checkAuth, upload.any(), settingsController.uploadImages);
+router.delete('/admin/logo', checkAuth, settingsController.deleteLogo);
 router.post('/admin/settings/test-email', checkAuth, settingsController.testEmail);
 router.get('/admin/migrate-images', checkAuth, migrationController.migrateImages);
 

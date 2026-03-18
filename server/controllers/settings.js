@@ -148,10 +148,44 @@ exports.uploadImages = async (req, res) => {
 
         await Promise.all(promises);
         triggerUpdate('settings');
+        try {
+            socketService.getIO().emit('settingsUpdated');
+        } catch (e) { console.error('Socket emit error:', e); }
         res.json({ success: true, files: req.files.map(f => f.fieldname) });
     } catch (err) {
         console.error("Upload error:", err);
         res.status(500).json({ error: 'Upload failed: ' + err.message });
+    }
+};
+
+exports.deleteLogo = async (req, res) => {
+    try {
+        // Update styling/settings
+        const identity = (await db.getSetting('salon_identity')) || { name: 'La Base Coiffure' };
+        identity.logo = null;
+        await db.setSetting('salon_identity', identity);
+        
+        // Delete from DB images table
+        await db.deleteImage('salon-logo');
+
+        // Delete from filesystem
+        const uploadsPath = path.join(__dirname, '../../public/uploads');
+        const extensions = ['', '.jpg', '.png', '.webp', '.jpeg'];
+        for (const ext of extensions) {
+            const file = path.join(uploadsPath, 'salon-logo' + ext);
+            if (fs.existsSync(file)) {
+                fs.unlinkSync(file);
+            }
+        }
+
+        triggerUpdate('settings');
+        try {
+            socketService.getIO().emit('settingsUpdated');
+        } catch (e) { console.error('Socket emit error:', e); }
+        res.json({ success: true });
+    } catch (err) {
+        console.error("Delete logo error:", err);
+        res.status(500).json({ error: 'Failed to delete logo: ' + err.message });
     }
 };
 

@@ -239,11 +239,6 @@ export function renderIdentity(identity) {
 
     if (identity.logo) {
         // Logo + Name
-        // We want the logo to be nicely integrated.
-        // Maybe an img tag with height constraint.
-        // CSS for .logo needs to handle flex or inline-block.
-        // Current CSS for .logo is likely font-based.
-        // Let's use flexbox for the link container or just inject img + text.
         logoLink.style.display = 'flex';
         logoLink.style.alignItems = 'center';
         logoLink.style.gap = '10px';
@@ -256,6 +251,12 @@ export function renderIdentity(identity) {
         logoLink.style.alignItems = '';
         logoLink.style.gap = '';
         logoLink.innerHTML = identity.name || 'La Base Coiffure';
+    }
+
+    // Mettre à jour la Favicon (onglet web)
+    const favicon = document.querySelector('link[rel="icon"]');
+    if (favicon) {
+        favicon.href = `/images/salon-logo?t=${Date.now()}`;
     }
 }
 

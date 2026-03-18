@@ -68,6 +68,12 @@ function updateThumbnails() {
         logoThumb.style.display = 'block'; // Force visibility
         logoThumb.src = `/images/salon-logo?t=${ts}`;
     }
+
+    // Mettre à jour la Favicon (onglet web) de la page admin
+    const favicon = document.querySelector('link[rel="icon"]');
+    if (favicon) {
+        favicon.href = `/images/salon-logo?t=${ts}`;
+    }
 }
 
 function handleImageUpload(formId, fileName) {
@@ -108,6 +114,41 @@ function handleImageUpload(formId, fileName) {
     });
 }
 
+export async function removeLogo() {
+    if (!confirm("Voulez-vous vraiment supprimer le logo ?")) return;
+
+    try {
+        const res = await fetch(`${API_URL}/logo`, {
+            method: 'DELETE',
+            headers: getHeaders()
+        });
+
+        if (res.ok) {
+            alert('Logo supprimé !');
+            const logoThumb = document.getElementById('thumb-logo');
+            if (logoThumb) {
+                logoThumb.src = '';
+                logoThumb.style.display = 'none';
+                const placeholder = document.getElementById('placeholder-logo');
+                if (placeholder) placeholder.style.display = 'block';
+            }
+            if (currentSalonIdentity) {
+                currentSalonIdentity.logo = null;
+            }
+            // Mettre à jour la Favicon (onglet web)
+            const favicon = document.querySelector('link[rel="icon"]');
+            if (favicon) {
+                favicon.href = `/images/salon-logo?t=${Date.now()}`;
+            }
+        } else {
+            const err = await res.json();
+            alert('Erreur: ' + (err.error || 'Erreur inconnue'));
+        }
+    } catch (e) {
+        console.error(e);
+        alert('Erreur réseau');
+    }
+}
 
 
 // Positioning Logic
@@ -308,5 +349,7 @@ window.saveTextSettings = saveTextSettings;
 window.openPositioning = openPositioning;
 window.closePositionModal = closePositionModal;
 window.savePosition = savePosition;
+window.removeLogo = removeLogo;
+
 // Export for reuse
 window.openGenericPositioning = openGenericPositioning;

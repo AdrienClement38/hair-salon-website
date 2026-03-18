@@ -3,6 +3,11 @@ const { triggerUpdate } = require('../config/polling');
 const socketService = require('../services/socketService'); // IMPORT SOCKET SERVICE
 const path = require('path');
 const fs = require('fs'); // AJOUT DE L'IMPORT MANQUANT POUR FILE SYSTEM
+const NodeCache = require('node-cache');
+
+// In-Memory Cache for Settings (Eliminates DB I/O for every visitor)
+const settingsCache = new NodeCache({ stdTTL: 86400 }); // Cache for 24 hours (flushed manually on update)
+exports.settingsCache = settingsCache;
 
 exports.update = async (req, res) => {
     const { openingHours, holidays, holidayRanges, home_content, services, contact_info, products, email_config, salon_identity } = req.body;
@@ -49,6 +54,8 @@ exports.update = async (req, res) => {
             await db.setSetting('products', products);
         }
 
+        settingsCache.flushAll(); // Invalidate cache so next GET hits the DB
+
         triggerUpdate('settings');
         try {
             socketService.getIO().emit('settingsUpdated');
@@ -85,6 +92,15 @@ exports.testEmail = async (req, res) => {
 };
 
 exports.get = async (req, res) => {
+    const isAdmin = !!req.user;
+    const cacheKey = isAdmin ? 'settings_admin' : 'settings_public';
+    
+    // Check Cache First
+    const cachedData = settingsCache.get(cacheKey);
+    if (cachedData) {
+        return res.json(cachedData);
+    }
+
     try {
         const openingHours = (await db.getSetting('opening_hours')) || { start: '09:00', end: '18:00', closedDays: [] };
         const holidays = (await db.getSetting('holidays')) || [];
@@ -100,13 +116,9 @@ exports.get = async (req, res) => {
         let email_config = fullEmailConfig;
 
         // Security: If not authenticated as Admin, DO NOT return sensitive email config.
-        // Instead, return a flag indicating if it is configured.
-        if (!req.user) {
+        if (!isAdmin) {
             const isConfigured = !!(fullEmailConfig && fullEmailConfig.user && fullEmailConfig.host);
-            email_config = null; // Strip sensitive data
-            // Add flag to response (top level or separate)
-            // We'll add it to the JSON response
-            res.json({
+            const publicData = {
                 openingHours,
                 holidays,
                 holidayRanges,
@@ -115,14 +127,16 @@ exports.get = async (req, res) => {
                 contact_info,
                 products,
                 salon_identity,
-                // Public Safe Flag
                 emailConfigured: isConfigured
-            });
-            return;
+            };
+            settingsCache.set(cacheKey, publicData);
+            return res.json(publicData);
         }
 
         // Admin gets the full config
-        res.json({ openingHours, holidays, holidayRanges, home_content, services, contact_info, products, email_config, salon_identity });
+        const adminData = { openingHours, holidays, holidayRanges, home_content, services, contact_info, products, email_config, salon_identity };
+        settingsCache.set(cacheKey, adminData);
+        res.json(adminData);
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
@@ -147,6 +161,9 @@ exports.uploadImages = async (req, res) => {
         });
 
         await Promise.all(promises);
+        
+        settingsCache.flushAll(); // Invalidate cache on new images
+        
         triggerUpdate('settings');
         try {
             socketService.getIO().emit('settingsUpdated');

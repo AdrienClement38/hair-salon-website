@@ -2,6 +2,7 @@ const request = require('supertest');
 const app = require('../server/app');
 const db = require('../server/models/database');
 const bcrypt = require('bcryptjs');
+const { settingsCache } = require('../server/controllers/settings');
 
 describe('Settings API Security', () => {
     const adminUser = 'admin_security_test';
@@ -29,6 +30,7 @@ describe('Settings API Security', () => {
     afterAll(async () => {
         // Clean up
         await db.setSetting('email_config', null);
+        settingsCache.flushAll();
         await db.run('DELETE FROM admins WHERE username = ?', [adminUser]);
     });
 
@@ -60,6 +62,7 @@ describe('Settings API Security', () => {
     test('GET /settings (Public) should return emailConfigured: false if not set', async () => {
         // Clear config
         await db.setSetting('email_config', null);
+        settingsCache.flushAll(); // Flush cache manually for test
 
         const res = await request(app).get('/api/settings');
         expect(res.statusCode).toBe(200);

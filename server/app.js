@@ -5,10 +5,14 @@ const path = require('path');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 const hpp = require('hpp');
+const compression = require('compression');
 const apiRoutes = require('./routes/api');
 const settingsController = require('./controllers/settings');
 
 const app = express();
+
+// Enable Gzip/Brotli Compression
+app.use(compression());
 
 // Security Headers
 app.use(helmet({
@@ -40,7 +44,10 @@ const cookieParser = require('cookie-parser');
 app.use(cookieParser());
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true })); // Handle form submissions
-app.use(express.static(path.join(__dirname, '../public')));
+app.use(express.static(path.join(__dirname, '../public'), {
+    maxAge: '30d', // Cache static assets in browser for 30 days
+    etag: true
+}));
 
 // Disable caching for API routes
 app.use('/api', (req, res, next) => {

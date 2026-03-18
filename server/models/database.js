@@ -671,6 +671,15 @@ const purgeOldLeaves = async () => {
   }
 };
 
+const purgeOldWaitingRequests = async () => {
+  const today = new Date().toISOString().split('T')[0];
+  if (type === 'pg') {
+    return await query('DELETE FROM waiting_list_requests WHERE target_date < $1', [today]);
+  } else {
+    return await query('DELETE FROM waiting_list_requests WHERE target_date < ?', [today]);
+  }
+};
+
 const createPortfolioItem = async (filename, description, adminId) => {
   if (type === 'pg') {
     const sql = 'INSERT INTO portfolio (filename, description, admin_id) VALUES ($1, $2, $3) RETURNING id';
@@ -1205,6 +1214,7 @@ module.exports = {
   getWaitingRequestByToken,
   getExpiredOffers,
   getWaitingListCounts,
+  purgeOldWaitingRequests,
 
   // Cleanup feature
   expirePastWaitingRequests: async () => {

@@ -41,6 +41,21 @@ exports.create = async (req, res) => {
         return res.status(400).json({ error: 'Start and End dates are required' });
     }
 
+    const startDate = new Date(start);
+    const endDate = new Date(end);
+    
+    // Normalize today to midnight for accurate comparison
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    if (startDate < today) {
+        return res.status(400).json({ error: "Vous ne pouvez pas ajouter des congés pour une date antérieure à aujourd'hui." });
+    }
+
+    if (endDate < startDate) {
+        return res.status(400).json({ error: "La date de fin ne peut pas être antérieure à la date de début." });
+    }
+
     try {
         // adminId might be provided or null (for Global)
         let targetAdminId = adminId;

@@ -238,10 +238,9 @@ export function renderIdentity(identity) {
     }
 
     if (identity.logo) {
-        // Logo + Name
-        logoLink.style.display = 'flex';
-        logoLink.style.alignItems = 'center';
-        logoLink.style.gap = '10px';
+        logoLink.style.display = '';
+        logoLink.style.alignItems = '';
+        logoLink.style.gap = '';
 
         logoLink.innerHTML = `
             <span>${identity.name}</span>
@@ -256,7 +255,7 @@ export function renderIdentity(identity) {
     // Mettre à jour la Favicon (onglet web)
     const favicon = document.querySelector('link[rel="icon"]');
     if (favicon) {
-        favicon.href = `/images/salon-logo?t=${Date.now()}`;
+        favicon.href = identity.logo ? `/images/${identity.logo}?t=${Date.now()}` : 'data:image/x-icon;,';
     }
 }
 

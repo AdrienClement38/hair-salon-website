@@ -420,6 +420,21 @@ window.addHolidayRange = async () => {
 
     if (!start || !end) return alert('Veuillez sélectionner les dates');
 
+    const startDate = new Date(start);
+    const endDate = new Date(end);
+    
+    // Normalize today's date to start of day for accurate comparison
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    if (startDate < today) {
+        return alert("Vous ne pouvez pas ajouter des congés ou des fermetures pour une date antérieure à aujourd'hui.");
+    }
+
+    if (endDate < startDate) {
+        return alert("La date de fin ne peut pas être antérieure à la date de début.");
+    }
+
     try {
         const token = localStorage.getItem('auth');
         const res = await fetch('/api/admin/leaves', {
@@ -494,18 +509,27 @@ async function saveSetting(key, value) {
 
 // Global scope for HTML onclick access
 window.saveTextSettings = async () => {
-    const home_content = {
-        philosophy: document.getElementById('content-philosophy').value
-    };
-    const salon_identity = {
-        name: document.getElementById('salon-name').value
-    }
-    const contact_info = {
-        address: document.getElementById('content-address').value,
-        phone: document.getElementById('content-phone').value
-    };
-
     try {
+        // Fetch current settings to avoid overwriting attributes like 'logo' in salon_identity
+        const token = localStorage.getItem('auth');
+        const getRes = await fetch('/api/admin/settings', {
+            headers: { 'Authorization': 'Bearer ' + token }
+        });
+        const currentData = await getRes.json();
+        const currentIdentity = currentData.salon_identity || {};
+
+        const home_content = {
+            philosophy: document.getElementById('content-philosophy').value
+        };
+        const salon_identity = {
+            ...currentIdentity,
+            name: document.getElementById('salon-name').value
+        };
+        const contact_info = {
+            address: document.getElementById('content-address').value,
+            phone: document.getElementById('content-phone').value
+        };
+
         await saveSetting('home_content', home_content);
         await saveSetting('salon_identity', salon_identity);
         await saveSetting('contact_info', contact_info);

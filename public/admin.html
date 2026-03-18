@@ -468,8 +468,8 @@
                             <div class="admin-thumb-container">
                                 <span id="placeholder-logo" style="display:none; color: #999; font-style: italic; width: 100%; text-align: center;">Aucun logo n'est paramétré</span>
                                 <img id="thumb-logo" class="admin-thumb" src="" alt="Aperçu Logo"
-                                    onerror="this.style.display='none'; document.getElementById('placeholder-logo').style.display='block';" 
-                                    onload="this.style.display='block'; document.getElementById('placeholder-logo').style.display='none';">
+                                    onerror="this.style.display='none'; document.getElementById('placeholder-logo').style.display='block'; const f = document.querySelector('link[rel=\'icon\']'); if(f) f.href='data:image/x-icon;,';" 
+                                    onload="this.style.display='block'; document.getElementById('placeholder-logo').style.display='none'; const f = document.querySelector('link[rel=\'icon\']'); if(f) f.href=this.src;">
                                 <button class="btn-x" onclick="removeLogo()" style="margin-left: auto;"
                                     title="Supprimer le logo">
                                     &times;

@@ -132,11 +132,30 @@
                         <input type="tel" id="phone" required placeholder="06 12 34 56 78">
                     </div>
 
-                    <div class="form-group">
-                        <label for="email">Email (Optionnel)</label>
-                        <input type="email" id="email" class="form-control" placeholder="exemple@mail.com">
-                        <small class="text-muted" style="font-size: 0.8rem; color: #6c757d;">Renseignez votre email pour
-                            recevoir une confirmation de rendez-vous.</small>
+                    <div class="form-group" style="margin-bottom: 25px;">
+                        <label for="email">Email</label>
+                        <input type="email" id="email" class="form-control" placeholder="exemple@mail.com" required>
+                        <small class="text-muted" style="font-size: 0.8rem; color: #6c757d;">Renseignez votre email pour recevoir votre confirmation.</small>
+                        
+                        <!-- Loyalty Container (Injected via JS if enabled) -->
+                        <div id="loyalty-container" style="display: none; margin-top: 15px; padding: 15px; background-color: #fdfaf3; border: 1px dashed #eeba30; border-radius: 6px;">
+                            <div id="loyalty-offer">
+                                <label style="display:flex; align-items:flex-start; gap:10px; cursor:pointer; margin:0;">
+                                    <input type="checkbox" id="loyalty-optin" style="margin-top:4px;">
+                                    <span style="font-size: 0.9rem; color:#333;">
+                                        <strong>🎁 Rejoignez notre programme de fidélité !</strong><br>
+                                        <span id="loyalty-reward-text">Au bout de X rendez-vous, profitez d'une récompense.</span>
+                                    </span>
+                                </label>
+                            </div>
+                            <div id="loyalty-status" style="display: none; font-size: 0.9rem; color:#333; align-items: center; gap: 10px;">
+                                <span style="font-size: 1.5rem;">👑</span>
+                                <div>
+                                    <strong>Membre Fidélité</strong><br>
+                                    Vous avez actuellement <strong id="loyalty-points" style="color:#eeba30; font-size:1.1em;">0</strong> point(s) sur <span id="loyalty-target">X</span> !
+                                </div>
+                            </div>
+                        </div>
                     </div>
 
                     <div class="form-group">

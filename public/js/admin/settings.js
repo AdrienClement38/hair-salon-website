@@ -65,6 +65,23 @@ export const loadSettings = async () => {
             }
         }
 
+        // 5.5 Loyalty Program
+        if (settings.loyalty_program) {
+            const loyaltyEnabled = document.getElementById('loyalty-enabled');
+            const loyaltyRequired = document.getElementById('loyalty-required');
+            const loyaltyReward = document.getElementById('loyalty-reward');
+            const loyaltyConfig = document.getElementById('loyalty-config');
+            
+            if (loyaltyEnabled) {
+                loyaltyEnabled.checked = settings.loyalty_program.enabled;
+                if (loyaltyConfig) {
+                    loyaltyConfig.style.display = loyaltyEnabled.checked ? 'block' : 'none';
+                }
+            }
+            if (loyaltyRequired) loyaltyRequired.value = settings.loyalty_program.required_appointments || 10;
+            if (loyaltyReward) loyaltyReward.value = settings.loyalty_program.reward_label || '50% sur votre coupe !';
+        }
+
         // 6. Restore Services & Products Rendering
         if (settings.services) {
             setServicesData(settings.services);
@@ -617,14 +634,57 @@ window.deleteEmailConfig = async () => {
     if (!confirm('Voulez-vous vraiment supprimer la configuration email ?')) return;
 
     try {
-        await saveSetting('email_config', {}); // Empty object
-        document.getElementById('email-config-user').value = '';
-        document.getElementById('email-config-host').value = '';
-        document.getElementById('email-config-port').value = '';
-        document.getElementById('email-config-pass').value = '';
-        alert('Configuration supprimée.');
+        const token = localStorage.getItem('auth');
+        const res = await fetch('/api/admin/settings', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+            body: JSON.stringify({ email_config: null })
+        });
+
+        if (res.ok) {
+            alert('Configuration supprimée.');
+            document.getElementById('email-config-user').value = '';
+            document.getElementById('email-config-pass').value = '';
+            document.getElementById('email-config-host').value = '';
+            document.getElementById('email-config-port').value = '';
+        } else {
+            alert('Erreur lors de la suppression.');
+        }
     } catch (e) {
-        alert('Erreur: ' + e.message);
+        alert('Erreur système.');
+        console.error(e);
     }
 };
 
+window.saveLoyaltySettings = async () => {
+    const enabled = document.getElementById('loyalty-enabled').checked;
+    const required = parseInt(document.getElementById('loyalty-required').value) || 10;
+    const reward = document.getElementById('loyalty-reward').value.trim();
+
+    try {
+        const token = localStorage.getItem('auth');
+        const res = await fetch('/api/admin/settings', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': 'Bearer ' + token
+            },
+            body: JSON.stringify({
+                loyalty_program: {
+                    enabled,
+                    required_appointments: required,
+                    reward_label: reward
+                }
+            })
+        });
+
+        if (res.ok) {
+            alert('Programme de fidélité enregistré !');
+        } else {
+            alert('Erreur: ' + res.statusText);
+        }
+    } catch (e) {
+        console.error(e);
+        alert('Erreur système');
+    }
+};

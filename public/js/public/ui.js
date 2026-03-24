@@ -433,3 +433,30 @@ export function updateEmailFieldVisibility(isConfigured) {
         }
     }
 }
+
+export function renderLoyaltyProgram(loyaltyConfig) {
+    const container = document.getElementById('loyalty-container');
+    const rewardText = document.getElementById('loyalty-reward-text');
+    const targetText = document.getElementById('loyalty-target');
+    
+    if (!container) return;
+    
+    // Store globally for booking.js to use quickly
+    window.salonLoyaltyConfig = loyaltyConfig || { enabled: false };
+
+    if (loyaltyConfig && loyaltyConfig.enabled) {
+        // container.style.display = 'block'; // Removed: let booking.js handle showing it after email blur
+        if (rewardText) rewardText.textContent = `Au bout de ${loyaltyConfig.required_appointments || 10} rendez-vous, ${loyaltyConfig.reward_label || "profitez d'une récompense"}.`;
+        if (targetText) targetText.textContent = loyaltyConfig.required_appointments || 10;
+        
+        const offerDiv = document.getElementById('loyalty-offer');
+        const statusDiv = document.getElementById('loyalty-status');
+        const optInCb = document.getElementById('loyalty-optin');
+        
+        if (offerDiv) offerDiv.style.display = 'block';
+        if (statusDiv) statusDiv.style.display = 'none';
+        if (optInCb) optInCb.checked = false;
+    } else {
+        container.style.display = 'none';
+    }
+}

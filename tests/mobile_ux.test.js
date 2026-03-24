@@ -33,8 +33,11 @@ describe('Mobile UX Tests', () => {
     });
 
     test('Mobile: Page should not have horizontal scroll', async () => {
-        // iPhone X Viewport
-        await page.setViewport({ width: 375, height: 812 });
+        page = await browser.newPage();
+        page.on('console', msg => console.log('BROWSER LOG:', msg.text()));
+        page.on('pageerror', error => console.log('BROWSER ERROR:', error.message));
+        
+        await page.setViewport({ width: 375, height: 667 });
         await page.goto(BASE_URL);
 
         // Wait for content to load

@@ -41,7 +41,8 @@ const createBookingSchema = z.object({
             },
             z.number().optional().nullable()
         ),
-        email: z.string().email("Email invalide").optional().or(z.literal(''))
+        email: z.string().email("Email invalide").optional().or(z.literal('')),
+        optInLoyalty: z.preprocess((val) => val === 'true' || val === true, z.boolean()).optional()
     })
 });
 

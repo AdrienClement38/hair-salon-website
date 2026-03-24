@@ -53,10 +53,11 @@ describe('Synchronization Logic (Polling)', () => {
             phone: '0600000000',
             service: 'Sync Cut',
             date: dateStr,
-            time: '15:00',
+            time: '16:00',
             adminId: null
         };
         const bookRes = await request(app).post('/api/book').send(bookingData);
+        if (bookRes.statusCode !== 200) console.log(bookRes.body);
         expect(bookRes.statusCode).toBe(200);
 
         // 3. Check Updates

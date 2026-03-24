@@ -10,12 +10,13 @@ const settingsCache = new NodeCache({ stdTTL: 86400 }); // Cache for 24 hours (f
 exports.settingsCache = settingsCache;
 
 exports.update = async (req, res) => {
-    const { openingHours, holidays, holidayRanges, home_content, services, contact_info, products, email_config, salon_identity } = req.body;
+    const { openingHours, holidays, holidayRanges, home_content, services, contact_info, products, email_config, salon_identity, loyalty_program } = req.body;
 
     try {
         if (openingHours) await db.setSetting('opening_hours', openingHours);
         if (holidays) await db.setSetting('holidays', holidays);
         if (holidayRanges) await db.setSetting('holidayRanges', holidayRanges);
+        if (loyalty_program) await db.setSetting('loyalty_program', loyalty_program);
         if (home_content) await db.setSetting('home_content', home_content);
         if (services) await db.setSetting('services', services);
         if (services) await db.setSetting('services', services);
@@ -111,6 +112,7 @@ exports.get = async (req, res) => {
         const contact_info = (await db.getSetting('contact_info')) || { address: '', phone: '' };
         const products = (await db.getSetting('products')) || [];
         const salon_identity = (await db.getSetting('salon_identity')) || { name: 'La Base Coiffure', logo: null };
+        const loyalty_program = (await db.getSetting('loyalty_program')) || { enabled: false, required_appointments: 10, reward_label: '50% sur votre coupe !' };
 
         const fullEmailConfig = (await db.getSetting('email_config'));
         let email_config = fullEmailConfig;
@@ -127,6 +129,7 @@ exports.get = async (req, res) => {
                 contact_info,
                 products,
                 salon_identity,
+                loyalty_program,
                 emailConfigured: isConfigured
             };
             settingsCache.set(cacheKey, publicData);
@@ -134,7 +137,7 @@ exports.get = async (req, res) => {
         }
 
         // Admin gets the full config
-        const adminData = { openingHours, holidays, holidayRanges, home_content, services, contact_info, products, email_config, salon_identity };
+        const adminData = { openingHours, holidays, holidayRanges, home_content, services, contact_info, products, email_config, salon_identity, loyalty_program };
         settingsCache.set(cacheKey, adminData);
         res.json(adminData);
     } catch (err) {

@@ -295,6 +295,30 @@
                     </div>
                 </div>
 
+                <!-- Loyalty Program Section -->
+                <div class="settings-section" id="loyalty-section">
+                    <h3>Programme de Fidélité</h3>
+                    <p>Récompensez vos clients réguliers. Les points sont attribués automatiquement à chaque réservation.</p>
+                    <div class="form-group" style="margin-bottom: 5px;">
+                        <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+                            <input type="checkbox" id="loyalty-enabled" style="width: 20px; height: 20px;" onchange="document.getElementById('loyalty-config').style.display = this.checked ? 'block' : 'none'">
+                            <span style="font-weight: bold;">Activer le programme de fidélité</span>
+                        </label>
+                    </div>
+                    <div id="loyalty-config" style="display: none; padding: 15px; background: #fafafa; border: 1px solid #eee; border-radius: 5px; margin-top: 10px;">
+                        <div class="form-group" style="margin-bottom: 15px;">
+                            <label>Nombre de rendez-vous requis pour obtenir la récompense</label>
+                            <input type="number" id="loyalty-required" min="2" max="50" value="10" style="max-width: 150px; padding: 8px;">
+                        </div>
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label>Description de la récompense (visible par le client)</label>
+                            <input type="text" id="loyalty-reward" placeholder="Ex: 50% sur votre coupe !" value="50% sur votre coupe !" style="padding: 10px; width: 100%;" autocomplete="off">
+                            <small style="display:block; margin-top:4px; font-style:italic; color:#666;">Cette phrase sera affichée lors de la prise de rendez-vous pour encourager les clients à rejoindre le programme.</small>
+                        </div>
+                    </div>
+                    <button class="btn" style="width:auto; margin-top: 15px;" onclick="saveLoyaltySettings()">Enregistrer le programme</button>
+                </div>
+
                 <!-- Profile Section -->
                 <div class="settings-section" id="profile-section">
                     <h3>Mon Profil</h3>

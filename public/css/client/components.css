@@ -136,7 +136,7 @@
     font-weight: 700;
 }
 
-.form-group input,
+.form-group input:not([type="checkbox"]):not([type="radio"]),
 .form-group select {
     width: 100%;
     padding: 10px;

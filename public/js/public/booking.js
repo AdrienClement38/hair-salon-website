@@ -144,12 +144,53 @@ export async function initBooking() {
     });
 
     // Listeners
-    // dateInput listener removed (handled by Flatpickr onChange)
     workerInput.addEventListener('change', () => {
         updateCalendarRules();
         updateSlots();
     });
     serviceInput.addEventListener('change', updateSlots);
+
+    const emailInput = document.getElementById('email');
+    if (emailInput) {
+        const handleEmailChange = async () => {
+            if (!window.salonLoyaltyConfig || !window.salonLoyaltyConfig.enabled) return;
+            const email = emailInput.value.trim();
+            const container = document.getElementById('loyalty-container');
+            const offerDiv = document.getElementById('loyalty-offer');
+            const statusDiv = document.getElementById('loyalty-status');
+            const cb = document.getElementById('loyalty-optin');
+            
+            // Simple email validation to avoid API spam
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!email || !emailRegex.test(email)) {
+                if (container) container.style.display = 'none';
+                return;
+            }
+            
+            try {
+                const res = await fetch(`/api/loyalty/status?email=${encodeURIComponent(email)}`);
+                if (res.ok) {
+                    const data = await res.json();
+                    
+                    if (data.optedIn) {
+                        // User is already a member - hide entire container as requested
+                        if (container) container.style.display = 'none';
+                    } else {
+                        // User is NOT a member - show opt-in box
+                        if (container) container.style.display = 'block';
+                        if (offerDiv) offerDiv.style.display = 'block';
+                        if (statusDiv) statusDiv.style.display = 'none';
+                        if (cb) cb.checked = false;
+                    }
+                }
+            } catch (err) {
+                console.error('Erreur vérification fidélité', err);
+            }
+        };
+
+        emailInput.addEventListener('input', handleEmailChange);
+        emailInput.addEventListener('blur', handleEmailChange);
+    }
 
     // Form Submit
     bookingForm.addEventListener('submit', async (e) => {
@@ -163,13 +204,14 @@ export async function initBooking() {
         const adminId = workerInput.value;
         const date = dateInput.value;
         const time = selectedTimeInput.value;
+        const optInLoyalty = document.getElementById('loyalty-optin') ? document.getElementById('loyalty-optin').checked : false;
 
         if (!time) {
             showMessage('Veuillez sélectionner un créneau horaire.', 'error');
             return;
         }
 
-        const data = { name, phone, email, service, date, time, adminId };
+        const data = { name, phone, email, service, date, time, adminId, optInLoyalty };
 
         window.isProcessingBooking = true; // Block WebSocket updates during this process
 
@@ -193,6 +235,9 @@ export async function initBooking() {
 
                 // Immediate Reset of inputs
                 bookingForm.reset();
+                const loyaltyContainer = document.getElementById('loyalty-container');
+                if (loyaltyContainer) loyaltyContainer.style.display = 'none';
+                
                 if (flatpickrInstance) flatpickrInstance.clear();
                 selectedTimeInput.value = '';
 

@@ -275,7 +275,31 @@ class AppointmentService {
             }
         }
 
-        return await db.createBooking(name, date, time, service, phone, adminId, email);
+        const result = await db.createBooking(name, date, time, service, phone, adminId, email);
+
+        // --- LOYALTY PROGRAM TICK ---
+        if (email) {
+            const lowEmail = email.trim().toLowerCase();
+            try {
+                if (data.optInLoyalty === true || data.optInLoyalty === 'true') {
+                    console.log(`[Loyalty] Opting in for ${lowEmail}`);
+                    await db.upsertClientLoyalty(lowEmail, name, phone, true);
+                }
+                const client = await db.getClientByEmail(lowEmail);
+                console.log(`[Loyalty] Client state:`, client ? { opt: client.opt_in_loyalty, pts: client.loyalty_points } : 'not found');
+                // SQLite returns 1 for true, PG returns true
+                if (client && (client.opt_in_loyalty === 1 || client.opt_in_loyalty === true)) {
+                    console.log(`[Loyalty] Adding point for ${lowEmail}`);
+                    await db.addClientPoint(lowEmail);
+                } else {
+                    console.log(`[Loyalty] No point added (opt_in was ${client?.opt_in_loyalty})`);
+                }
+            } catch (err) {
+                console.error('[Loyalty] Error attributing point:', err);
+            }
+        }
+
+        return result;
     }
 
     /**
@@ -328,6 +352,19 @@ class AppointmentService {
 
         // 4. Delete Record
         await db.deleteAppointment(id);
+
+        // --- LOYALTY PENALTY ---
+        if (appointment.email) {
+            const lowEmail = appointment.email.toLowerCase();
+            try {
+                const client = await db.getClientByEmail(lowEmail);
+                if (client && (client.opt_in_loyalty === 1 || client.opt_in_loyalty === true)) {
+                    await db.removeClientPoint(lowEmail);
+                }
+            } catch (err) {
+                console.error('[Loyalty] Error removing point:', err);
+            }
+        }
 
         // 5. Trigger Processes
         // A. Waitlist

@@ -151,11 +151,13 @@ describe('Frontend Error Display', () => {
             document.getElementById('worker').removeAttribute('required');
             document.getElementById('date').removeAttribute('required');
             document.getElementById('phone').removeAttribute('required'); // Should still send value?
+            document.getElementById('email').removeAttribute('required');
             // checking phone validation display, so we want phone input to be populated or not?
             // Code sends value.
         });
 
         // Set phone to something invalid but submitted
+        await page.type('#email', 'test@example.com');
         await page.type('#phone', 'invalid');
 
         await page.evaluate(() => {

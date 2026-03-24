@@ -87,11 +87,37 @@ exports.createBooking = async (req, res) => {
             if (admin) workerName = admin.display_name || admin.username;
         }
 
+        // Fetch Loyalty Info if enabled
+        let loyaltyPoints = undefined;
+        let loyaltySettings = undefined;
+        try {
+            loyaltySettings = await db.getSetting('loyalty_program');
+            if (loyaltySettings && loyaltySettings.enabled && req.body.email) {
+                const client = await db.getClientByEmail(req.body.email);
+                if (client && (client.opt_in_loyalty === 1 || client.opt_in_loyalty === true)) {
+                    loyaltyPoints = client.loyalty_points;
+
+                    // Auto-reset if threshold reached
+                    const threshold = loyaltySettings.required_appointments || 10;
+                    if (loyaltyPoints >= threshold) {
+                        try {
+                            await db.resetClientPoints(req.body.email);
+                            console.log(`[Loyalty] Reset points for ${req.body.email} (reached ${loyaltyPoints}/${threshold})`);
+                        } catch (err) {
+                            console.error('[Loyalty] Reset Error:', err);
+                        }
+                    }
+                }
+            }
+        } catch (e) { console.error('Loyalty Fetch Error for Email:', e); }
+
         emailService.sendConfirmation({
             ...req.body,
             to: req.body.email,
             id: result.lastInsertRowid, // Pass ID for cancellation link
-            workerName
+            workerName,
+            loyaltyPoints,
+            loyaltySettings
         }).catch(err => console.error("Email send failed", err));
 
         triggerUpdate();

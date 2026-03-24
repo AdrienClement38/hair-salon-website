@@ -9,6 +9,7 @@ const leavesController = require('../controllers/leaves');
 const settingsController = require('../controllers/settings');
 const updatesController = require('../controllers/updates');
 const portfolioController = require('../controllers/portfolio');
+const loyaltyController = require('../controllers/loyalty');
 const checkAuth = require('../middleware/auth');
 
 const validate = require('../middleware/validate');
@@ -99,6 +100,9 @@ router.get('/workers', adminsController.listPublicWorkers);
 router.get('/settings', settingsController.get);
 router.get('/slots', appointmentsController.getSlots);
 router.post('/book', validate(createBookingSchema), appointmentsController.createBooking);
+
+// --- Loyalty ---
+router.get('/loyalty/status', loyaltyController.getStatus);
 
 // --- Public Data ---
 router.get('/workers', adminsController.listPublicWorkers);

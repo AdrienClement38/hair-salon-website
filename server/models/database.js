@@ -257,6 +257,16 @@ const initDB = async () => {
           created_at DATETIME DEFAULT CURRENT_TIMESTAMP
       );
     `);
+    db.run(`
+      CREATE TABLE IF NOT EXISTS clients (
+          email TEXT PRIMARY KEY,
+          name TEXT NOT NULL,
+          phone TEXT,
+          loyalty_points INTEGER DEFAULT 0,
+          opt_in_loyalty INTEGER DEFAULT 0,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
     saveDB();
 
     // Migration Logic
@@ -339,6 +349,14 @@ const initDB = async () => {
           offer_expires_at TIMESTAMP,
           created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
        );
+        CREATE TABLE IF NOT EXISTS clients (
+          email TEXT PRIMARY KEY,
+          name TEXT NOT NULL,
+          phone TEXT,
+          loyalty_points INTEGER DEFAULT 0,
+          opt_in_loyalty BOOLEAN DEFAULT FALSE,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
      `;
     await db.query(queries);
 
@@ -636,9 +654,20 @@ const updateAppointment = async (id, time) => {
 
 const anonymizePastAppointments = async () => {
   const today = new Date().toISOString().split('T')[0];
-  return await query("UPDATE appointments SET phone = NULL WHERE date < ? AND phone IS NOT NULL", [today]);
+  if (type === 'pg') {
+    return await query(`
+      UPDATE appointments
+      SET name = 'Anonyme', email = NULL, phone = NULL
+      WHERE date < $1 AND email NOT IN (SELECT email FROM clients WHERE opt_in_loyalty = true) AND name != 'Anonyme'
+    `, [today]);
+  } else {
+    return await query(`
+      UPDATE appointments
+      SET name = 'Anonyme', email = NULL, phone = NULL
+      WHERE date < ? AND email NOT IN (SELECT email FROM clients WHERE opt_in_loyalty = 1) AND name != 'Anonyme'
+    `, [today]);
+  }
 };
-
 const purgeOldAppointments = async (daysToKeep = 7) => {
   // Calculate cutoff date in JS to be DB-agnostic
   const cutoffDate = new Date();
@@ -765,6 +794,70 @@ const saveImage = async (filename, buffer, mimetype) => {
     return await db.query(sql, [finalFilename, emptyBuffer, mimetype]);
   } else {
     return await query('INSERT OR REPLACE INTO images (filename, data, mimetype) VALUES (?, ?, ?)', [finalFilename, emptyBuffer, mimetype]);
+  }
+};
+
+const deleteFile = async (category, filename) => {
+    return true; // Used to actually delete from disk, but we rely on memory or DB now.
+};
+
+// --- CLIENTS & LOYALTY ---
+const getClientByEmail = async (email) => {
+  if (!email) return null;
+  const lowEmail = email.trim().toLowerCase();
+  if (type === 'pg') {
+    return await getOne("SELECT * FROM clients WHERE email = $1", [lowEmail]);
+  } else {
+    return await getOne("SELECT * FROM clients WHERE email = ?", [lowEmail]);
+  }
+};
+
+const upsertClientLoyalty = async (email, name, phone, optIn) => {
+  if (!email) return;
+  const lowEmail = email.trim().toLowerCase();
+  const existing = await getClientByEmail(lowEmail);
+  if (existing) {
+    if (type === 'pg') {
+      return await query("UPDATE clients SET name = $1, phone = $2, opt_in_loyalty = $3 WHERE email = $4", [name, phone, optIn, lowEmail]);
+    } else {
+      return await query("UPDATE clients SET name = ?, phone = ?, opt_in_loyalty = ? WHERE email = ?", [name, phone, optIn ? 1 : 0, lowEmail]);
+    }
+  } else {
+    if (type === 'pg') {
+      return await query("INSERT INTO clients (email, name, phone, opt_in_loyalty, loyalty_points) VALUES ($1, $2, $3, $4, 0)", [lowEmail, name, phone, optIn]);
+    } else {
+      return await query("INSERT INTO clients (email, name, phone, opt_in_loyalty, loyalty_points) VALUES (?, ?, ?, ?, 0)", [lowEmail, name, phone, optIn ? 1 : 0]);
+    }
+  }
+};
+
+const addClientPoint = async (email) => {
+  if (!email) return;
+  const lowEmail = email.trim().toLowerCase();
+  if (type === 'pg') {
+    return await query("UPDATE clients SET loyalty_points = loyalty_points + 1 WHERE email = $1 AND opt_in_loyalty = true", [lowEmail]);
+  } else {
+    return await query("UPDATE clients SET loyalty_points = loyalty_points + 1 WHERE email = ? AND opt_in_loyalty = 1", [lowEmail]);
+  }
+};
+
+const removeClientPoint = async (email) => {
+  if (!email) return;
+  const lowEmail = email.trim().toLowerCase();
+  if (type === 'pg') {
+    return await query("UPDATE clients SET loyalty_points = GREATEST(loyalty_points - 1, 0) WHERE email = $1 AND opt_in_loyalty = true", [lowEmail]);
+  } else {
+    return await query("UPDATE clients SET loyalty_points = MAX(loyalty_points - 1, 0) WHERE email = ? AND opt_in_loyalty = 1", [lowEmail]);
+  }
+};
+
+const resetClientPoints = async (email) => {
+  if (!email) return;
+  const lowEmail = email.trim().toLowerCase();
+  if (type === 'pg') {
+    return await query("UPDATE clients SET loyalty_points = 0 WHERE email = $1", [lowEmail]);
+  } else {
+    return await query("UPDATE clients SET loyalty_points = 0 WHERE email = ?", [lowEmail]);
   }
 };
 
@@ -1251,6 +1344,13 @@ module.exports = {
   getLeaves,
   updateLeave,
   deleteLeave,
+
+  // Loyalty features
+  getClientByEmail,
+  upsertClientLoyalty,
+  addClientPoint,
+  removeClientPoint,
+  resetClientPoints,
 
   // Legacy / Aliases (if needed)
 };

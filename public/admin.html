@@ -25,7 +25,7 @@
                 <div class="form-group">
                     <label>Mot de passe</label>
                     <div class="password-wrapper">
-                        <input type="password" id="setup-password" required>
+                        <input type="password" id="setup-password" required autocomplete="new-password">
                         <button type="button" class="password-toggle" onclick="togglePassword(this)">
                             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"
                                 fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
@@ -53,12 +53,12 @@
             <form id="login-form">
                 <div class="form-group">
                     <label>Utilisateur</label>
-                    <input type="text" id="username" required>
+                    <input type="text" id="username" required autocomplete="username">
                 </div>
                 <div class="form-group">
                     <label>Mot de passe</label>
                     <div class="password-wrapper">
-                        <input type="password" id="password" required>
+                        <input type="password" id="password" required autocomplete="current-password">
                         <button type="button" class="password-toggle" onclick="togglePassword(this)">
                             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"
                                 fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
@@ -581,17 +581,17 @@
                     <h5 style="margin-top:0;">Ajouter une prestation</h5>
                     <div class="form-group">
                         <label>Nom</label>
-                        <input type="text" id="new-service-name">
+                        <input type="text" id="new-service-name" autocomplete="off">
                     </div>
                     <div style="display:flex; gap:10px;">
                         <div class="form-group" style="flex:1">
                             <label>Prix</label>
-                            <input type="number" id="new-service-price" step="0.5" min="0"
+                            <input type="number" id="new-service-price" step="0.5" min="0" autocomplete="off"
                                 onkeydown="return ['Backspace','Delete','ArrowLeft','ArrowRight','Tab'].includes(event.key) || (!isNaN(Number(event.key)) || event.key === '.' || event.key === ',')">
                         </div>
                         <div class="form-group" style="flex:1">
                             <label>Durée (min)</label>
-                            <input type="number" id="new-service-duration" step="5" min="5" value="30">
+                            <input type="number" id="new-service-duration" step="5" min="5" value="30" autocomplete="off">
                         </div>
                         <div class="form-group" style="flex:1">
                             <label>Icône</label>
@@ -620,17 +620,17 @@
                     <h5 style="margin-top:0;">Ajouter un produit</h5>
                     <div class="form-group">
                         <label>Nom</label>
-                        <input type="text" id="new-product-name">
+                        <input type="text" id="new-product-name" autocomplete="off">
                     </div>
                     <div style="display:flex; gap:10px;">
                         <div class="form-group" style="flex:1">
                             <label>Prix (€)</label>
-                            <input type="number" id="new-product-price" step="0.5" min="0">
+                            <input type="number" id="new-product-price" step="0.5" min="0" autocomplete="off">
                         </div>
                     </div>
                     <div class="form-group">
                         <label>Description</label>
-                        <input type="text" id="new-product-desc">
+                        <input type="text" id="new-product-desc" autocomplete="off">
                     </div>
                     <div class="form-group">
                         <label>Photo</label>
@@ -676,12 +676,17 @@
         <div id="tab-clients" class="tab-content">
             <div class="settings-form">
                 <div class="settings-section">
+                    <!-- Hidden trap to stop browser password suggestions in this section -->
+                    <input type="text" style="display:none" autocomplete="username">
+                    <input type="password" style="display:none" autocomplete="new-password">
+                    
                     <h3>Gestion des Clients</h3>
                     <p>Liste de tous vos clients ayant rejoint le programme de fidélité ou ayant pris rendez-vous.</p>
                     
                     <div class="admin-form-card" style="margin-bottom: 20px;">
                         <div class="form-group" style="margin-bottom: 0;">
-                            <input type="text" id="client-search" placeholder="Rechercher par nom, e-mail ou téléphone..." 
+                            <input type="text" id="lo-srch-field" placeholder="Rechercher par nom, e-mail ou téléphone..." 
+                                autocomplete="one-time-code"
                                 style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 1rem;">
                         </div>
                     </div>
@@ -704,6 +709,7 @@
                         <div id="clients-empty-msg" style="display:none; padding: 20px; text-align: center; color: #666; font-style: italic;">
                             Aucun client trouvé.
                         </div>
+                        <div id="clients-pagination"></div>
                     </div>
                 </div>
             </div>
@@ -720,8 +726,8 @@
             <p style="margin-top: 5px; color: #666; font-style: italic;">
                 Prestation : <span id="edit-service-info"></span>
             </p>
-            <input type="hidden" id="edit-id">
-            <input type="hidden" id="edit-time">
+            <input type="hidden" id="edit-id" autocomplete="off">
+            <input type="hidden" id="edit-time" autocomplete="off">
 
             <div id="edit-slots-container" class="slots-grid"
                 style="margin-top: 25px; margin-bottom: 25px; max-height: 350px; overflow-y: auto; padding: 5px;">

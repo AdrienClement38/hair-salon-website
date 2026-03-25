@@ -51,13 +51,20 @@ function renderClients(filter = '') {
         return searchStr.includes(filter.toLowerCase());
     });
 
-    // Stable sort: Alphabetical by name, then email
+    // Stable sort: Alphabetical by name, then registration date
     filtered.sort((a, b) => {
         const nameA = (a.name || '').toLowerCase();
         const nameB = (b.name || '').toLowerCase();
         if (nameA < nameB) return -1;
         if (nameA > nameB) return 1;
         
+        // Fallback: Registration date (oldest first)
+        const dateA = new Date(a.created_at || parseInt(a.id || 0)).getTime();
+        const dateB = new Date(b.created_at || parseInt(b.id || 0)).getTime();
+        if (dateA < dateB) return -1;
+        if (dateA > dateB) return 1;
+
+        // Final absolute fallback (just in case they registered at the exact same millisecond)
         const emailA = (a.email || '').toLowerCase();
         const emailB = (b.email || '').toLowerCase();
         if (emailA < emailB) return -1;

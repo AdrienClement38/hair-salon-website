@@ -87,37 +87,36 @@ exports.createBooking = async (req, res) => {
             if (admin) workerName = admin.display_name || admin.username;
         }
 
-        // Fetch Loyalty Info if enabled
+        // Handle Loyalty Notification
         let loyaltyPoints = undefined;
         let loyaltySettings = undefined;
-        try {
-            loyaltySettings = await db.getSetting('loyalty_program');
-            if (loyaltySettings && loyaltySettings.enabled && req.body.email) {
-                const client = await db.getClientByEmail(req.body.email);
-                if (client && (client.opt_in_loyalty === 1 || client.opt_in_loyalty === true)) {
-                    loyaltyPoints = client.loyalty_points;
+        let hasReward = false;
 
-                    // Auto-reset if threshold reached
-                    const threshold = loyaltySettings.required_appointments || 10;
-                    if (loyaltyPoints >= threshold) {
-                        try {
-                            await db.resetClientPoints(req.body.email);
-                            console.log(`[Loyalty] Reset points for ${req.body.email} (reached ${loyaltyPoints}/${threshold})`);
-                        } catch (err) {
-                            console.error('[Loyalty] Reset Error:', err);
-                        }
-                    }
-                }
+        if (result.loyaltyTransition) {
+            try {
+                loyaltySettings = await db.getSetting('loyalty_program');
+                const { oldPoints, newPoints } = result.loyaltyTransition;
+                const threshold = loyaltySettings.required_appointments || 10;
+                
+                // Case 1: Just reached threshold
+                if (newPoints === threshold) hasReward = true;
+                // Case 2: Wrapped around from threshold to 0 (means we just used it or admin set it to threshold then user booked)
+                if (oldPoints === threshold && newPoints === 0) hasReward = true;
+
+                loyaltyPoints = newPoints;
+            } catch (e) {
+                console.error('Loyalty Process Error:', e);
             }
-        } catch (e) { console.error('Loyalty Fetch Error for Email:', e); }
+        }
 
         emailService.sendConfirmation({
             ...req.body,
             to: req.body.email,
-            id: result.lastInsertRowid, // Pass ID for cancellation link
+            id: result.lastInsertRowid,
             workerName,
             loyaltyPoints,
-            loyaltySettings
+            loyaltySettings,
+            hasReward
         }).catch(err => console.error("Email send failed", err));
 
         triggerUpdate();

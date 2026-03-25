@@ -98,6 +98,7 @@
                 id="tab-btn-appointments">Rendez-vous</button>
             <button class="tab-btn" onclick="switchTab('settings')" id="tab-btn-settings">Configuration</button>
             <button class="tab-btn" onclick="switchTab('content')" id="tab-btn-content">Contenu Site</button>
+            <button class="tab-btn" onclick="switchTab('clients')" id="tab-btn-clients" style="display: none;">Fidélité</button>
         </div>
 
         <!-- Appointments Tab -->
@@ -492,8 +493,8 @@
                             <div class="admin-thumb-container">
                                 <span id="placeholder-logo" style="display:none; color: #999; font-style: italic; width: 100%; text-align: center;">Aucun logo n'est paramétré</span>
                                 <img id="thumb-logo" class="admin-thumb" src="" alt="Aperçu Logo"
-                                    onerror="this.style.display='none'; document.getElementById('placeholder-logo').style.display='block'; const f = document.querySelector('link[rel=\'icon\']'); if(f) f.href='data:image/x-icon;,';" 
-                                    onload="this.style.display='block'; document.getElementById('placeholder-logo').style.display='none'; const f = document.querySelector('link[rel=\'icon\']'); if(f) f.href=this.src;">
+                                    onerror="this.style.display='none'; document.getElementById('placeholder-logo').style.display='block'; const favErr = document.querySelector('link[rel=\'icon\']'); if(favErr) favErr.href='data:image/x-icon;,';" 
+                                    onload="this.style.display='block'; document.getElementById('placeholder-logo').style.display='none'; const favLoad = document.querySelector('link[rel=\'icon\']'); if(favLoad) favLoad.href=this.src;">
                                 <button class="btn-x" onclick="removeLogo()" style="margin-left: auto;"
                                     title="Supprimer le logo">
                                     &times;
@@ -666,6 +667,43 @@
                     <div class="form-actions">
                         <button class="btn" onclick="addPortfolioItem()" style="width:auto">Ajouter à la
                             liste</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Clients Tab -->
+        <div id="tab-clients" class="tab-content">
+            <div class="settings-form">
+                <div class="settings-section">
+                    <h3>Gestion des Clients</h3>
+                    <p>Liste de tous vos clients ayant rejoint le programme de fidélité ou ayant pris rendez-vous.</p>
+                    
+                    <div class="admin-form-card" style="margin-bottom: 20px;">
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <input type="text" id="client-search" placeholder="Rechercher par nom, e-mail ou téléphone..." 
+                                style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 1rem;">
+                        </div>
+                    </div>
+
+                    <div id="clients-list-container" class="admin-form-card" style="padding: 0; overflow-x: auto;">
+                        <table class="day-details-table" id="clients-table">
+                            <thead>
+                                <tr>
+                                    <th>Client</th>
+                                    <th>Contact</th>
+                                    <th>Points</th>
+                                    <th>Statut</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="clients-tbody">
+                                <!-- Injected via JS -->
+                            </tbody>
+                        </table>
+                        <div id="clients-empty-msg" style="display:none; padding: 20px; text-align: center; color: #666; font-style: italic;">
+                            Aucun client trouvé.
+                        </div>
                     </div>
                 </div>
             </div>

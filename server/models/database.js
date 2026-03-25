@@ -620,13 +620,84 @@ const getDailyGaps = async (date, workerId, _injectedOpeningHours = null) => {
 };
 
 const getAllAppointments = async (forceAdminId = null) => {
-
+  let sql;
+  const params = [];
 
   if (forceAdminId) {
-    if (type === 'pg') return await query('SELECT * FROM appointments WHERE admin_id = $1 OR admin_id IS NULL ORDER BY date DESC, time ASC', [forceAdminId]);
-    return await query('SELECT * FROM appointments WHERE admin_id = ? OR admin_id IS NULL ORDER BY date DESC, time ASC', [forceAdminId]);
+    if (type === 'pg') {
+      sql = `
+        SELECT a.*, c.loyalty_points 
+        FROM appointments a 
+        LEFT JOIN clients c ON a.email = c.email 
+        WHERE a.admin_id = $1 OR a.admin_id IS NULL 
+        ORDER BY a.date DESC, a.time ASC
+      `;
+    } else {
+      sql = `
+        SELECT a.*, c.loyalty_points 
+        FROM appointments a 
+        LEFT JOIN clients c ON a.email = c.email 
+        WHERE a.admin_id = ? OR a.admin_id IS NULL 
+        ORDER BY a.date DESC, a.time ASC
+      `;
+    }
+    params.push(forceAdminId);
+  } else {
+    if (type === 'pg') {
+      sql = `
+        SELECT a.*, c.loyalty_points 
+        FROM appointments a 
+        LEFT JOIN clients c ON a.email = c.email 
+        ORDER BY a.date DESC, a.time ASC
+      `;
+    } else {
+      sql = `
+        SELECT a.*, c.loyalty_points 
+        FROM appointments a 
+        LEFT JOIN clients c ON a.email = c.email 
+        ORDER BY a.date DESC, a.time ASC
+      `;
+    }
   }
-  return await query('SELECT * FROM appointments ORDER BY date DESC, time ASC');
+
+  return await query(sql, params);
+};
+
+const getAllClients = async () => {
+    return await query('SELECT * FROM clients ORDER BY name ASC');
+};
+
+const adjustClientPoints = async (email, delta) => {
+    const raw = await getSetting('loyalty_program');
+    const loyalty = (typeof raw === 'string') ? JSON.parse(raw) : raw;
+    const threshold = (loyalty && loyalty.required_appointments) ? parseInt(loyalty.required_appointments) : 10;
+
+    const client = await getClientByEmail(email);
+    if (!client) return { oldPoints: 0, newPoints: 0 };
+
+    const oldPoints = client.loyalty_points || 0;
+    let newPoints;
+
+    if (delta > 0) {
+        newPoints = (oldPoints + delta) % (threshold + 1);
+    } else {
+        newPoints = Math.max(0, oldPoints + delta);
+    }
+
+    if (type === 'pg') {
+        await query('UPDATE clients SET loyalty_points = $1 WHERE email = $2', [newPoints, email]);
+    } else {
+        await query('UPDATE clients SET loyalty_points = ? WHERE email = ?', [newPoints, email]);
+    }
+    return { oldPoints, newPoints };
+};
+
+const deleteClient = async (email) => {
+    if (type === 'pg') {
+        return await query('DELETE FROM clients WHERE email = $1', [email]);
+    } else {
+        return await query('DELETE FROM clients WHERE email = ?', [email]);
+    }
 };
 
 const createBooking = async (name, date, time, service, phone, adminId, email, status = 'CONFIRMED') => {
@@ -832,13 +903,25 @@ const upsertClientLoyalty = async (email, name, phone, optIn) => {
 };
 
 const addClientPoint = async (email) => {
-  if (!email) return;
+  if (!email) return { oldPoints: 0, newPoints: 0 };
   const lowEmail = email.trim().toLowerCase();
+  
+  const raw = await getSetting('loyalty_program');
+  const loyalty = (typeof raw === 'string') ? JSON.parse(raw) : raw;
+  const threshold = (loyalty && loyalty.required_appointments) ? parseInt(loyalty.required_appointments) : 10;
+
+  const client = await getClientByEmail(lowEmail);
+  if (!client) return { oldPoints: 0, newPoints: 0 };
+
+  const oldPoints = client.loyalty_points || 0;
+  const newPoints = (oldPoints + 1) % (threshold + 1);
+
   if (type === 'pg') {
-    return await query("UPDATE clients SET loyalty_points = loyalty_points + 1 WHERE email = $1 AND opt_in_loyalty = true", [lowEmail]);
+    await query("UPDATE clients SET loyalty_points = $1 WHERE email = $2 AND opt_in_loyalty = true", [newPoints, lowEmail]);
   } else {
-    return await query("UPDATE clients SET loyalty_points = loyalty_points + 1 WHERE email = ? AND opt_in_loyalty = 1", [lowEmail]);
+    await query("UPDATE clients SET loyalty_points = ? WHERE email = ? AND opt_in_loyalty = 1", [newPoints, lowEmail]);
   }
+  return { oldPoints, newPoints };
 };
 
 const removeClientPoint = async (email) => {
@@ -1347,10 +1430,13 @@ module.exports = {
 
   // Loyalty features
   getClientByEmail,
+  getAllClients,
   upsertClientLoyalty,
   addClientPoint,
   removeClientPoint,
   resetClientPoints,
+  adjustClientPoints,
+  deleteClient,
 
   // Legacy / Aliases (if needed)
 };

@@ -3,8 +3,8 @@
 const ICON_EYE = '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>';
 const ICON_EYE_OFF = '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07-2.3 2.3"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>';
 
-export function initUI() {
-    // Lock/Unlock Old Password field based on New Password input
+export async function initUI() {
+    // ... profile password logic
     const newPassInput = document.getElementById('profile-new-pass');
     const oldPassInput = document.getElementById('profile-old-pass');
 
@@ -20,6 +20,22 @@ export function initUI() {
             }
         });
     }
+
+    // Conditional Loyalty Tab Visibility
+    try {
+        const res = await fetch('/api/settings');
+        if (res.ok) {
+            const settings = await res.json();
+            const loyaltyBtn = document.getElementById('tab-btn-clients');
+            if (loyaltyBtn) {
+                if (settings.loyalty_program && settings.loyalty_program.enabled) {
+                    loyaltyBtn.style.display = 'block';
+                } else {
+                    loyaltyBtn.style.display = 'none';
+                }
+            }
+        }
+    } catch (e) { console.error('Failed to check loyalty status:', e); }
 
     // Restore active tab
     const savedTab = localStorage.getItem('adminActiveTab') || 'appointments';
@@ -41,6 +57,11 @@ export function switchTab(tab) {
 
     // Save state
     localStorage.setItem('adminActiveTab', tab);
+
+    // Specific Loaders
+    if (tab === 'clients' && window.loadClients) {
+        window.loadClients();
+    }
 }
 
 export function togglePassword(btn) {

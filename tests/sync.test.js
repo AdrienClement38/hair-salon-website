@@ -23,6 +23,12 @@ describe('Synchronization Logic (Polling)', () => {
         const defaultHours = [];
         for (let i = 0; i < 7; i++) defaultHours.push({ isOpen: true, open: '09:00', close: '19:00' });
         await db.setSetting('opening_hours', defaultHours);
+
+        // CLEANUP any leftover test bookings for tomorrow to avoid 409
+        const tomorrow = new Date();
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        const dateStr = tomorrow.toISOString().split('T')[0];
+        await db.run("DELETE FROM appointments WHERE date = ?", [dateStr]);
     });
 
     afterAll(async () => {

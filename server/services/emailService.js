@@ -137,7 +137,7 @@ class EmailService {
             const rewardMsg = loyaltySettings.reward_label || 'votre récompense';
 
             let statusMsg = '';
-            if (ptsRestants === 0) {
+            if (data.hasReward === true || ptsRestants === 0) {
                 statusMsg = `<span style="color: #27ae60; font-weight: bold;">Félicitations ! Vous avez atteint le palier pour bénéficier de : ${rewardMsg}. Présentez cet e-mail à l'équipe lors de votre rendez-vous pour en profiter !</span>`;
             } else {
                 statusMsg = `Plus que <strong>${ptsRestants}</strong> rendez-vous avant votre récompense : <em>${rewardMsg}</em>.`;

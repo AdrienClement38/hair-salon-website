@@ -285,15 +285,19 @@ class AppointmentService {
                     console.log(`[Loyalty] Opting in for ${lowEmail}`);
                     await db.upsertClientLoyalty(lowEmail, name, phone, true);
                 }
+                let loyaltyResult = null;
                 const client = await db.getClientByEmail(lowEmail);
                 console.log(`[Loyalty] Client state:`, client ? { opt: client.opt_in_loyalty, pts: client.loyalty_points } : 'not found');
                 // SQLite returns 1 for true, PG returns true
                 if (client && (client.opt_in_loyalty === 1 || client.opt_in_loyalty === true)) {
                     console.log(`[Loyalty] Adding point for ${lowEmail}`);
-                    await db.addClientPoint(lowEmail);
+                    loyaltyResult = await db.addClientPoint(lowEmail);
                 } else {
                     console.log(`[Loyalty] No point added (opt_in was ${client?.opt_in_loyalty})`);
                 }
+                
+                // Add loyalty result to response
+                result.loyaltyTransition = loyaltyResult;
             } catch (err) {
                 console.error('[Loyalty] Error attributing point:', err);
             }

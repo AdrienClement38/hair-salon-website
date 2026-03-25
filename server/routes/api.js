@@ -103,6 +103,9 @@ router.post('/book', validate(createBookingSchema), appointmentsController.creat
 
 // --- Loyalty ---
 router.get('/loyalty/status', loyaltyController.getStatus);
+router.get('/admin/clients', checkAuth, loyaltyController.listClients);
+router.post('/admin/clients/:email/adjust', checkAuth, loyaltyController.adjustPoints);
+router.delete('/admin/clients/:email', checkAuth, loyaltyController.deleteClient);
 
 // --- Public Data ---
 router.get('/workers', adminsController.listPublicWorkers);

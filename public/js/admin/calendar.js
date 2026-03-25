@@ -807,6 +807,7 @@ function renderAppointmentTable(apts, showWorkerCol) {
                     <th class="col-hour">Heure</th>
                     <th class="col-service">Service</th>
                     <th class="col-client">Client</th>
+                    <th class="col-loyalty">Fidélité</th>
                     ${showWorkerCol ? '<th class="col-worker">Coiffeur</th>' : ''}
                     <th class="col-tel">Tél</th>
                     <th class="col-actions">Action</th>
@@ -850,6 +851,9 @@ function renderAppointmentTable(apts, showWorkerCol) {
                         <td>
                             ${apt.name} ${statusBadge}
                             <div class="phone-subtext">${phoneDisplay}</div>
+                        </td>
+                        <td class="col-loyalty">
+                            ${apt.loyalty_points !== undefined && apt.loyalty_points !== null ? `<span class="appt-badge" style="background:#673ab7; color:white;">${apt.loyalty_points} pts</span>` : '<span style="color:#ccc;">-</span>'}
                         </td>
                         ${showWorkerCol ? `<td><span class="appt-badge">${workerName}</span></td>` : ''}
                         <td class="col-tel">${phoneDisplay}</td>

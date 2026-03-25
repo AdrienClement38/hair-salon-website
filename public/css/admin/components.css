@@ -332,11 +332,40 @@ th {
     background: transparent;
     color: #e74c3c;
     border: 1px solid #e74c3c;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 5px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s ease;
 }
 
 .btn-delete:hover {
     background: #e74c3c;
     color: white;
+}
+
+.btn-circle {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    border: 1px solid #ddd;
+    background: white;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 1rem;
+    color: #673ab7;
+    transition: all 0.2s ease;
+    padding: 0;
+}
+
+.btn-circle:hover {
+    background: #673ab7;
+    color: white;
+    border-color: #673ab7;
 }
 
 .admin-thumb-container {

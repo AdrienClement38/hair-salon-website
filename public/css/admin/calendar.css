@@ -110,25 +110,44 @@
     display: none;
 }
 
-/* Desktop Table Base widths */
-.col-hour {
-    width: 10%;
+/* Desktop Table Layout - Flexible */
+.day-details-table {
+    width: 100%;
+    table-layout: auto;
 }
 
-.col-service {
-    width: 30%;
+.col-loyalty,
+.col-hour,
+.col-actions {
+    width: 1%;
+    white-space: nowrap;
+    text-align: center;
 }
 
-.col-client {
-    width: 25%;
+.col-loyalty {
+    padding-left: 20px;
+    padding-right: 20px;
 }
 
 .col-tel {
-    width: 20%;
+    white-space: nowrap;
 }
 
-.col-actions {
-    width: 15%;
+.col-service,
+.col-client {
+    width: auto;
+}
+
+@media (min-width: 769px) {
+    .col-client {
+        width: 20% !important;
+    }
+    .col-loyalty {
+        width: 15% !important;
+    }
+    .col-tel {
+        width: 15% !important;
+    }
 }
 
 @media (max-width: 768px) {
@@ -198,7 +217,8 @@
         width: 30% !important;
     }
 
-    .col-tel {
+    .col-tel,
+    .col-loyalty {
         display: none !important;
     }
 

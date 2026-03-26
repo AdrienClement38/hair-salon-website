@@ -22,20 +22,24 @@ export async function initUI() {
     }
 
     // Conditional Loyalty Tab Visibility
-    try {
-        const res = await fetch('/api/settings');
-        if (res.ok) {
-            const settings = await res.json();
-            const loyaltyBtn = document.getElementById('tab-btn-clients');
-            if (loyaltyBtn) {
-                if (settings.loyalty_program && settings.loyalty_program.enabled) {
-                    loyaltyBtn.style.display = 'block';
-                } else {
-                    loyaltyBtn.style.display = 'none';
+    if (localStorage.getItem('auth')) {
+        try {
+            const res = await fetch('/api/settings');
+            if (res.ok) {
+                const settings = await res.json();
+                const loyaltyBtn = document.getElementById('tab-btn-clients');
+                if (loyaltyBtn) {
+                    if (settings.loyalty_program && settings.loyalty_program.enabled) {
+                        loyaltyBtn.style.display = 'block';
+                    } else {
+                        loyaltyBtn.style.display = 'none';
+                    }
                 }
             }
+        } catch (e) {
+            console.error('Failed to check loyalty status:', e);
         }
-    } catch (e) { console.error('Failed to check loyalty status:', e); }
+    }
 
     // Restore active tab
     const savedTab = localStorage.getItem('adminActiveTab') || 'appointments';
@@ -43,6 +47,18 @@ export async function initUI() {
 }
 
 export function switchTab(tab) {
+    const skipTransition = !document.startViewTransition || 
+                          window.location.search.includes('no-transition') || 
+                          window.name === 'jest-test';
+    
+    if (skipTransition) {
+        performTabSwitch(tab);
+    } else {
+        document.startViewTransition(() => performTabSwitch(tab));
+    }
+}
+
+function performTabSwitch(tab) {
     document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
     document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
 

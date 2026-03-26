@@ -19,6 +19,7 @@ const editTimeInput = document.getElementById('edit-time');
 let calendarPollingInterval = null;
 
 export function initCalendar() {
+    if (!localStorage.getItem('auth')) return;
     initYearSelect();
     loadWorkersForFilter();
 
@@ -89,6 +90,7 @@ export function initCalendar() {
 }
 
 async function loadCalendarSettings() {
+    if (!localStorage.getItem('auth')) return;
     try {
         const res = await fetch('/api/settings');
         const settings = await res.json();
@@ -121,6 +123,7 @@ function initYearSelect() {
 }
 
 export async function loadWorkersForFilter() {
+    if (!localStorage.getItem('auth')) return;
     try {
         // Use Admin Endpoint to get full details (username, etc.)
         const res = await fetch('/api/admin/workers', { headers: getHeaders() });
@@ -245,6 +248,7 @@ function updateProfileInputs(adminId) {
 }
 
 export async function loadAppointments() {
+    if (!localStorage.getItem('auth')) return;
     const filter = document.getElementById('admin-filter') ? document.getElementById('admin-filter').value : '';
     const url = filter ? `${API_URL}/appointments?adminId=${filter}` : `${API_URL}/appointments`;
 
@@ -276,6 +280,7 @@ export async function loadAppointments() {
 
 // Separate function for Calendar Leaves (Loose/Visual Mode)
 export async function loadLeavesForCalendar(adminId) {
+    if (!localStorage.getItem('auth')) return;
     try {
         let url = `${API_URL}/leaves`;
         if (adminId) {
@@ -661,7 +666,7 @@ async function openDayDetails(dateStr, appointments, shouldScroll = true) {
             }
 
             // Render Appointments
-            listContainer.innerHTML += renderAppointmentTable(safeAppts, false);
+            listContainer.innerHTML += `<div class="day-details-table-wrapper">${renderAppointmentTable(safeAppts, false)}</div>`;
         }
 
         // Initial Waitlist Fetch & Auto-Refresh Setup
@@ -745,7 +750,7 @@ function renderWorkerSection(workerName, appts, waitCount) {
 
     // Header
     const header = document.createElement('h3');
-    header.textContent = workerName;
+    header.textContent = `${workerName} (${(appts || []).length})`;
     header.style.borderBottom = '1px solid #ddd';
     header.style.paddingBottom = '5px';
     header.style.marginBottom = '15px';
@@ -764,7 +769,7 @@ function renderWorkerSection(workerName, appts, waitCount) {
 
     // Table or Empty msg
     if (appts && appts.length > 0) {
-        section.innerHTML += renderAppointmentTable(appts, false);
+        section.innerHTML += `<div class="day-details-table-wrapper">${renderAppointmentTable(appts, false)}</div>`;
     } else {
         section.innerHTML += '<p style="color:#777; font-style:italic;">Aucun rendez-vous planifié.</p>';
     }
@@ -879,7 +884,7 @@ function renderWaitlistTable(requests, container) {
 
     let html = `
     <table class="waitlist-table" style="width:100%; background:#fff8e1; border:1px solid #ffe0b2; margin-bottom:10px;">
-        <thead style="background:#ffecb3;">
+        <thead>
             <tr>
                 <th style="padding:8px;">Créé le</th>
                 <th style="padding:8px;">Client</th>

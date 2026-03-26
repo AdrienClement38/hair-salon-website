@@ -25,6 +25,8 @@ describe('Navigation Shortcuts & Routing', () => {
     beforeEach(async () => {
         browser = await puppeteer.launch({ headless: 'new' });
         page = await browser.newPage();
+        page.on('console', msg => console.log('BROWSER LOG:', msg.text()));
+        page.on('pageerror', err => console.log('BROWSER ERROR:', err.toString()));
         await page.setViewport({ width: 1280, height: 800 });
         await page.goto(BASE_URL);
     });

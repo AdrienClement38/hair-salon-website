@@ -70,12 +70,12 @@ export const loadSettings = async () => {
             const loyaltyEnabled = document.getElementById('loyalty-enabled');
             const loyaltyRequired = document.getElementById('loyalty-required');
             const loyaltyReward = document.getElementById('loyalty-reward');
-            const loyaltyConfig = document.getElementById('loyalty-config');
+            const loyaltyFields = document.getElementById('loyalty-settings-fields');
             
             if (loyaltyEnabled) {
                 loyaltyEnabled.checked = settings.loyalty_program.enabled;
-                if (loyaltyConfig) {
-                    loyaltyConfig.style.display = loyaltyEnabled.checked ? 'block' : 'none';
+                if (loyaltyFields) {
+                    loyaltyFields.style.display = loyaltyEnabled.checked ? 'block' : 'none';
                 }
             }
             if (loyaltyRequired) loyaltyRequired.value = settings.loyalty_program.required_appointments || 10;

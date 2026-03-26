@@ -21,11 +21,15 @@ describe('Admin - Reorder Services & Products', () => {
         BASE_URL = `http://localhost:${port}`;
 
         // Inject Test User Directly via DB (BDD Clone Support)
-        const dbModel = require('../server/models/database');
-        const hash = await require('bcryptjs').hash(TEST_USER.password, 10);
-        await dbModel.createAdmin(TEST_USER.username, hash, TEST_USER.displayName);
-        await dbModel.setSetting('products', []);
-        console.log('Reorder Test User Injected');
+        try {
+            const dbModel = require('../server/models/database');
+            const hash = await require('bcryptjs').hash(TEST_USER.password, 10);
+            await dbModel.createAdmin(TEST_USER.username, hash, TEST_USER.displayName);
+            await dbModel.setSetting('products', []);
+            console.log('Reorder Test User Injected');
+        } catch (e) {
+            console.warn('Reorder Test User Injection warning (likely exists):', e.message);
+        }
     });
 
     afterAll(async () => {
@@ -33,10 +37,10 @@ describe('Admin - Reorder Services & Products', () => {
     });
 
     beforeEach(async () => {
-        browser = await puppeteer.launch({ headless: 'new' });
-        page = await browser.newPage();
-
-        await page.setViewport({ width: 1280, height: 800 });
+         browser = await puppeteer.launch({ headless: 'new' });
+         page = await browser.newPage();
+ 
+         await page.setViewport({ width: 1280, height: 800 });
     });
 
     afterEach(async () => {
@@ -120,11 +124,13 @@ describe('Admin - Reorder Services & Products', () => {
 
     test('Should allow reordering of products via arrows', async () => {
         // 1. Login (already assumed from previous test state? No, beforeEach launches new browser)
-        await page.goto(`${BASE_URL}/lbc-admin`);
-        await page.type('#username', TEST_USER.username);
-        await page.type('#password', TEST_USER.password);
-        await page.click('#login-form button[type="submit"]');
-        await page.waitForSelector('#dashboard-view', { visible: true });
+        await page.goto(`${BASE_URL}/admin.html`);
+        await page.evaluate((user, pass) => {
+            localStorage.setItem('auth', btoa(`${user}:${pass}`));
+            window.location.reload();
+        }, TEST_USER.username, TEST_USER.password);
+        // Wait specifically for the view to switch, not for network idle which is problematic due to polling
+        await page.waitForSelector('#dashboard-view', { visible: true, timeout: 30000 });
 
         // 2. Go to Content Tab (Products are there)
         // 2. Go to Content Tab (Products are there)

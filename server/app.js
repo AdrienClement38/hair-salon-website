@@ -45,7 +45,7 @@ app.use(cookieParser());
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true })); // Handle form submissions
 app.use(express.static(path.join(__dirname, '../public'), {
-    maxAge: '30d', // Cache static assets in browser for 30 days
+    maxAge: 0, // Disable caching for easier debugging/updates
     etag: true
 }));
 
@@ -57,6 +57,13 @@ app.use('/api', (req, res, next) => {
     res.set('Surrogate-Control', 'no-store');
     next();
 });
+
+// Mock socket.io for tests to avoid 404/MIME errors
+if (process.env.NODE_ENV === 'test') {
+    app.get('/socket.io/socket.io.js', (req, res) => {
+        res.type('application/javascript').send('// Mock Socket.IO');
+    });
+}
 
 // API Routes
 app.use('/api', apiRoutes);

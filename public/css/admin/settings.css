@@ -41,6 +41,7 @@
     background: #fafafa;
     padding: 15px;
     border-radius: 4px;
+    border: 1px solid #eee;
     margin-top: 20px;
 }
 
@@ -277,10 +278,11 @@
         grid-column: 1;
         font-weight: bold;
         font-size: 0.85rem;
-        text-align: left;
+        text-align: center;
         line-height: 1.2;
         display: flex;
         align-items: center;
+        justify-content: center;
     }
 
     /* Checkbox */
@@ -386,8 +388,6 @@
         /* Approx 5 items */
         overflow-y: auto;
         /* Enable vertical scroll */
-        padding-right: 5px;
-        /* Avoid scrollbar covering content */
     }
 
     #services-list tr {
@@ -444,10 +444,6 @@
         font-size: 0.9rem;
     }
 
-    #services-list td:nth-child(3)::after {
-        content: " €";
-    }
-
     /* Description (td4) */
     #services-list td:nth-child(4) {
         grid-row: 3;
@@ -482,6 +478,94 @@
     #products-list .btn-orange {
         padding: 4px;
         /* Uniform reduced padding for mobile */
+    }
+
+    /* Products Table Optimization */
+    #products-list table {
+        width: 100%;
+        display: block;
+    }
+
+    #products-list thead {
+        display: none;
+    }
+
+    #products-list tbody {
+        display: block;
+        width: 100%;
+        max-height: 500px;
+        overflow-y: auto;
+    }
+
+    #products-list tr {
+        display: grid;
+        grid-template-columns: 60px 1fr auto;
+        /* Photo | Name+Price+Desc | Actions */
+        grid-template-rows: auto auto auto;
+        gap: 2px;
+        padding: 10px;
+        border-bottom: 1px solid #eee;
+        align-items: center;
+        width: 100%;
+        box-sizing: border-box;
+        margin-bottom: 5px;
+        background: #fff;
+        border-radius: 8px;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    }
+
+    /* Photo (td1) */
+    #products-list td:nth-child(1) {
+        grid-row: 1 / span 3;
+        grid-column: 1;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        border: none !important;
+        height: 100%;
+    }
+
+    /* Name (td2) */
+    #products-list td:nth-child(2) {
+        grid-row: 1;
+        grid-column: 2;
+        font-weight: bold;
+        font-size: 1rem;
+        padding: 0 !important;
+        border: none !important;
+    }
+
+    /* Price (td3) */
+    #products-list td:nth-child(3) {
+        grid-row: 2;
+        grid-column: 2;
+        font-weight: bold;
+        color: #d4af37;
+        padding: 0 !important;
+        border: none !important;
+        font-size: 0.9rem;
+    }
+
+    /* Description (td4) */
+    #products-list td:nth-child(4) {
+        grid-row: 3;
+        grid-column: 2;
+        font-size: 0.8rem;
+        color: #666;
+        padding: 0 !important;
+        border: none !important;
+    }
+
+    /* Actions (td5) */
+    #products-list td:nth-child(5) {
+        grid-row: 1 / span 3;
+        grid-column: 3;
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        border: none !important;
+        padding: 0 !important;
+        height: 100%;
     }
 }
 
@@ -566,4 +650,86 @@
 .btn-x:hover {
     color: #c82333;
     background-color: rgba(220, 53, 69, 0.1);
+}
+
+/* Clients Table Specific Widths (Desktop) */
+@media (min-width: 769px) {
+    #clients-table {
+        table-layout: auto;
+    }
+
+    #clients-table th:nth-child(1), /* Client */
+    #clients-table td:nth-child(1),
+    #clients-table th:nth-child(2), /* Contact */
+    #clients-table td:nth-child(2) {
+        width: auto;
+    }
+
+    #clients-table th:nth-child(3), /* Points */
+    #clients-table td:nth-child(3) {
+        width: 15%;
+        text-align: center;
+    }
+
+    #clients-table th:nth-child(4), /* Action */
+    #clients-table td:nth-child(4) {
+        width: 80px;
+        text-align: center;
+    }
+
+    .mobile-only {
+        display: none !important;
+    }
+}
+
+/* Mobile Adjustments for Clients Table */
+@media (max-width: 768px) {
+    .desktop-only,
+    .col-contact-header {
+        display: none !important;
+    }
+
+    .mobile-only {
+        display: block !important;
+    }
+
+    #clients-table th, #clients-table td {
+        padding: 5px 2px;
+        font-size: 0.8rem;
+        text-align: center;
+    }
+    
+    #clients-table th:nth-child(1),
+    #clients-table td:nth-child(1) {
+        width: 45%;
+    }
+
+    #clients-table th:nth-child(3),
+    #clients-table td:nth-child(3) {
+        width: 35%;
+    }
+    
+    #clients-table th:nth-child(4),
+    #clients-table td:nth-child(4) {
+        width: 20%;
+    }
+}
+
+/* Global Centering for Clients Table */
+#clients-table th, 
+#clients-table td {
+    text-align: center;
+    vertical-align: middle;
+}
+
+.tab-desc-centered {
+    text-align: center;
+    margin: 15px auto 20px;
+    max-width: 600px;
+    color: #666;
+}
+
+.masked-secret {
+    -webkit-text-security: disc !important;
+    font-family: monospace;
 }

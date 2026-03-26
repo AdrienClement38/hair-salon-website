@@ -91,31 +91,29 @@ function renderClients(filter = '') {
 
     tbody.innerHTML = pageData.map(c => {
         const phoneDisplay = formatPhone(c.phone);
-        const optInBadge = c.opt_in_loyalty 
-            ? '<span class="appt-badge" style="background:#4caf50; color:white">Actif</span>' 
-            : '<span class="appt-badge" style="background:#9e9e9e; color:white">Inactif</span>';
         
         return `
             <tr>
-                <td>
+                <td class="col-client-info">
                     <div style="font-weight:bold;">${c.name}</div>
-                    <div style="font-size:0.8rem; color:#666;">Depuis le ${new Date(c.created_at).toLocaleDateString()}</div>
+                    <div class="mobile-only" style="font-size:0.85rem; color:#333; margin-top:4px;">${c.email}</div>
+                    <div class="mobile-only phone-subtext" style="font-size:0.8rem; color:#666;">${phoneDisplay}</div>
+                    <div class="desktop-only" style="font-size:0.75rem; color:#888; margin-top:2px;">Depuis le ${new Date(c.created_at).toLocaleDateString()}</div>
                 </td>
-                <td>
+                <td class="col-contact-info desktop-only">
                     <div style="font-size:0.9rem;">${c.email}</div>
                     <div class="phone-subtext">${phoneDisplay}</div>
                 </td>
-                <td style="font-weight:bold; color:#673ab7; white-space:nowrap;">
-                    <div style="display:flex; align-items:center; gap:8px;">
+                <td class="col-points-info" style="font-weight:bold; color:#673ab7; white-space:nowrap;">
+                    <div style="display:flex; align-items:center; justify-content:center; gap:8px;">
                         <button class="btn-circle" onclick="adjustPoints('${c.email}', -1)">-</button>
                         <span>${c.loyalty_points} pts</span>
                         <button class="btn-circle" onclick="adjustPoints('${c.email}', 1)">+</button>
                     </div>
                 </td>
-                <td>${optInBadge}</td>
-                <td style="text-align:center;">
-                    <button class="btn-delete" onclick="deleteClientLoyalty('${c.email}', '${c.name.replace("'", "\\'")}')" title="Supprimer">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
+                <td class="col-actions-info" style="text-align:center;">
+                    <button class="btn-x" onclick="deleteClientLoyalty('${c.email}', '${c.name.replace("'", "\\'")}')" title="Supprimer">
+                        &times;
                     </button>
                 </td>
             </tr>

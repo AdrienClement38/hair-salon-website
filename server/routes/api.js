@@ -57,7 +57,7 @@ const loginLimiter = rateLimit({
 // --- Auth Routes ---
 router.get('/auth/status', authController.status);
 router.post('/auth/setup', authController.setup);
-router.post('/auth/login', loginLimiter, validate(loginSchema), authController.login);
+router.post('/auth/login', process.env.NODE_ENV === 'test' ? (req, res, next) => next() : loginLimiter, validate(loginSchema), authController.login);
 
 // --- Password Reset ---
 router.post('/auth/forgot-password', authController.requestPasswordReset);

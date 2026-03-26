@@ -268,15 +268,14 @@
                             onclick="saveWeeklyDaysOff()">Enregistrer les jours de repos</button>
                     </div>
 
-                    <div id="vacations-wrapper"
-                        style="display:none; padding: 15px; background: #fafafa; border: 1px solid #eee; border-radius: 5px;">
+                    <div id="vacations-wrapper" class="admin-form-card" style="display:none; margin-top: 10px;">
                         <h4 style="margin-top:0;">Vacances</h4>
 
                         <div id="holiday-list" style="margin-bottom: 20px;">
                             <!-- Ranges injected here -->
                         </div>
 
-                        <div class="form-group">
+                        <div class="form-group" style="margin-bottom: 0;">
                             <label>Ajouter une période de congés</label>
                             <div style="display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap;">
                                 <div>
@@ -288,7 +287,7 @@
                                     <input type="date" id="holiday-end">
                                 </div>
                             </div>
-                            <div style="margin-top: 10px;">
+                            <div style="margin-top: 20px;">
                                 <button class="btn" onclick="addHolidayRange()"
                                     style="width: auto; padding: 10px 20px;">Ajouter</button>
                             </div>
@@ -300,69 +299,75 @@
                 <div class="settings-section" id="loyalty-section">
                     <h3>Programme de Fidélité</h3>
                     <p>Récompensez vos clients réguliers. Les points sont attribués automatiquement à chaque réservation.</p>
-                    <div class="form-group" style="margin-bottom: 5px;">
-                        <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
-                            <input type="checkbox" id="loyalty-enabled" style="width: 20px; height: 20px;" onchange="document.getElementById('loyalty-config').style.display = this.checked ? 'block' : 'none'">
-                            <span style="font-weight: bold;">Activer le programme de fidélité</span>
-                        </label>
-                    </div>
-                    <div id="loyalty-config" style="display: none; padding: 15px; background: #fafafa; border: 1px solid #eee; border-radius: 5px; margin-top: 10px;">
-                        <div class="form-group" style="margin-bottom: 15px;">
-                            <label>Nombre de rendez-vous requis pour obtenir la récompense</label>
-                            <input type="number" id="loyalty-required" min="2" max="50" value="10" style="max-width: 150px; padding: 8px;">
+                    <div id="loyalty-config" class="admin-form-card" style="margin-top: 10px;">
+                        <div class="form-group" style="margin-bottom: 20px;">
+                            <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+                                <input type="checkbox" id="loyalty-enabled" style="width: 20px; height: 20px;" 
+                                    onchange="document.getElementById('loyalty-settings-fields').style.display = this.checked ? 'block' : 'none'">
+                                <span style="font-weight: bold;">Activer le programme de fidélité</span>
+                            </label>
                         </div>
-                        <div class="form-group" style="margin-bottom: 0;">
-                            <label>Description de la récompense (visible par le client)</label>
-                            <input type="text" id="loyalty-reward" placeholder="Ex: 50% sur votre coupe !" value="50% sur votre coupe !" style="padding: 10px; width: 100%;" autocomplete="off">
-                            <small style="display:block; margin-top:4px; font-style:italic; color:#666;">Cette phrase sera affichée lors de la prise de rendez-vous pour encourager les clients à rejoindre le programme.</small>
+
+                        <div id="loyalty-settings-fields" style="display: none;">
+                            <div class="form-group" style="margin-bottom: 15px;">
+                                <label>Nombre de rendez-vous requis pour obtenir la récompense</label>
+                                <input type="number" id="loyalty-required" min="2" max="50" value="10" style="max-width: 60px; padding: 8px;" autocomplete="off">
+                            </div>
+                            <div class="form-group" style="margin-bottom: 0;">
+                                <label>Description de la récompense (visible par le client)</label>
+                                <input type="text" id="loyalty-reward" placeholder="Ex: 50% sur votre coupe !" value="50% sur votre coupe !" style="padding: 10px; width: 100%;" autocomplete="off">
+                                <small style="display:block; margin-top:4px; font-style:italic; color:#666;">Cette phrase sera affichée lors de la prise de rendez-vous pour encourager les clients à rejoindre le programme.</small>
+                            </div>
+                            <button class="btn" style="width:auto; margin-top: 20px;" onclick="saveLoyaltySettings()">Enregistrer le programme</button>
                         </div>
                     </div>
-                    <button class="btn" style="width:auto; margin-top: 15px;" onclick="saveLoyaltySettings()">Enregistrer le programme</button>
                 </div>
 
                 <!-- Profile Section -->
                 <div class="settings-section" id="profile-section">
                     <h3>Mon Profil</h3>
-                    <form id="profile-form" autocomplete="off">
-                        <div class="form-group">
-                            <label>Identifiant de connexion</label>
-                            <input type="text" id="profile-username" placeholder="Login de connexion" required
-                                autocomplete="off">
-                            <small style="display:block; margin-top:4px; font-style:italic; color:#666;">
-                                Pour des raisons de sécurité, choisissez un identifiant différent du nom d'affichage
-                                public (ne mettez pas le prénom).
-                            </small>
+                        <div class="admin-form-card" style="margin-top: 10px;">
+                            <form id="profile-form" autocomplete="off">
+                                <div class="form-group">
+                                    <label>Identifiant de connexion</label>
+                                    <input type="text" id="profile-username" placeholder="Login de connexion" required
+                                        autocomplete="off">
+                                    <small style="display:block; margin-top:4px; font-style:italic; color:#666;">
+                                        Pour des raisons de sécurité, choisissez un identifiant différent du nom d'affichage
+                                        public (ne mettez pas le prénom).
+                                    </small>
+                                </div>
+                                <div class="form-group">
+                                    <label>Nom d'affichage</label>
+                                    <input type="text" id="profile-displayname" placeholder="Votre nom public"
+                                        autocomplete="off">
+                                </div>
+                                <div class="form-group">
+                                    <label>Nouveau mot de passe (laisser vide pour ne pas changer)</label>
+                                    <div class="password-wrapper">
+                                        <input type="password" id="profile-new-pass" placeholder="Nouveau mot de passe"
+                                            autocomplete="new-password">
+                                        <button type="button" class="password-toggle" onclick="togglePassword(this)">
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"
+                                                fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                                stroke-linejoin="round">
+                                                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                                                <circle cx="12" cy="12" r="3"></circle>
+                                            </svg>
+                                        </button>
+                                    </div>
+                                </div>
+                                <button type="submit" class="btn" style="width:auto; margin-top: 20px;">Mettre à jour</button>
+                            </form>
                         </div>
-                        <div class="form-group">
-                            <label>Nom d'affichage</label>
-                            <input type="text" id="profile-displayname" placeholder="Votre nom public"
-                                autocomplete="off">
-                        </div>
-                        <div class="form-group">
-                            <label>Nouveau mot de passe (laisser vide pour ne pas changer)</label>
-                            <div class="password-wrapper">
-                                <input type="password" id="profile-new-pass" placeholder="Nouveau mot de passe"
-                                    autocomplete="new-password">
-                                <button type="button" class="password-toggle" onclick="togglePassword(this)">
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"
-                                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-                                        stroke-linejoin="round">
-                                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
-                                        <circle cx="12" cy="12" r="3"></circle>
-                                    </svg>
-                                </button>
-                            </div>
-                        </div>
-
-                        <button type="submit" class="btn" style="width:auto">Mettre à jour</button>
-                    </form>
                 </div>
 
                 <!-- Team Section -->
                 <div class="settings-section">
                     <h3>Gestion de l'Équipe</h3>
                     <p>Ajouter un nouveau coiffeur / administrateur.</p>
-                    <form id="team-form" autocomplete="off">
+                    <div class="admin-form-card" style="margin-top: 10px;">
+                        <form id="team-form" autocomplete="off">
                         <div style="display:flex; flex-direction:column; gap:10px;">
                             <div class="form-group">
                                 <label>Identifiant (Login)</label>
@@ -392,10 +397,10 @@
                                 </button>
                             </div>
                         </div>
-                        <button type="submit" class="btn" style="width:auto">Ajouter le membre</button>
-
+                        <button type="submit" class="btn" style="width:auto; margin-top: 20px;">Ajouter le membre</button>
                     </form>
                 </div>
+            </div>
 
                 <!-- Email Configuration -->
                 <div class="settings-section">
@@ -410,8 +415,8 @@
                         </div>
                         <div class="form-group">
                             <label>Mot de passe d'application</label>
-                            <input type="password" id="email-config-pass" placeholder="xxxx xxxx xxxx xxxx"
-                                autocomplete="new-password" name="gmail_pass_config">
+                            <input type="text" id="email-config-pass" placeholder="xxxx xxxx xxxx xxxx"
+                                class="masked-secret" autocomplete="off" name="gmail_pass_config_protected">
                             <small class="text-muted" style="color: #888;">
                                 Important : Ceci est le mot de passe de l'adresse email. Pour Gmail, utilisez un "Mot de
                                 passe d'application".
@@ -681,7 +686,7 @@
                     <input type="password" style="display:none" autocomplete="new-password">
                     
                     <h3>Gestion des Clients</h3>
-                    <p>Liste de tous vos clients ayant rejoint le programme de fidélité ou ayant pris rendez-vous.</p>
+                    <p class="tab-desc-centered">Liste de tous vos clients ayant rejoint le programme de fidélité ou ayant pris rendez-vous.</p>
                     
                     <div class="admin-form-card" style="margin-bottom: 20px;">
                         <div class="form-group" style="margin-bottom: 0;">
@@ -695,10 +700,9 @@
                         <table class="day-details-table" id="clients-table">
                             <thead>
                                 <tr>
-                                    <th>Client</th>
-                                    <th>Contact</th>
+                                    <th class="col-client-header">Client</th>
+                                    <th class="col-contact-header">Contact</th>
                                     <th>Points</th>
-                                    <th>Statut</th>
                                     <th>Action</th>
                                 </tr>
                             </thead>

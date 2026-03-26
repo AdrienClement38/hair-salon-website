@@ -95,29 +95,14 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // Navigation Logic
-    document.querySelectorAll('.nav-list a, .logo, .btn[href^="#"]').forEach(link => {
+    // Global listener for other # links to ensure showHome is called
+    document.querySelectorAll('.nav-list a[href^="#"], .logo, .btn[href^="#"]').forEach(link => {
         link.addEventListener('click', (e) => {
-            const href = link.getAttribute('href');
-            // If it's a specific section anchor (not just # or portfolio trigger), assume "Home" context
-            if (href && href.startsWith('#')) {
-                // Ignore if it's the portfolio trigger
-                if (link.getAttribute('onclick') && link.getAttribute('onclick').includes('showPortfolio')) return;
+            // IGNORE the "Notre Travail" link completely here
+            const onclick = link.getAttribute('onclick');
+            if (onclick && onclick.includes('showPortfolio')) return;
 
-                // Handle Home Link (#) specifically for smooth/no-jump
-                if (href === '#') {
-                    e.preventDefault();
-                    window.showHome();
-                    window.scrollTo({ top: 0, behavior: 'smooth' });
-                    // Clean URL if it has # (optional, keeps it clean like image 1)
-                    if (window.location.hash) {
-                        history.pushState(null, null, ' ');
-                    }
-                    return;
-                }
-
-                window.showHome();
-                // Allow default behavior for smooth scroll
-            }
+            window.showHome();
         });
     });
 
@@ -125,6 +110,6 @@ document.addEventListener('DOMContentLoaded', () => {
     if (window.location.hash === '#portfolio') {
         window.showPortfolio();
     } else {
-        // Ensure home is clearly visible by default logic
+        window.showHome();
     }
 });

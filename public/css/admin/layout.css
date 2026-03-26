@@ -43,6 +43,11 @@
         font-size: 0.9rem;
         padding: 0.5rem;
     }
+
+    .tab-btn.active {
+        flex: 1 1 100%;
+        order: 10;
+    }
 }
 
 header {
@@ -67,6 +72,7 @@ header {
     cursor: pointer;
     font-size: 1rem;
     opacity: 0.6;
+    transition: all 0.3s ease;
 }
 
 .tab-btn.active {
@@ -81,4 +87,19 @@ header {
 
 .tab-content.active {
     display: block;
+}
+/* View Transitions for smooth tab movement */
+#tab-btn-appointments { view-transition-name: tab-appointments; }
+#tab-btn-settings { view-transition-name: tab-settings; }
+#tab-btn-content { view-transition-name: tab-content; }
+#tab-btn-clients { view-transition-name: tab-clients; }
+.tabs { view-transition-name: tabs-container; }
+
+.day-details-table-wrapper {
+    max-height: 450px;
+    overflow-y: auto;
+    overflow-x: hidden;
+    border: 1px solid #eee;
+    border-radius: 8px;
+    margin-bottom: 20px;
 }

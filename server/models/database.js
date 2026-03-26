@@ -664,7 +664,7 @@ const getAllAppointments = async (forceAdminId = null) => {
 };
 
 const getAllClients = async () => {
-    return await query('SELECT * FROM clients ORDER BY name ASC');
+    return await query('SELECT * FROM clients WHERE opt_in_loyalty = 1 ORDER BY name ASC');
 };
 
 const adjustClientPoints = async (email, delta) => {
@@ -1438,5 +1438,6 @@ module.exports = {
   adjustClientPoints,
   deleteClient,
 
-  // Legacy / Aliases (if needed)
+  // Ported
+  initPromise, // Export for tests
 };

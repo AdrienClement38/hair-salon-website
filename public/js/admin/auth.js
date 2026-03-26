@@ -88,8 +88,10 @@ export function initAuth() {
             submitBtn.disabled = true;
             submitBtn.textContent = 'Connexion...';
 
-            // UX: Artificial delay to ensure user sees the "Processing" state
-            await new Promise(r => setTimeout(r, 600));
+            // UX: Artificial delay to ensure user sees the "Processing" state (Skip in tests)
+            if (!navigator.webdriver) {
+                await new Promise(r => setTimeout(r, 600));
+            }
 
             try {
                 const res = await fetch('/api/auth/login', {
@@ -139,8 +141,12 @@ export function initAuth() {
         const forgotLink = document.getElementById('forgot-password-link');
 
         // Check if email service is configured
-        fetch('/api/settings').then(res => res.json()).then(settings => {
-            if (!settings.emailConfigured && forgotLink) {
+        // Check if email service is configured (ignoring errors if not logged in)
+        fetch('/api/settings').then(res => {
+            if (res.ok) return res.json();
+            return null;
+        }).then(settings => {
+            if (settings && !settings.emailConfigured && forgotLink) {
                 forgotLink.style.display = 'none';
             }
         }).catch(err => console.warn('Failed to check email config for auth UI', err));

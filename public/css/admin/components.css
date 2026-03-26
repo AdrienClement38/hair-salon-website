@@ -277,7 +277,7 @@ th {
 /* Scrollable Table Containers */
 #services-list,
 #products-list {
-    max-height: 550px;
+    max-height: 450px;
     /* Increased to show more elements */
     overflow-y: auto;
     display: block;
@@ -286,14 +286,18 @@ th {
 }
 
 #services-list table,
-#products-list table {
+#products-list table,
+.day-details-table,
+.waitlist-table {
     overflow: visible;
     /* Required for position: sticky to work */
 }
 
 /* Sticky Header */
 #services-list thead th,
-#products-list thead th {
+#products-list thead th,
+.day-details-table thead th,
+.waitlist-table thead th {
     position: sticky;
     top: 0;
     z-index: 10;

@@ -57,8 +57,8 @@ describe('Smart Scheduling Logic', () => {
         console.log(res.body.slots);
         expect(res.body.slots.length).toBeGreaterThan(0);
         expect(res.body.slots[0]).toBe('09:00');
-        // With dynamic grid (30 min service), next slot is 09:30
-        expect(res.body.slots[1]).toBe('09:30');
+        // With 5-min steps, the next available slot for a 30-min service is 09:05
+        expect(res.body.slots[1]).toBe('09:05');
 
         // 09:00, 09:30, 10:00, 10:30, 11:00, 11:30.
         expect(res.body.slots).toContain('11:30');
@@ -70,11 +70,12 @@ describe('Smart Scheduling Logic', () => {
 
         expect(res60.body.slots.length).toBeLessThan(res30.body.slots.length);
 
-        // For 60 mins: 09:00, 10:00, 11:00.
+        // For 60 mins: 09:00, 09:05, ...
         expect(res60.body.slots).toContain('09:00');
-        expect(res60.body.slots).toContain('10:00');
+        expect(res60.body.slots).toContain('09:05');
         expect(res60.body.slots).toContain('11:00');
-        expect(res60.body.slots).not.toContain('09:30'); // 60 min steps
+        // It should still NOT have 11:05 because a 60 min service at 11:05 ends at 12:05 (past 12:00 closure)
+        expect(res60.body.slots).not.toContain('11:05'); 
     });
 
     test('Should handle gap filling (Tetris)', async () => {

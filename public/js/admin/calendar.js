@@ -8,6 +8,30 @@ let currentCalendarDate = new Date();
 let currentWorkers = [];
 let currentDetailDate = null;
 let currentAppointments = [];
+let detailsRefreshInterval = null;
+
+// Helper to check if an appointment is in the past
+function isAppointmentPast(appt) {
+    const now = new Date();
+    const todayStr = now.toISOString().split('T')[0];
+    
+    // Only filter for today
+    if (appt.date !== todayStr) return false;
+
+    // Get duration
+    let duration = 30; // Default
+    if (window.currentServices) {
+        const svc = window.currentServices.find(s => s.id == appt.service || s.name === appt.service);
+        if (svc) duration = svc.duration || 30;
+    }
+
+    // End time calculation
+    const [h, m] = appt.time.split(':').map(Number);
+    const endTime = new Date();
+    endTime.setHours(h, m + duration, 0, 0);
+
+    return now > endTime;
+}
 
 // DOM Elements
 const dayDetailsSection = document.getElementById('day-details-inline');
@@ -594,8 +618,16 @@ async function openDayDetails(dateStr, appointments, shouldScroll = true) {
     if ((!appointments || appointments.length === 0) && wlCounts.length === 0) {
         listContainer.innerHTML = '<p>Aucun rendez-vous ni liste d\'attente ce jour-là.</p>';
     } else {
+        // Filter out past appointments if it's today
+        const now = new Date();
+        const todayStr = now.toISOString().split('T')[0];
+        let safeAppts = appointments || [];
+        
+        if (dateStr === todayStr) {
+            safeAppts = safeAppts.filter(a => !isAppointmentPast(a));
+        }
+
         // Sort appointments
-        const safeAppts = appointments || [];
         safeAppts.sort((a, b) => a.time.localeCompare(b.time));
 
         listContainer.innerHTML = ''; // Clear
@@ -732,6 +764,18 @@ async function openDayDetails(dateStr, appointments, shouldScroll = true) {
 
     if (shouldScroll) {
         dayDetailsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    // Setup auto-refresh for "Today" to make appointments disappear in real-time
+    if (detailsRefreshInterval) clearInterval(detailsRefreshInterval);
+    const now = new Date();
+    const todayStr = now.toISOString().split('T')[0];
+    if (dateStr === todayStr) {
+        detailsRefreshInterval = setInterval(() => {
+            console.log("Auto-refreshing day details for today...");
+            const freshDayAppts = appointmentsCache.filter(a => a.date === dateStr);
+            openDayDetails(dateStr, freshDayAppts, false);
+        }, 30000); // Every 30 seconds
     }
 }
 
@@ -950,6 +994,10 @@ window.deleteWaitRequest = async (id) => {
 export function closeDayDetails() {
     dayDetailsSection.style.display = 'none';
     currentDetailDate = null;
+    if (detailsRefreshInterval) {
+        clearInterval(detailsRefreshInterval);
+        detailsRefreshInterval = null;
+    }
 }
 
 export async function deleteApt(id, name, date, time, service, email, phone) {

@@ -149,7 +149,7 @@ class AppointmentService {
 
                 if (!isClashing) {
                     candidateStartTimes.add(t);
-                    t += serviceDuration;
+                    t += 5;
                 } else {
                     break;
                 }

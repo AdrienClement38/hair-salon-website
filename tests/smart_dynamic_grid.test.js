@@ -44,10 +44,9 @@ describe('Smart Dynamic Grid (Anchor-Based)', () => {
 
         const slots = res.body.slots;
         expect(slots).toContain('09:00');
+        expect(slots).toContain('09:05'); // Now offers 5-min granularity
         expect(slots).toContain('09:45');
-        expect(slots).toContain('10:30');
         expect(slots).toContain('11:15');
-        expect(slots).not.toContain('09:15'); // Should NOT offer random grid times
     });
 
     test('Should generate slots based on Booking End Time Anchor', async () => {
@@ -68,9 +67,10 @@ describe('Smart Dynamic Grid (Anchor-Based)', () => {
             .expect(200);
 
         const slots = res.body.slots;
-        // The key check: verify 09:20 is offered.
+        // The key check: verify 09:20 is offered (starts exactly when previous ends)
         expect(slots).toContain('09:20');
-        expect(slots).toContain('09:40');
+        expect(slots).toContain('09:25'); // Also 5-min step after anchor
+        expect(slots).toContain('11:40'); 
     });
 
     test('Should handle odd ending times correctly', async () => {
@@ -92,10 +92,9 @@ describe('Smart Dynamic Grid (Anchor-Based)', () => {
             .expect(200);
 
         const slots = res.body.slots;
-        expect(slots).toContain('09:20');
-        expect(slots).toContain('09:40');
+        expect(slots).toContain('09:00');
         expect(slots).toContain('10:45'); // Crucial: Starts exactly when previous ends
-        expect(slots).toContain('11:05'); // 10:45 + 20
+        expect(slots).toContain('10:50'); // 5-min step after anchor
     });
 
     afterAll(async () => {

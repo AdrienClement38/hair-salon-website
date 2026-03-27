@@ -445,7 +445,17 @@ export async function loadServices() {
 // Export for reloading
 export const refreshSlots = () => {
     if (window.isProcessingBooking) return;
-    if (dateInput.value) updateSlots();
+    if (dateInput.value) {
+        // Visual feedback
+        slotsContainer.style.opacity = '0.5';
+        slotsContainer.style.transition = 'opacity 0.2s';
+        
+        updateSlots();
+        
+        setTimeout(() => {
+            slotsContainer.style.opacity = '1';
+        }, 300);
+    }
 };
 
 // --- WAITING LIST LOGIC ---

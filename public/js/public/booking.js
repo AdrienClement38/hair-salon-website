@@ -226,7 +226,8 @@ export async function initBooking() {
 
             if (res.ok) {
                 const serviceName = serviceInput.options[serviceInput.selectedIndex].text;
-                const workerName = workerInput.options[workerInput.selectedIndex].text;
+                const worker = availableWorkers.find(w => w.id == adminId);
+                const workerName = worker ? (worker.displayName || worker.name) : "Le coiffeur";
 
                 showMessage(`
                     <div>Rendez-vous confirmé pour <strong>${serviceName}</strong> avec <strong>${workerName}</strong></div>
@@ -235,6 +236,8 @@ export async function initBooking() {
 
                 // Immediate Reset of inputs
                 bookingForm.reset();
+                if (typeof clearWorkerSelection === 'function') clearWorkerSelection();
+
                 const loyaltyContainer = document.getElementById('loyalty-container');
                 if (loyaltyContainer) loyaltyContainer.style.display = 'none';
                 
@@ -329,7 +332,8 @@ function renderSlots(slots, reason) {
 
     if (!slots || slots.length === 0) {
         let message = 'Aucun créneau disponible.';
-        const workerName = workerInput.options[workerInput.selectedIndex]?.text || "Le coiffeur";
+        const worker = availableWorkers.find(w => w.id == workerInput.value);
+        const workerName = worker ? (worker.displayName || worker.name) : "Le coiffeur";
 
         if (reason === 'leave' || reason === 'worker_off_day') {
             message = `${workerName} est absent(e) à cette date.`;
@@ -395,21 +399,70 @@ function selectSlot(btn, time) {
 }
 
 async function loadWorkers() {
+    const visualContainer = document.getElementById('worker-selector-container');
+    const legacyContainer = document.getElementById('worker-list-container');
+    const visualSelector = document.getElementById('worker-selector');
+    const legacySelect = document.getElementById('worker-list');
+
+    if (!visualSelector || !legacySelect) return;
+
     try {
         const res = await fetch(`/api/workers?t=${Date.now()}`);
         const workers = await res.json();
-        availableWorkers = workers; // Store for calendar logic
+        availableWorkers = workers;
 
-        workerInput.innerHTML = '<option value="">-- Choisir --</option>';
+        const hasPhotos = workers.some(w => w.profilePicture && w.profilePicture !== '');
+
+        if (hasPhotos) {
+            visualContainer.classList.remove('hidden');
+            legacyContainer.classList.add('hidden');
+        } else {
+            visualContainer.classList.add('hidden');
+            legacyContainer.classList.remove('hidden');
+        }
+
+        // 1. Populate Visual Selector
+        visualSelector.innerHTML = '';
+        if (workers.length === 0) {
+            visualSelector.innerHTML = '<p class="text-muted">Aucun coiffeur disponible.</p>';
+        } else {
+            workers.forEach(w => {
+                const card = document.createElement('div');
+                card.className = 'worker-card';
+                card.dataset.id = w.id;
+                const photoUrl = w.profilePicture ? `/images/${w.profilePicture}` : '/images/avatar-placeholder.png';
+                const pos = w.profilePicturePosition || { x: 50, y: 50 };
+                card.innerHTML = `
+                    <img src="${photoUrl}" alt="${w.displayName || w.name}" style="object-position: ${pos.x}% ${pos.y}%">
+                    <div class="worker-name">${w.displayName || w.name}</div>
+                `;
+                card.onclick = () => {
+                    document.querySelectorAll('.worker-card').forEach(c => c.classList.remove('selected'));
+                    card.classList.add('selected');
+                    workerInput.value = w.id;
+                    workerInput.dispatchEvent(new Event('change'));
+                };
+                visualSelector.appendChild(card);
+            });
+        }
+
+        // 2. Populate Legacy Selector
+        legacySelect.innerHTML = '<option value="">-- Choisir un coiffeur --</option>';
         workers.forEach(w => {
             const opt = document.createElement('option');
             opt.value = w.id;
-            opt.textContent = w.name;
-            workerInput.appendChild(opt);
+            opt.textContent = w.displayName || w.name;
+            legacySelect.appendChild(opt);
         });
 
+        legacySelect.onchange = () => {
+            workerInput.value = legacySelect.value;
+            workerInput.dispatchEvent(new Event('change'));
+        };
+
     } catch (e) {
-        workerInput.innerHTML = '<option value="">Erreur chargement</option>';
+        console.error("Error loading workers", e);
+        if (visualSelector) visualSelector.innerHTML = '<p class="text-muted" style="color:red">Erreur chargement</p>';
     }
 }
 
@@ -549,6 +602,7 @@ async function joinWaitlist() {
             // Reset entire form
             const bookingForm = document.getElementById('booking-form');
             if (bookingForm) bookingForm.reset();
+            if (typeof clearWorkerSelection === 'function') clearWorkerSelection();
 
             // Disappear after 4 seconds and refresh view
             setTimeout(() => {
@@ -607,4 +661,16 @@ async function joinWaitlist() {
         btn.disabled = false;
         btn.textContent = originalText;
     }
+}
+
+function clearWorkerSelection() {
+    if (workerInput) {
+        workerInput.value = '';
+        workerInput.dispatchEvent(new Event('change'));
+    }
+    // Reset Visual
+    document.querySelectorAll('.worker-card').forEach(c => c.classList.remove('selected'));
+    // Reset Legacy
+    const legacySelect = document.getElementById('worker-list');
+    if (legacySelect) legacySelect.value = '';
 }

@@ -68,12 +68,15 @@ router.post('/auth/reset-password', authController.resetPassword);
 // --- Admin Auth/Profile ---
 router.get('/admin/me', checkAuth, authController.me);
 router.put('/admin/profile', checkAuth, authController.updateProfile);
+router.delete('/admin/profile/photo', checkAuth, authController.deleteProfilePhoto);
 
 // --- Workers Management (Admin) ---
 router.get('/admin/workers', checkAuth, adminsController.listWorkers);
 router.post('/admin/workers', checkAuth, validate(workerSchema), adminsController.createWorker);
 router.put('/admin/workers/:id', checkAuth, validate(updateWorkerSchema), adminsController.updateWorker);
 router.delete('/admin/workers/:id', checkAuth, adminsController.deleteWorker);
+router.post('/admin/workers/:id/photo', checkAuth, upload.single('photo'), adminsController.updatePhoto);
+router.delete('/admin/workers/:id/photo', checkAuth, adminsController.deletePhoto);
 router.post('/admin/workers/check-days-off', checkAuth, adminsController.checkDaysOff);
 
 // --- Appointments (Admin) ---

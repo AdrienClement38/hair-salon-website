@@ -100,6 +100,26 @@ export const loadSettings = async () => {
     }
 };
 
+let currentProfilePosition = { x: 50, y: 50 };
+
+function openProfilePositioning() {
+    const picPreview = document.getElementById('profile-pic-preview');
+    if (!picPreview || !picPreview.src || picPreview.src.includes('avatar-placeholder')) return;
+
+    // Use current position or default
+    const x = currentProfilePosition ? currentProfilePosition.x : 50;
+    const y = currentProfilePosition ? currentProfilePosition.y : 50;
+
+    if (window.openGenericPositioning) {
+        window.openGenericPositioning(picPreview.src, x, y, (newX, newY) => {
+            currentProfilePosition = { x: newX, y: newY };
+            // Apply to local preview instantly
+            picPreview.style.objectPosition = `${newX}% ${newY}%`;
+            window.closePositionModal();
+        });
+    }
+}
+
 function initProfileFormHandler() {
     const form = document.getElementById('profile-form');
     if (!form) return;
@@ -107,6 +127,79 @@ function initProfileFormHandler() {
     // Prevent multiple bindings
     if (form.dataset.initialized === 'true') return;
     form.dataset.initialized = 'true';
+
+    // Instant Preview
+    const picInput = document.getElementById('profile-pic-input');
+    const picPreview = document.getElementById('profile-pic-preview');
+    const picDelete = document.getElementById('profile-pic-delete');
+    if (picInput && picPreview) {
+        picInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (re) => {
+                    picPreview.src = re.target.result;
+                    const picDelete = document.getElementById('profile-pic-delete');
+                    if (picDelete) picDelete.style.display = 'none'; // Hide delete while previewing new
+                    
+                    // Show positioning button for the new preview
+                    const picPositionBtn = document.getElementById('profile-pic-position');
+                    if (picPositionBtn) picPositionBtn.style.display = 'flex';
+                    
+                    // Reset position for new photo
+                    currentProfilePosition = { x: 50, y: 50 };
+                    picPreview.style.objectPosition = '50% 50%';
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+    }
+
+    const picPositionBtn = document.getElementById('profile-pic-position');
+    if (picPositionBtn) {
+        picPositionBtn.addEventListener('click', (e) => {
+            if (e) e.preventDefault();
+            openProfilePositioning();
+        });
+    }
+
+    if (picDelete) {
+        picDelete.addEventListener('click', async () => {
+            const filterEl = document.getElementById('admin-filter');
+            const selectedId = filterEl ? filterEl.value : '';
+
+            if (!confirm('Supprimer la photo de profil ?')) return;
+
+            try {
+                let url = `/api/admin/workers/${selectedId}/photo`;
+                if (!selectedId) {
+                    url = '/api/admin/profile/photo';
+                }
+
+                const res = await fetch(url, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': 'Bearer ' + localStorage.getItem('auth') }
+                });
+
+                if (res.ok) {
+                    picPreview.src = '/images/avatar-placeholder.png';
+                    picDelete.style.display = 'none';
+                    picInput.value = '';
+                    
+                    // Refresh workers list to update public view too
+                    import('./calendar.js').then(mod => {
+                        if (mod.loadWorkersForFilter) mod.loadWorkersForFilter();
+                    });
+                } else {
+                    const errorData = await res.json().catch(() => ({ error: 'Erreur inconnue' }));
+                    alert('Erreur lors de la suppression : ' + (errorData.error || res.statusText));
+                }
+            } catch (e) {
+                console.error('Delete photo error:', e);
+                alert('Erreur réseau lors de la suppression');
+            }
+        });
+    }
 
     form.addEventListener('submit', async (e) => {
         e.preventDefault();
@@ -119,9 +212,11 @@ function initProfileFormHandler() {
         const filterEl = document.getElementById('admin-filter');
         const selectedId = filterEl ? filterEl.value : '';
 
+        // 1. Update basic profile info
         const body = {
             username: username,
-            displayName: displayName
+            displayName: displayName,
+            profilePicturePosition: currentProfilePosition
         };
         if (pass) body.password = pass;
 
@@ -143,25 +238,43 @@ function initProfileFormHandler() {
                 body: JSON.stringify(body)
             });
 
-            if (res.ok) {
-                alert('Profil mis à jour !');
-                if (passInput) passInput.value = ''; // Clear password field
+            if (!res.ok) {
+                const err = await res.json();
+                throw new Error(err.error || 'Erreur lors de la mise à jour du profil');
+            }
 
-                // Refresh workers list in filter logic (calendar.js)
-                // Use dynamic import or just reload page? Reload is safer to reflect name changes everywhere.
-                // But user wants smooth experience.
-                // Re-calling loadWorkersForFilter is good.
-                import('./calendar.js').then(mod => {
-                    if (mod.loadWorkersForFilter) mod.loadWorkersForFilter();
+            // 2. Handle Photo Upload if selected
+            const file = picInput ? picInput.files[0] : null;
+            if (file && selectedId) {
+                const formData = new FormData();
+                formData.append('photo', file);
+
+                const photoRes = await fetch(`/api/admin/workers/${selectedId}/photo`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': 'Bearer ' + localStorage.getItem('auth')
+                    },
+                    body: formData
                 });
 
-            } else {
-                const err = await res.json();
-                alert('Erreur: ' + (err.error || 'Erreur inconnue'));
+                if (!photoRes.ok) {
+                    const photoErr = await photoRes.json();
+                    alert('Profil mis à jour, mais erreur photo: ' + (photoErr.error || 'Erreur inconnue'));
+                }
             }
+
+            alert('Profil mis à jour !');
+            if (passInput) passInput.value = ''; // Clear password field
+            if (picInput) picInput.value = ''; // Clear file input
+
+            // Refresh workers list in filter logic (calendar.js)
+            import('./calendar.js').then(mod => {
+                if (mod.loadWorkersForFilter) mod.loadWorkersForFilter();
+            });
+
         } catch (err) {
             console.error(err);
-            alert('Erreur réseau');
+            alert('Erreur: ' + err.message);
         }
     });
 }
@@ -400,11 +513,10 @@ export async function fetchAndRenderLeaves(adminId) {
 
         // Race Condition Check
         if (myId !== currentFetchId) {
-            console.log('[DEBUG Leaves] Stale request ignored');
             return;
         }
 
-        console.log('[DEBUG Leaves] Fetched:', leaves);
+
 
         // Safety Filter (Client-side Double Check)
         // Ensures that if backend returns mixed data (shouldn't happening), we still display correctly.
@@ -588,7 +700,7 @@ window.testEmailConfig = async () => {
     // The test endpoint usually expects the full config to test WHAT IS IN THE FORM.
     // BUT if the user didn't re-enter the pass, we can't test it from client side values alone unless backend supports "use stored pass".
     // Let's assume for TEST purposes, if pass is empty, we send what we have, 
-    // AND we update the backend test endpoint to also merge? 
+    // AND we update the backend testEmail to also merge? 
     // OR we just alert the user "Veuillez entrer le mot de passe pour tester".
     // Actually, easier: Update backend testEmail to also merge if pass is missing but user provided?
     // Let's keep it simple: Try to test. If fail, maybe pass was missing.
@@ -688,3 +800,81 @@ window.saveLoyaltySettings = async () => {
         alert('Erreur système');
     }
 };
+
+/**
+ * Syncs the Settings tab UI with the selected worker from the main filter
+ * Called from calendar.js when filter changes
+ */
+export function updateProfileInputs(adminId, workers = []) {
+    const profileSection = document.getElementById('profile-section');
+    const profileUser = document.getElementById('profile-username');
+    const profileDisplay = document.getElementById('profile-displayname');
+    const picPreview = document.getElementById('profile-pic-preview');
+
+    // Toggle visibility based on selection
+    if (profileSection) {
+        profileSection.style.display = adminId ? 'block' : 'none';
+    }
+
+    const leavesName = document.getElementById('leaves-worker-name');
+    const vacationsWrapper = document.getElementById('vacations-wrapper');
+    const daysOffWrapper = document.getElementById('weekly-days-off-wrapper');
+
+    if (adminId) {
+        // WORKER MODE
+        const worker = workers.find(w => w.id == adminId);
+        if (worker) {
+            if (profileUser) profileUser.value = worker.username || '';
+            if (profileDisplay) profileDisplay.value = worker.displayName || worker.name || '';
+            
+            // Photo Preview
+            if (picPreview) {
+                const deleteBtn = document.getElementById('profile-pic-delete');
+                const positionBtn = document.getElementById('profile-pic-position');
+                if (worker.profilePicture) {
+                    picPreview.src = `/images/${worker.profilePicture}?t=${Date.now()}`;
+                    if (deleteBtn) deleteBtn.style.display = 'flex';
+                    if (positionBtn) positionBtn.style.display = 'flex';
+                    
+                    // Apply saved position
+                    currentProfilePosition = worker.profilePicturePosition || { x: 50, y: 50 };
+                    picPreview.style.objectPosition = `${currentProfilePosition.x}% ${currentProfilePosition.y}%`;
+                } else {
+                    picPreview.src = '/images/avatar-placeholder.png'; // Fallback
+                    if (deleteBtn) deleteBtn.style.display = 'none';
+                    if (positionBtn) positionBtn.style.display = 'none';
+                    picPreview.style.objectPosition = 'center';
+                }
+            }
+
+            if (leavesName) leavesName.textContent = `(pour ${worker.displayName || worker.name})`;
+
+            // Show Days Off
+            if (daysOffWrapper) {
+                daysOffWrapper.style.display = 'block';
+                const checkboxes = document.querySelectorAll('.weekly-off-cb');
+                const workerDaysOff = worker.daysOff || [];
+                checkboxes.forEach(cb => {
+                    cb.checked = workerDaysOff.includes(parseInt(cb.value));
+                });
+            }
+
+            // Show Vacations
+            if (vacationsWrapper) vacationsWrapper.style.display = 'block';
+        }
+    } else {
+        // SALON MODE (No adminId selected)
+        if (profileUser) profileUser.value = '';
+        if (profileDisplay) profileDisplay.value = '';
+        if (picPreview) picPreview.src = '/images/avatar-placeholder.png';
+
+        // Leaves Title -> Global/Salon
+        if (leavesName) leavesName.textContent = '(Fermetures du Salon)';
+
+        // Hide Weekly Days Off (Salon doesn't use this UI for standard closing days)
+        if (daysOffWrapper) daysOffWrapper.style.display = 'none';
+
+        // Show Vacations (Global Leaves)
+        if (vacationsWrapper) vacationsWrapper.style.display = 'block';
+    }
+}

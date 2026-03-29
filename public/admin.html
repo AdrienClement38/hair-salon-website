@@ -338,6 +338,38 @@
                                     </small>
                                 </div>
                                 <div class="form-group">
+                                    <label>Photo de profil</label>
+                                    <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 10px;">
+                                        <div style="position: relative; width: 80px; height: 80px;">
+                                            <img id="profile-pic-preview" src="/images/avatar-placeholder" 
+                                                style="width: 80px; height: 80px; border-radius: 50%; object-fit: cover; border: 2px solid #ddd; background: #eee;">
+                                            <button type="button" id="profile-pic-delete" class="btn-delete-overlay" 
+                                                style="display: none;"
+                                                title="Supprimer la photo">&times;</button>
+                                        </div>
+                                        <div style="flex: 1; display: flex; flex-direction: column; gap: 5px;">
+                                            <div style="display: flex; gap: 10px;">
+                                                <button type="button" id="profile-pic-position" class="btn-copper" style="display: none; padding: 5px; width: 34px; height: 34px; justify-content: center; align-items: center;"
+                                                    title="Positionner l'image">
+                                                    <svg xmlns="http://www.w3.org/2000/svg" style="width:1.25rem; height:1.25rem;"
+                                                        viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                                                        stroke-linecap="round" stroke-linejoin="round">
+                                                        <circle cx="12" cy="12" r="10"></circle>
+                                                        <line x1="22" y1="12" x2="18" y2="12"></line>
+                                                        <line x1="6" y1="12" x2="2" y2="12"></line>
+                                                        <line x1="12" y1="6" x2="12" y2="2"></line>
+                                                        <line x1="12" y1="22" x2="12" y2="18"></line>
+                                                    </svg>
+                                                </button>
+                                                <button type="button" class="btn btn-outline" style="width: auto; padding: 5px 15px;" 
+                                                    onclick="document.getElementById('profile-pic-input').click()">Choisir une photo</button>
+                                            </div>
+                                            <p style="font-size: 0.8rem; color: #666;">Format JPG, PNG ou WEBP. Max 5Mo.</p>
+                                            <input type="file" id="profile-pic-input" style="display: none;" accept="image/*">
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="form-group">
                                     <label>Nom d'affichage</label>
                                     <input type="text" id="profile-displayname" placeholder="Votre nom public"
                                         autocomplete="off">

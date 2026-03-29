@@ -239,8 +239,13 @@ export function openGenericPositioning(imgUrl, initialX, initialY, onSave) {
     const modal = document.getElementById('position-modal');
     const img = document.getElementById('position-image');
 
-    // Use timestamp to break cache
-    img.src = `${imgUrl}?t=${Date.now()}`;
+    // Use timestamp to break cache only for regular URLs
+    if (imgUrl.startsWith('data:')) {
+        img.src = imgUrl;
+    } else {
+        const separator = imgUrl.includes('?') ? '&' : '?';
+        img.src = `${imgUrl}${separator}t=${Date.now()}`;
+    }
 
     if (initPositioning.initialized !== true) {
         initPositioning();

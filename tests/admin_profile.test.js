@@ -71,7 +71,7 @@ describe('Admin Profile Updates', () => {
         expect(updateRes.statusCode).toBe(200);
 
         const worker = await db.getAdminById(adminId);
-        const daysOff = JSON.parse(worker.days_off);
+        const daysOff = Array.isArray(worker.days_off) ? worker.days_off : JSON.parse(worker.days_off);
         expect(daysOff).toContain(2);
     });
 

@@ -189,22 +189,19 @@ const initDB = async () => {
          username TEXT UNIQUE NOT NULL,
          password_hash TEXT NOT NULL,
          display_name TEXT,
-         days_off TEXT
+         days_off TEXT,
+         profile_picture TEXT,
+         profile_picture_position TEXT
        );
     `);
 
     // Migration: Add days_off logic
     try {
-      db.run("ALTER TABLE admins ADD COLUMN days_off TEXT", (err) => {
-        if (err && !err.message.includes('duplicate column')) {
-          console.error("Migration Error (ignored if duplicate):", err.message);
-        }
-      });
-    } catch (e) {
-      if (!e.message.includes('duplicate column')) {
-        console.error("Migration Exception (ignored if duplicate):", e.message);
-      }
-    }
+      db.run("ALTER TABLE admins ADD COLUMN profile_picture TEXT", (err) => { });
+    } catch (e) { }
+    try {
+      db.run("ALTER TABLE admins ADD COLUMN profile_picture_position TEXT", (err) => { });
+    } catch (e) { }
 
     try {
       db.run("ALTER TABLE appointments ADD COLUMN email TEXT", (err) => { });
@@ -302,7 +299,9 @@ const initDB = async () => {
          username TEXT UNIQUE NOT NULL,
          password_hash TEXT NOT NULL,
          display_name TEXT,
-         days_off TEXT
+         days_off TEXT,
+         profile_picture TEXT,
+         profile_picture_position TEXT
        );
        CREATE TABLE IF NOT EXISTS appointments (
          id SERIAL PRIMARY KEY,
@@ -363,8 +362,10 @@ const initDB = async () => {
     // Migration: Add days_off to admins if missing
     try {
       await db.query("ALTER TABLE admins ADD COLUMN IF NOT EXISTS days_off TEXT");
+      await db.query("ALTER TABLE admins ADD COLUMN IF NOT EXISTS profile_picture TEXT");
+      await db.query("ALTER TABLE admins ADD COLUMN IF NOT EXISTS profile_picture_position TEXT");
     } catch (e) {
-      console.log('PG Migration (days_off):', e.message);
+      console.log('PG Migration (admins cols):', e.message);
     }
 
     // Migration: Add email to appointments if missing
@@ -974,21 +975,36 @@ const createWorker = async (username, email, phone, color, daysOff, password) =>
   return await createAdmin(username, password, username, daysOff);
 };
 
+const normalizeAdmin = (r) => {
+  if (!r) return undefined;
+  try {
+    return {
+      ...r,
+      id: Number(r.id),
+      days_off: r.days_off ? (typeof r.days_off === 'string' ? JSON.parse(r.days_off) : r.days_off) : [],
+      profilePicturePosition: r.profile_picture_position ? (typeof r.profile_picture_position === 'string' ? JSON.parse(r.profile_picture_position) : r.profile_picture_position) : { x: 50, y: 50 }
+    };
+  } catch (e) {
+    console.error('Error normalizing admin:', e, r);
+    return r;
+  }
+};
+
 const findAdminInternal = async (username) => {
-  console.log(`[DB] findAdminInternal called for: '${username}'`);
   const admin = await getOne('SELECT * FROM admins WHERE username = ?', [username]);
-  console.log(`[DB] findAdminInternal result:`, admin ? 'Found' : 'Null');
-  return admin;
+  return normalizeAdmin(admin);
 };
 
 const getAdminById = async (id) => {
-  if (type === 'pg') return await getOne('SELECT * FROM admins WHERE id = $1', [id]);
-  return await getOne('SELECT * FROM admins WHERE id = ?', [id]);
+  const admin = (type === 'pg') ? 
+    await getOne('SELECT * FROM admins WHERE id = $1', [id]) :
+    await getOne('SELECT * FROM admins WHERE id = ?', [id]);
+  return normalizeAdmin(admin);
 }
 
 const getAllAdmins = async () => {
-  const rows = await query('SELECT id, username, display_name, days_off FROM admins');
-  return rows.map(r => ({ ...r, days_off: r.days_off ? JSON.parse(r.days_off) : [] }));
+  const rows = await query('SELECT id, username, display_name, days_off, profile_picture, profile_picture_position FROM admins');
+  return rows.map(normalizeAdmin);
 };
 
 const updateAdminDaysOff = async (id, daysOff) => {
@@ -1002,16 +1018,21 @@ const updateAdminPassword = async (id, newHash) => {
   return await query('UPDATE admins SET password_hash = ? WHERE id = ?', [newHash, id]);
 };
 
-const updateAdminProfile = async (id, displayName, username) => {
-  console.log('DB: updateAdminProfile', { id, displayName, username });
+const updateAdminProfile = async (id, displayName, username, position = null) => {
+  const posStr = position ? JSON.stringify(position) : null;
   if (typeof username !== 'undefined') {
-    if (type === 'pg') return await query('UPDATE admins SET display_name = $1, username = $2 WHERE id = $3', [displayName, username, id]);
-    return await query('UPDATE admins SET display_name = ?, username = ? WHERE id = ?', [displayName, username, id]);
+    if (type === 'pg') return await query('UPDATE admins SET display_name = $1, username = $2, profile_picture_position = $3 WHERE id = $4', [displayName, username, posStr, id]);
+    return await query('UPDATE admins SET display_name = ?, username = ?, profile_picture_position = ? WHERE id = ?', [displayName, username, posStr, id]);
   } else {
     // Legacy support or fallback if no username passed
-    if (type === 'pg') return await query('UPDATE admins SET display_name = $1 WHERE id = $2', [displayName, id]);
-    return await query('UPDATE admins SET display_name = ? WHERE id = ?', [displayName, id]);
+    if (type === 'pg') return await query('UPDATE admins SET display_name = $1, profile_picture_position = $2 WHERE id = $3', [displayName, posStr, id]);
+    return await query('UPDATE admins SET display_name = ?, profile_picture_position = ? WHERE id = ?', [displayName, posStr, id]);
   }
+};
+
+const updateAdminPhoto = async (id, photo) => {
+  if (type === 'pg') return await query('UPDATE admins SET profile_picture = $1 WHERE id = $2', [photo, id]);
+  return await query('UPDATE admins SET profile_picture = ? WHERE id = ?', [photo, id]);
 };
 
 const deleteAdmin = async (username) => {
@@ -1359,6 +1380,7 @@ module.exports = {
   updateAdminDaysOff,
   updateAdminPassword,
   updateAdminProfile,
+  updateAdminPhoto,
   deleteAdmin,
 
   // Workers

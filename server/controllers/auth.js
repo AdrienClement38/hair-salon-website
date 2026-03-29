@@ -64,7 +64,9 @@ exports.me = async (req, res) => {
         res.json({
             id: admin.id,
             username: admin.username,
-            displayName: admin.display_name || admin.username
+            displayName: admin.display_name || admin.username,
+            profilePicture: admin.profile_picture,
+            profilePicturePosition: admin.profilePicturePosition
         });
     } catch (e) {
         res.status(500).json({ error: e.message });
@@ -117,14 +119,35 @@ exports.updateProfile = async (req, res) => {
             await db.updateAdminDaysOff(admin.id, req.body.daysOff);
         }
 
-        if (displayName || username) {
-            // New signature requires both if available, or just displayName
-            // If username is passed, we check if it's unique? DB constraint will fail if not unique. Wrapper try/catch handles it.
-            await db.updateAdminProfile(admin.id, displayName || admin.display_name, username);
+        if (displayName || username || typeof req.body.profilePicturePosition !== 'undefined') {
+            const finalPos = typeof req.body.profilePicturePosition !== 'undefined' ? 
+                req.body.profilePicturePosition : admin.profilePicturePosition;
+            await db.updateAdminProfile(admin.id, displayName || admin.display_name, username || admin.username, finalPos);
         }
 
         res.json({ success: true });
     } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+};
+
+exports.deleteProfilePhoto = async (req, res) => {
+    // req.user is set by checkAuth middleware
+    const currentUser = req.user ? req.user.username : null;
+    try {
+        const admin = await db.getAdmin(currentUser);
+        if (!admin) return res.status(404).json({ error: 'User not found' });
+
+        await db.updateAdminPhoto(admin.id, null);
+        
+        const polling = require('../config/polling');
+        polling.triggerUpdate('settings');
+        const socketService = require('../services/socketService');
+        socketService.getIO().emit('settingsUpdated');
+        
+        res.json({ success: true });
+    } catch (e) {
+        console.error("Delete Profile Photo Error:", e);
         res.status(500).json({ error: e.message });
     }
 };

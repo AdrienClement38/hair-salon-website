@@ -145,6 +145,10 @@
     font-family: inherit;
 }
 
+.hidden {
+    display: none !important;
+}
+
 /* Slot Buttons */
 .slot-btn {
     background: #eee;
@@ -267,5 +271,66 @@
 
     100% {
         transform: rotate(360deg);
+    }
+}
+
+/* Worker Visual Selector */
+.worker-visual-selector {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 30px;
+    margin-top: 10px;
+    justify-content: center;
+}
+
+.worker-card {
+    flex: 0 1 120px;
+    background: #fff;
+    border: 2px solid #eee;
+    border-radius: 8px;
+    padding: 5px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.worker-card:hover {
+    border-color: var(--primary);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+.worker-card.selected {
+    border-color: var(--primary);
+    background: #fdfaf3;
+    box-shadow: 0 0 0 2px var(--primary);
+}
+
+.worker-card img {
+    width: 90px;
+    height: 90px;
+    border-radius: 50%;
+    object-fit: cover;
+    margin-bottom: 8px;
+    border: 2px solid #eee;
+    transition: border-color 0.3s ease;
+}
+
+.worker-card.selected img {
+    border-color: var(--primary);
+}
+
+.worker-card .worker-name {
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: #333;
+}
+
+@media (max-width: 480px) {
+    .worker-card {
+        max-width: calc(50% - 8px);
     }
 }

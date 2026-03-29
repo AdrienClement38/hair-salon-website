@@ -52,7 +52,7 @@ export async function pollUpdates() {
         let apptChanged = false;
 
         if (data.needsSettingsUpdate) {
-            console.log('Settings update detected');
+
             lastSettingsTS = data.settingsTimestamp;
             await loadWorkersForFilter(); // Reload workers first to update names
             await loadSettings(); // Then re-render UI (headers, holidays) using new names
@@ -60,7 +60,7 @@ export async function pollUpdates() {
         }
 
         if (data.needsApptUpdate) {
-            console.log('Appt update detected');
+
             lastApptTS = data.apptTimestamp;
             await loadAppointments();
             apptChanged = true;

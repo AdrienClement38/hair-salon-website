@@ -1,5 +1,6 @@
 const db = require('../models/database');
 const bcrypt = require('bcryptjs');
+const socketService = require('../services/socketService');
 
 exports.listWorkers = async (req, res) => {
     try {
@@ -9,6 +10,8 @@ exports.listWorkers = async (req, res) => {
             id: a.id,
             username: a.username,
             displayName: a.display_name,
+            profilePicture: a.profile_picture,
+            profilePicturePosition: a.profilePicturePosition,
             daysOff: a.days_off || [] // Ensure it exists
         }));
         res.json(mapped);
@@ -27,6 +30,7 @@ exports.createWorker = async (req, res) => {
         // Trigger update for public clients
         const polling = require('../config/polling');
         polling.triggerUpdate('settings');
+        socketService.getIO().emit('settingsUpdated');
 
         res.json({ success: true });
     } catch (e) {
@@ -56,7 +60,9 @@ exports.listPublicWorkers = async (req, res) => {
                 id: w.id,
                 name: w.display_name || w.username,
                 daysOff: w.days_off,
-                leaves: futureLeaves
+                leaves: futureLeaves,
+                profilePicture: w.profile_picture,
+                profilePicturePosition: w.profilePicturePosition
             };
         }));
 
@@ -82,8 +88,10 @@ exports.updateWorker = async (req, res) => {
             await db.updateAdminPassword(id, hash);
         }
 
-        if (displayName || username) {
-            await db.updateAdminProfile(id, displayName || admin.display_name, username);
+        if (displayName || username || typeof req.body.profilePicturePosition !== 'undefined') {
+            const finalPos = typeof req.body.profilePicturePosition !== 'undefined' ? 
+                req.body.profilePicturePosition : admin.profilePicturePosition;
+            await db.updateAdminProfile(id, displayName || admin.display_name, username || admin.username, finalPos);
         }
 
         if (daysOff) {
@@ -116,6 +124,7 @@ exports.updateWorker = async (req, res) => {
 
         if (displayName || daysOff) {
             polling.triggerUpdate('settings'); // Trigger public update
+            socketService.getIO().emit('settingsUpdated');
         }
 
         res.json({ success: true });
@@ -140,6 +149,7 @@ exports.deleteWorker = async (req, res) => {
         await db.deleteAdmin(admin.username);
 
         polling.triggerUpdate('settings');
+        socketService.getIO().emit('settingsUpdated');
 
         res.json({ success: true });
     } catch (e) {
@@ -163,6 +173,49 @@ exports.checkDaysOff = async (req, res) => {
         res.json(conflicts);
     } catch (e) {
         console.error("Check Days Off Error:", e);
+        res.status(500).json({ error: e.message });
+    }
+};
+
+exports.updatePhoto = async (req, res) => {
+    const { id } = req.params;
+    if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
+
+    try {
+        const admin = await db.getAdminById(id);
+        if (!admin) return res.status(404).json({ error: 'Worker not found' });
+
+        const filename = `worker-${id}-${Date.now()}`;
+        await db.saveImage(filename, req.file.buffer, req.file.mimetype);
+        
+        // Add extension based on mimetype for the filename stored in admins table
+        let extension = '';
+        if (req.file.mimetype === 'image/jpeg') extension = '.jpg';
+        else if (req.file.mimetype === 'image/png') extension = '.png';
+        else if (req.file.mimetype === 'image/webp') extension = '.webp';
+
+        const finalFilename = `${filename}${extension}`;
+        await db.updateAdminPhoto(id, finalFilename);
+        socketService.getIO().emit('settingsUpdated');
+
+        res.json({ success: true, profilePicture: finalFilename });
+    } catch (e) {
+        console.error("Update Photo Error:", e);
+        res.status(500).json({ error: e.message });
+    }
+};
+
+exports.deletePhoto = async (req, res) => {
+    const { id } = req.params;
+    try {
+        const admin = await db.getAdminById(id);
+        if (!admin) return res.status(404).json({ error: 'Worker not found' });
+
+        await db.updateAdminPhoto(id, null);
+        socketService.getIO().emit('settingsUpdated');
+        res.json({ success: true });
+    } catch (e) {
+        console.error("Delete Photo Error:", e);
         res.status(500).json({ error: e.message });
     }
 };

@@ -1,7 +1,7 @@
 import { API_URL, getHeaders, formatDateDisplay } from './config.js';
 import { currentSchedule, currentLeaves, salonClosingTime, setLeaves, setSchedule } from './state.js';
 import { renderActionButtons } from './ui-components.js';
-import { fetchAndRenderLeaves } from './settings.js';
+import { fetchAndRenderLeaves, updateProfileInputs } from './settings.js';
 
 let appointmentsCache = [];
 let currentCalendarDate = new Date();
@@ -81,10 +81,8 @@ export function initCalendar() {
             localStorage.setItem('adminFilter', val);
             loadAppointments();
 
-            // Auto-fill Profile (if function exists)
-            if (typeof updateProfileInputs === 'function') {
-                updateProfileInputs(val);
-            }
+            // Auto-fill Profile
+            updateProfileInputs(val, currentWorkers);
 
             // Update Leaves List (Management UI - Strict)
             fetchAndRenderLeaves(val);
@@ -104,7 +102,7 @@ export function initCalendar() {
             loadAppointments(); // This refreshes the calendar and day details if open
         });
         socket.on('settingsUpdated', () => {
-            console.log('Settings update received via WebSocket');
+            // Settings update received via WebSocket
             loadCalendarSettings();
         });
     }
@@ -194,7 +192,7 @@ export async function loadWorkersForFilter() {
         select.value = saved;
 
         // Trigger Auto-fill immediately on load if value is present
-        updateProfileInputs(saved);
+        updateProfileInputs(saved, currentWorkers);
 
         loadAppointments();
         fetchAndRenderLeaves(saved);
@@ -213,63 +211,6 @@ export async function loadWorkersForFilter() {
 
 // ...
 
-function updateProfileInputs(adminId) {
-    const profileSection = document.getElementById('profile-section');
-    const profileUser = document.getElementById('profile-username');
-    const profileDisplay = document.getElementById('profile-displayname');
-
-    // Toggle visibility based on selection
-    if (profileSection) {
-        if (!adminId) {
-            profileSection.style.display = 'none';
-        } else {
-            profileSection.style.display = 'block';
-        }
-    }
-
-    const leavesName = document.getElementById('leaves-worker-name');
-    const vacationsWrapper = document.getElementById('vacations-wrapper');
-    const daysOffWrapper = document.getElementById('weekly-days-off-wrapper');
-
-    if (adminId) {
-        // WORKER MODE
-        const worker = currentWorkers.find(w => w.id == adminId);
-        if (worker) {
-            if (profileUser) profileUser.value = worker.username || '';
-            if (profileDisplay) profileDisplay.value = worker.displayName || worker.name || '';
-
-            if (leavesName) leavesName.textContent = `(pour ${worker.displayName || worker.name})`;
-
-            // Show Days Off
-            if (daysOffWrapper) {
-                daysOffWrapper.style.display = 'block';
-                const checkboxes = document.querySelectorAll('.weekly-off-cb');
-                const workerDaysOff = worker.daysOff || [];
-                checkboxes.forEach(cb => {
-                    cb.checked = workerDaysOff.includes(parseInt(cb.value));
-                });
-            }
-
-            // Show Vacations
-            if (vacationsWrapper) vacationsWrapper.style.display = 'block';
-        }
-    } else {
-        // SALON MODE (No adminId selected)
-
-        // Hide Profile Inputs (already done by profileSection logic above)
-        if (profileUser) profileUser.value = '';
-        if (profileDisplay) profileDisplay.value = '';
-
-        // Leaves Title -> Global/Salon
-        if (leavesName) leavesName.textContent = '(Fermetures du Salon)';
-
-        // Hide Weekly Days Off (Salon doesn't use this UI for standard closing days)
-        if (daysOffWrapper) daysOffWrapper.style.display = 'none';
-
-        // Show Vacations (Global Leaves)
-        if (vacationsWrapper) vacationsWrapper.style.display = 'block';
-    }
-}
 
 export async function loadAppointments() {
     if (!localStorage.getItem('auth')) return;

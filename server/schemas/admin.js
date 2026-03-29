@@ -21,7 +21,8 @@ const workerSchema = z.object({
         username: safeString(3, 50),
         displayName: safeString(2, 50),
         password: z.string().min(6, "Le mot de passe doit faire au moins 6 caractères"),
-        daysOff: z.array(z.number().min(0).max(6)).optional()
+        daysOff: z.array(z.number().min(0).max(6)).optional(),
+        profilePicturePosition: z.object({ x: z.number(), y: z.number() }).nullable().optional()
     })
 });
 
@@ -34,6 +35,7 @@ const updateWorkerSchema = z.object({
         displayName: safeString(2, 50).optional(),
         password: z.string().min(6).optional().or(z.literal('')),
         daysOff: z.array(z.number().min(0).max(6)).optional(),
+        profilePicturePosition: z.object({ x: z.number(), y: z.number() }).nullable().optional(),
         sendEmails: z.boolean().optional(),
         forceDelete: z.boolean().optional()
     })

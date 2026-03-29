@@ -84,45 +84,67 @@ export async function initBooking() {
         console.error("Error loading settings for calendar", e);
     }
 
+    // Helper to find First Available Date (up to 60 days)
+    // Now accepts an optional workerId to account for their specific off-days/leaves
+    const findFirstAvailableDate = (workerId = null) => {
+        const checkDate = new Date();
+        const worker = workerId ? availableWorkers.find(w => w.id == workerId) : null;
+
+        for (let i = 0; i < 60; i++) {
+            const day = checkDate.getDay();
+            // Use local date parts to construct YYYY-MM-DD reliably
+            const y = checkDate.getFullYear();
+            const m = String(checkDate.getMonth() + 1).padStart(2, '0');
+            const d = String(checkDate.getDate()).padStart(2, '0');
+            const dateStr = `${y}-${m}-${d}`;
+            
+            let isDisabled = false;
+            
+            // 1. Global Holiday Ranges
+            if (salonSettings.holidayRanges) {
+                if (salonSettings.holidayRanges.some(r => dateStr >= r.start && dateStr <= r.end)) {
+                    isDisabled = true;
+                }
+            }
+            
+            // 2. Global Weekly Closing
+            if (!isDisabled) {
+                if (Array.isArray(salonSettings.openingHours)) {
+                    const dayConfig = salonSettings.openingHours.find(d => d.day === day);
+                    if (dayConfig && !dayConfig.isOpen) isDisabled = true;
+                } else if (salonSettings.openingHours && salonSettings.openingHours.closedDays &&
+                    salonSettings.openingHours.closedDays.includes(day)) {
+                    isDisabled = true;
+                }
+            }
+            
+            // 3. Global Single Holidays
+            if (!isDisabled && salonSettings.holidays && salonSettings.holidays.includes(dateStr)) {
+                isDisabled = true;
+            }
+
+            // 4. Worker Specific Leaves (if workerId provided)
+            if (!isDisabled && worker && worker.leaves) {
+                if (worker.leaves.some(l => dateStr >= l.start_date && dateStr <= l.end_date)) {
+                    isDisabled = true;
+                }
+            }
+
+            // 5. Worker Weekly Off (if workerId provided)
+            if (!isDisabled && worker && worker.daysOff && worker.daysOff.includes(day)) {
+                isDisabled = true;
+            }
+            
+            if (!isDisabled) return checkDate;
+            
+            checkDate.setDate(checkDate.getDate() + 1);
+        }
+        return new Date(); // Fallback to today
+    };
     // 2. Initialize Flatpickr
     const today = new Date();
     const maxDate = new Date();
     maxDate.setMonth(maxDate.getMonth() + 2);
-
-    // Prepare Disable Array
-    const disableRules = [];
-
-    // 1. Add Holiday Ranges (Global Leaves)
-    if (salonSettings.holidayRanges) {
-        salonSettings.holidayRanges.forEach(range => {
-            disableRules.push({ from: range.start, to: range.end });
-        });
-    }
-
-    // 2. Add Function for Weekly Closures & Single Holidays
-    disableRules.push(function (date) {
-        // Check Weekly Closing
-        const day = date.getDay(); // 0 (Sun) to 6 (Sat)
-
-        if (Array.isArray(salonSettings.openingHours)) {
-            const dayConfig = salonSettings.openingHours.find(d => d.day === day);
-            if (dayConfig && !dayConfig.isOpen) {
-                return true;
-            }
-        }
-        else if (salonSettings.openingHours && salonSettings.openingHours.closedDays &&
-            salonSettings.openingHours.closedDays.includes(day)) {
-            return true;
-        }
-
-        // Check Holidays (Single Dates)
-        const dateStr = date.toISOString().split('T')[0];
-        if (salonSettings.holidays && salonSettings.holidays.includes(dateStr)) {
-            return true;
-        }
-
-        return false;
-    });
 
     flatpickrInstance = flatpickr("#date", {
         locale: "fr",
@@ -130,7 +152,6 @@ export async function initBooking() {
         maxDate: maxDate,
         dateFormat: "Y-m-d",
         altInput: true,
-        altFormat: "d-m-Y",
         altFormat: "d-m-Y",
         disableMobile: "true",
         // remove static disable array, we will set it dynamically
@@ -145,7 +166,13 @@ export async function initBooking() {
 
     // Listeners
     workerInput.addEventListener('change', () => {
-        updateCalendarRules();
+        updateCalendarRules(); // Update rules first so setDate doesn't reject valid dates for the new worker
+        const workerId = workerInput.value;
+        if (workerId && flatpickrInstance) {
+            const firstAvailable = findFirstAvailableDate(workerId);
+            flatpickrInstance.setDate(firstAvailable);
+            flatpickrInstance.jumpToDate(firstAvailable);
+        }
         updateSlots();
     });
     serviceInput.addEventListener('change', updateSlots);

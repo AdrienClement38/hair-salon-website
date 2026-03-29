@@ -225,6 +225,34 @@
     grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
     gap: 10px;
     margin-top: 10px;
+    max-height: 400px;
+    /* Limit height and enable scroll */
+    overflow-y: auto;
+    padding-right: 8px;
+    /* Space for scrollbar */
+    scrollbar-width: thin;
+    /* Firefox */
+    scrollbar-color: var(--primary) #f1f1f1;
+    /* Firefox */
+}
+
+/* Premium Scrollbar Styling for Slots Grid */
+.slots-grid::-webkit-scrollbar {
+    width: 6px;
+}
+
+.slots-grid::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 10px;
+}
+
+.slots-grid::-webkit-scrollbar-thumb {
+    background: var(--primary);
+    border-radius: 10px;
+}
+
+.slots-grid::-webkit-scrollbar-thumb:hover {
+    background: var(--primary-hover);
 }
 
 .slots-grid>p,
